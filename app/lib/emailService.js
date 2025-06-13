@@ -7,7 +7,7 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
     }
 
     // Create transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.GOOGLE_SMTP_HOST || 'smtp.gmail.com',
       port: process.env.GOOGLE_SMTP_PORT || 587,
       secure: process.env.SMTP_SECURE === 'true',

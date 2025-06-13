@@ -54,10 +54,19 @@ export async function POST(request) {
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Store verification code
+      // Store verification code - first delete existing, then insert new
+      const { error: deleteError } = await supabase
+        .from('verification_codes')
+        .delete()
+        .eq('account_id', account.account_id);
+
+      if (deleteError) {
+        console.error('Error deleting existing verification code:', deleteError);
+      }
+
       const { error: codeError } = await supabase
         .from('verification_codes')
-        .upsert({
+        .insert({
           account_id: account.account_id,
           code: verificationCode,
           expires_at: expiresAt.toISOString()
@@ -65,6 +74,10 @@ export async function POST(request) {
 
       if (codeError) {
         console.error('Error storing verification code:', codeError);
+        return NextResponse.json(
+          { message: 'Error generating verification code. Please try again.' },
+          { status: 500 }
+        );
       }
 
       // Send verification email using direct service
@@ -90,10 +103,19 @@ export async function POST(request) {
     const loginVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store login verification code
+    // Store login verification code - first delete existing, then insert new
+    const { error: deleteLoginError } = await supabase
+      .from('verification_codes')
+      .delete()
+      .eq('account_id', account.account_id);
+
+    if (deleteLoginError) {
+      console.error('Error deleting existing login verification code:', deleteLoginError);
+    }
+
     const { error: loginCodeError } = await supabase
       .from('verification_codes')
-      .upsert({
+      .insert({
         account_id: account.account_id,
         code: loginVerificationCode,
         expires_at: expiresAt.toISOString()
@@ -101,6 +123,10 @@ export async function POST(request) {
 
     if (loginCodeError) {
       console.error('Error storing login verification code:', loginCodeError);
+      return NextResponse.json(
+        { message: 'Error generating login verification code. Please try again.' },
+        { status: 500 }
+      );
     }
 
     // Send login verification email using direct service
