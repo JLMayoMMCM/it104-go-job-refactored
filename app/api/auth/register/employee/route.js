@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
+import { sendVerificationEmail } from '../../../../lib/emailService';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
@@ -189,38 +190,30 @@ export async function POST(request) {
       console.error('Error storing verification code:', codeError);
     }
 
-    // Send verification email to company email
+    // Send verification email to company email using direct service
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-verification-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: companyData.company_email,
-          code: verificationCode,
-          type: 'employee_registration',
-          name: firstName,
-          lastName: lastName,
-          position: positionName,
-          companyName: companyData.company_name,
-          employeeEmail: email
-        })
+      await sendVerificationEmail({
+        email: companyData.company_email,
+        code: verificationCode,
+        type: 'employee_registration',
+        name: firstName,
+        lastName: lastName,
+        position: positionName,
+        companyName: companyData.company_name,
+        employeeEmail: email
       });
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
     }
 
-    // Also send notification to employee's email
+    // Also send notification to employee's email using direct service
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-verification-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          code: verificationCode,
-          type: 'employee_registration_notification',
-          name: firstName,
-          companyName: companyData.company_name
-        })
+      await sendVerificationEmail({
+        email: email,
+        code: verificationCode,
+        type: 'employee_registration_notification',
+        name: firstName,
+        companyName: companyData.company_name
       });
     } catch (emailError) {
       console.error('Error sending employee notification email:', emailError);

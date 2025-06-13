@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
+import { sendVerificationEmail } from '../../../lib/emailService';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
@@ -66,16 +67,12 @@ export async function POST(request) {
         console.error('Error storing verification code:', codeError);
       }
 
-      // Send verification email (you'll need to implement email sending)
+      // Send verification email using direct service
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-verification-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: account.account_email,
-            code: verificationCode,
-            type: 'registration'
-          })
+        await sendVerificationEmail({
+          email: account.account_email,
+          code: verificationCode,
+          type: 'registration'
         });
       } catch (emailError) {
         console.error('Error sending verification email:', emailError);
@@ -106,16 +103,12 @@ export async function POST(request) {
       console.error('Error storing login verification code:', loginCodeError);
     }
 
-    // Send login verification email
+    // Send login verification email using direct service
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-verification-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: account.account_email,
-          code: loginVerificationCode,
-          type: 'login'
-        })
+      await sendVerificationEmail({
+        email: account.account_email,
+        code: loginVerificationCode,
+        type: 'login'
       });
     } catch (emailError) {
       console.error('Error sending login verification email:', emailError);

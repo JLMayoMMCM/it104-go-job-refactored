@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
+import { sendVerificationEmail } from '../../../lib/emailService';
 
 export async function POST(request) {
   try {
@@ -104,18 +105,14 @@ export async function POST(request) {
       );
     }
 
-    // Send verification email
+    // Send verification email using direct service
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-verification-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email,
-          code: verificationCode,
-          type: type === 'company' ? 'company_registration' : 'registration',
-          name: name,
-          companyName: type === 'company' ? name : undefined
-        })
+      await sendVerificationEmail({
+        email: email,
+        code: verificationCode,
+        type: type === 'company' ? 'company_registration' : 'registration',
+        name: name,
+        companyName: type === 'company' ? name : undefined
       });
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
