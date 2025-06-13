@@ -91,13 +91,28 @@ function LoginVerificationContent() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store session data or token if needed
+        // Store session data
         if (data.token) {
           localStorage.setItem('authToken', data.token);
         }
         
-        // Redirect to dashboard
-        router.push('/Dashboard');
+        // Store user information for dashboard access
+        localStorage.setItem('accountId', data.user.id);
+        localStorage.setItem('accountType', data.user.accountType);
+        localStorage.setItem('userEmail', data.user.email);
+        localStorage.setItem('username', data.user.username);
+        
+        // Route based on account type
+        if (data.user.accountType === 1) {
+          // Company/Employee account
+          router.push('/Dashboard/employee');
+        } else if (data.user.accountType === 2) {
+          // Job Seeker account
+          router.push('/Dashboard/jobseeker');
+        } else {
+          // Unknown account type, fallback to generic dashboard
+          router.push('/Dashboard');
+        }
       } else {
         setError(data.message || 'Verification failed');
       }

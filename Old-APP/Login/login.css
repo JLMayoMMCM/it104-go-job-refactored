@@ -1,0 +1,283 @@
+/* Login Page Styles */
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #5585b5 0%, #53a8b6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.login-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(85, 133, 181, 0.2);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: #5585b5;
+  margin-bottom: 30px;
+  font-style: italic;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+}
+
+.user-type-toggle {
+  display: flex;
+  background: #bbe4e9;
+  border-radius: 25px;
+  padding: 4px;
+  margin-bottom: 30px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  color: #5585b5;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn.active {
+  background: #5585b5;
+  color: white;
+  box-shadow: 0 2px 10px rgba(85, 133, 181, 0.3);
+}
+
+.login-form {
+  margin-bottom: 20px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #bbe4e9;
+  border-radius: 8px;
+  font-size: 16px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #5585b5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(85, 133, 181, 0.1);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #53a8b6;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.forgot-password-btn:hover {
+  color: #5585b5;
+}
+
+.login-btn {
+  background: #5585b5;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.login-btn:hover {
+  background: #53a8b6;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(85, 133, 181, 0.3);
+}
+
+.google-login-btn {
+  width: 100%;
+  background: #79c2d0;
+  color: #2c3e50;
+  border: none;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.google-login-btn:hover {
+  background: #53a8b6;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(121, 194, 208, 0.3);
+}
+
+.signup-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+.signup-btn {
+  background: none;
+  border: none;
+  color: #53a8b6;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.signup-btn:hover {
+  color: #5585b5;
+}
+
+.support-section {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+}
+
+.support-btn {
+  background: #79c2d0;
+  color: #2c3e50;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.support-btn:hover {
+  background: #53a8b6;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.error-message {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+  font-size: 14px;
+}
+
+/* Forgot Password Page Styles */
+.login-subtitle {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 30px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.success-message {
+  background: #79c2d0;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.back-btn {
+  background: none;
+  border: 2px solid #bbe4e9;
+  color: #5585b5;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.back-btn:hover {
+  background: #bbe4e9;
+  border-color: #79c2d0;
+  transform: translateY(-2px);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .support-section {
+    position: static;
+    margin-top: 20px;
+    text-align: center;
+  }
+}

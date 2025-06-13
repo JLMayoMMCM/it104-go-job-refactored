@@ -16,7 +16,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(nationalities);
+    return NextResponse.json({
+      success: true,
+      data: nationalities
+    });
   } catch (error) {
     console.error('Error fetching nationalities:', error);
     return NextResponse.json(

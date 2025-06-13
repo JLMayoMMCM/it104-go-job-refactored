@@ -1,0 +1,201 @@
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 18px;
+}
+
+.dashboard-container {
+  min-height: 100vh;
+  background: #bbe4e9;
+}
+
+.dashboard-main {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.welcome-section h2 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-section p {
+  color: #6c757d;
+  font-size: 1.2rem;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.jobs-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 10px rgba(85, 133, 181, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.view-all-btn, .add-job-btn {
+  background: #5585b5;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.view-all-btn:hover, .add-job-btn:hover {
+  background: #53a8b6;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(85, 133, 181, 0.3);
+}
+
+.add-job-btn {
+  background: #79c2d0;
+  color: #2c3e50;
+}
+
+.add-job-btn:hover {
+  background: #53a8b6;
+  color: white;
+  box-shadow: 0 5px 15px rgba(121, 194, 208, 0.3);
+}
+
+.jobs-scroll-container {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.jobs-list {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+  min-width: min-content;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  border-left: 4px solid #5585b5;
+}
+
+.stat-card h3 {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #5585b5;
+  margin: 1rem 0;
+}
+
+.stat-label {
+  color: #999;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding: 1rem;
+  }
+  
+  .jobs-section {
+    padding: 1.5rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .view-all-btn, .add-job-btn {
+    text-align: center;
+  }
+  
+  .jobs-list {
+    gap: 1rem;
+  }
+  
+  .stats-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    padding: 1.5rem;
+  }
+  
+  .welcome-section h2 {
+    font-size: 1.5rem;
+  }
+  
+  .welcome-section p {
+    font-size: 1rem;
+  }
+}
+
+/* Scrollbar styling for jobs list */
+.jobs-scroll-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.jobs-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.jobs-scroll-container::-webkit-scrollbar-thumb {
+  background: #5585b5;
+  border-radius: 4px;
+}
+
+.jobs-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #53a8b6;
+}

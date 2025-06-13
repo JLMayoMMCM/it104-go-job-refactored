@@ -16,7 +16,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(experienceLevels);
+    return NextResponse.json({
+      success: true,
+      data: experienceLevels
+    });
   } catch (error) {
     console.error('Error fetching experience levels:', error);
     return NextResponse.json(
