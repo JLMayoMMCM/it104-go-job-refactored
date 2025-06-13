@@ -1,4 +1,4 @@
-dddddddddddddddddddddddd-- SQL DOCUMENTATION BY JONATHAN LANCE MAYO --
+-- SQL DOCUMENTATION BY JONATHAN LANCE MAYO --
 -- This script creates the necessary tables for a job portal system.
 
 -- Drop existing tables if they exist to avoid conflicts with existing data
@@ -97,7 +97,7 @@ CREATE TABLE account (
   account_profile_photo BYTEA,
   account_resume BYTEA,
   account_phone VARCHAR(20),
-  account_number   VARCHAR(20) NOT NULL UNIQUE,
+  account_number   VARCHAR(30) NOT NULL UNIQUE,
   account_password VARCHAR(100) NOT NULL,
   account_type_id  INTEGER     NOT NULL REFERENCES account_type(account_type_id) ON DELETE CASCADE,
   account_is_verified BOOLEAN DEFAULT FALSE
@@ -119,7 +119,7 @@ CREATE TABLE company (
   company_name VARCHAR(100) NOT NULL,
   company_email VARCHAR(100) NOT NULL UNIQUE,
   company_rating NUMERIC(3, 2) DEFAULT 0.00,
-  company_phone VARCHAR(20),
+  company_phone VARCHAR(25),
   company_website VARCHAR(100),
   company_description TEXT,
   company_logo BYTEA,
