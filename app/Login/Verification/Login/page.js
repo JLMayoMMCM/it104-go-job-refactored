@@ -1,10 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 
-export default function LoginVerificationPage() {
+// Loading component that matches the page design
+function LoginVerificationLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="mx-auto h-24 w-auto mb-4">
+            <Image
+              src="/Assets/Title.png"
+              alt="GoJob Logo"
+              width={200}
+              height={96}
+              className="mx-auto"
+              priority
+            />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900">Loading...</h2>
+          <p className="mt-2 text-gray-600 text-sm">
+            Please wait while we prepare your login verification page.
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-12 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Component that uses useSearchParams - will be wrapped in Suspense
+function LoginVerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [verificationCode, setVerificationCode] = useState('');
@@ -237,5 +271,14 @@ export default function LoginVerificationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function LoginVerificationPage() {
+  return (
+    <Suspense fallback={<LoginVerificationLoading />}>
+      <LoginVerificationContent />
+    </Suspense>
   );
 }
