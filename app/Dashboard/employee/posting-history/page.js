@@ -34,19 +34,42 @@ export default function PostingHistoryPage() {
     }
   };
 
+  const handleViewJob = (jobId) => {
+    router.push(`/Dashboard/employee/view-job/${jobId}`);
+  };
+
   const handleJobAction = async (jobId, action) => {
     try {
       const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch(`/api/employee/jobs/${jobId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accountId,
-          job_is_active: action === 'reactivate'
-        }),
-      });
+      let response;
+      
+      if (action === 'reactivate') {
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=enable`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else if (action === 'disable') {
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=disable`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else if (action === 'delete') {
+        if (!confirm(`Are you sure you want to permanently delete this job posting? This action cannot be undone.`)) {
+          return;
+        }
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else {
+        return;
+      }
 
       const data = await response.json();
 
@@ -55,9 +78,17 @@ export default function PostingHistoryPage() {
       }
 
       if (data.success) {
-        setAllJobs(allJobs.map(job => 
-          job.job_id === jobId ? { ...job, job_is_active: action === 'reactivate' } : job
-        ));
+        if (action === 'reactivate') {
+          setAllJobs(allJobs.map(job => 
+            job.job_id === jobId ? { ...job, job_is_active: true } : job
+          ));
+        } else if (action === 'disable') {
+          setAllJobs(allJobs.map(job => 
+            job.job_id === jobId ? { ...job, job_is_active: false } : job
+          ));
+        } else if (action === 'delete') {
+          setAllJobs(allJobs.filter(job => job.job_id !== jobId));
+        }
       }
     } catch (error) {
       console.error(`Error ${action} job posting:`, error);
@@ -172,6 +203,12 @@ export default function PostingHistoryPage() {
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <button
+                        onClick={() => handleViewJob(job.job_id)}
+                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+                      >
+                        View
+                      </button>
+                      <button
                         onClick={() => handleJobAction(job.job_id, 'disable')}
                         className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
                       >
@@ -248,10 +285,22 @@ export default function PostingHistoryPage() {
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <button
+                        onClick={() => handleViewJob(job.job_id)}
+                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+                      >
+                        View
+                      </button>
+                      <button
                         onClick={() => handleJobAction(job.job_id, 'reactivate')}
                         className="px-4 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
                       >
                         Reactivate
+                      </button>
+                      <button
+                        onClick={() => handleJobAction(job.job_id, 'delete')}
+                        className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                      >
+                        Delete
                       </button>
                     </div>
                   </div>

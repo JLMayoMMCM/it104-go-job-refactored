@@ -110,7 +110,9 @@ export async function PUT(request) {
       barangay_name,
       city_name,
       // Employee fields
-      position_name
+      position_name,
+      // Profile photo (optional)
+      profile_photo
     } = body;
 
     if (!accountId || !password) {
@@ -191,11 +193,18 @@ export async function PUT(request) {
     }
 
     // Update account
+    const accountUpdateData = {
+      account_phone
+    };
+    
+    // Only update profile photo if provided
+    if (profile_photo) {
+      accountUpdateData.account_profile_photo = profile_photo;
+    }
+    
     const { error: accountUpdateError } = await supabase
       .from('account')
-      .update({
-        account_phone
-      })
+      .update(accountUpdateData)
       .eq('account_id', accountId);
 
     if (accountUpdateError) {

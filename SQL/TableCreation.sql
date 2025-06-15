@@ -193,7 +193,6 @@ CREATE TABLE job (
   job_salary      NUMERIC(10, 2),
   job_time        VARCHAR(50),
   job_posted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  job_hiring_date TIMESTAMP,
   job_closing_date TIMESTAMP,
   job_is_active   BOOLEAN DEFAULT TRUE
 );

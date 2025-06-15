@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function AddJobPage() {
+export default function EditJobPage() {
+  const router = useRouter();
+  const params = useParams();
+  const jobId = params.jobId;
+
   // Get current date in YYYY-MM-DD format
   const getCurrentDate = () => {
     const today = new Date();
@@ -39,11 +43,11 @@ export default function AddJobPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     fetchData();
-  }, []);
+    fetchJobDetails();
+  }, [jobId]);
 
   const fetchData = async () => {
     try {
@@ -80,6 +84,39 @@ export default function AddJobPage() {
       setError('Failed to load form data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchJobDetails = async () => {
+    try {
+      const accountId = localStorage.getItem('accountId') || '1';
+      const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch job details');
+      }
+
+      if (data.success && data.data) {
+        const job = data.data;
+        setFormData({
+          job_name: job.job_name || '',
+          job_description: job.job_description || '',
+          job_location: job.job_location || '',
+          job_quantity: job.job_quantity || 1,
+          job_requirements: job.job_requirements || '',
+          job_benefits: job.job_benefits || '',
+          job_type_id: job.job_type?.job_type_id || '',
+          job_experience_level_id: job.experience_level?.job_seeker_experience_level_id || '',
+          job_salary: job.job_salary || '',
+          job_time: job.job_time || '',
+          job_closing_date: job.job_closing_date ? new Date(job.job_closing_date).toISOString().split('T')[0] : '',
+          selected_categories: job.job_category_list?.map(cat => String(cat.job_category?.job_category_id || cat.job_category_id)) || []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching job details:', error);
+      setError(error.message);
     }
   };
 
@@ -130,13 +167,12 @@ export default function AddJobPage() {
 
     try {
       const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch('/api/employee/jobs', {
-        method: 'POST',
+      const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          accountId,
           ...formData
         }),
       });
@@ -144,14 +180,14 @@ export default function AddJobPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create job posting');
+        throw new Error(data.error || 'Failed to update job posting');
       }
 
       if (data.success) {
         router.push('/Dashboard/employee/all-postings');
       }
     } catch (error) {
-      console.error('Error creating job posting:', error);
+      console.error('Error updating job posting:', error);
       setError(error.message);
     } finally {
       setSubmitting(false);
@@ -170,8 +206,8 @@ export default function AddJobPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Add New Job Posting</h1>
-        <p className="text-gray-600">Create a new job listing to attract candidates</p>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Job Posting</h1>
+        <p className="text-gray-600">Update details for this job listing</p>
       </div>
 
       {/* Form */}
@@ -371,7 +407,7 @@ export default function AddJobPage() {
           <div className="border-t border-gray-200 pt-4">
             <h4 className="text-lg font-medium text-gray-900 mb-2">Job Categories</h4>
             <p className="text-sm text-gray-600 mb-4">Select all relevant categories for this job (minimum 1)</p>
-              <div className="space-y-6">
+            <div className="space-y-6">
               {jobFields?.map(field => (
                 <div key={field.category_field_id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h5 className="text-base font-medium text-gray-900 mb-2">{field.category_field_name}</h5>
@@ -412,7 +448,7 @@ export default function AddJobPage() {
               disabled={submitting || formData.selected_categories.length === 0}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Posting...' : 'Post Job'}
+              {submitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

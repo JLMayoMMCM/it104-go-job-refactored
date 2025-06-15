@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AllPostingsPage() {
-  const [activeJobs, setActiveJobs] = useState([]);
+  const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function AllPostingsPage() {
   const fetchJobs = async () => {
     try {
       const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch(`/api/employee/jobs?accountId=${accountId}&status=active`);
+      const response = await fetch(`/api/employee/jobs?accountId=${accountId}&status=all`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -24,7 +24,7 @@ export default function AllPostingsPage() {
       }
 
       if (data.success) {
-        setActiveJobs(data.data);
+        setAllJobs(data.data);
       }
     } catch (error) {
       console.error('Error fetching job postings:', error);
@@ -34,33 +34,64 @@ export default function AllPostingsPage() {
     }
   };
 
+  const handleViewJob = (jobId) => {
+    router.push(`/Dashboard/employee/view-job/${jobId}`);
+  };
+
+  const handleEditJob = (jobId) => {
+    router.push(`/Dashboard/employee/edit-job/${jobId}`);
+  };
+
   const handleJobAction = async (jobId, action) => {
     try {
-      if (action === 'view') {
-        router.push(`/Dashboard/employee/all-postings/view/${jobId}`);
-      } else if (action === 'edit') {
-        router.push(`/Dashboard/employee/all-postings/edit/${jobId}`);
-      } else if (action === 'disable') {
-        const accountId = localStorage.getItem('accountId') || '1';
-        const response = await fetch(`/api/employee/jobs/${jobId}`, {
-          method: 'PUT',
+      const accountId = localStorage.getItem('accountId') || '1';
+      let response;
+      
+      if (action === 'reactivate') {
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=enable`, {
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            accountId,
-            job_is_active: false
-          }),
+          }
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to disable job posting');
+      } else if (action === 'disable') {
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=disable`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else if (action === 'delete') {
+        if (!confirm(`Are you sure you want to permanently delete this job posting? This action cannot be undone.`)) {
+          return;
         }
+        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else {
+        return;
+      }
 
-        if (data.success) {
-          setActiveJobs(activeJobs.filter(job => job.job_id !== jobId));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to ${action} job posting`);
+      }
+
+      if (data.success) {
+        if (action === 'reactivate') {
+          setAllJobs(allJobs.map(job => 
+            job.job_id === jobId ? { ...job, job_is_active: true } : job
+          ));
+        } else if (action === 'disable') {
+          setAllJobs(allJobs.map(job => 
+            job.job_id === jobId ? { ...job, job_is_active: false } : job
+          ));
+        } else if (action === 'delete') {
+          setAllJobs(allJobs.filter(job => job.job_id !== jobId));
         }
       }
     } catch (error) {
@@ -108,8 +139,8 @@ export default function AllPostingsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Active Job Postings</h1>
-          <p className="text-gray-600">Manage your current job listings</p>
+          <h1 className="text-2xl font-bold text-gray-900">All Job Postings</h1>
+          <p className="text-gray-600">Manage all your job postings</p>
         </div>
         <button
           onClick={() => router.push('/Dashboard/employee/add-job')}
@@ -125,26 +156,18 @@ export default function AllPostingsPage() {
       {/* Job Postings */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Active Postings ({activeJobs.length})</h3>
-            <button
-              onClick={() => router.push('/Dashboard/employee/posting-history')}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              View Posting History
-            </button>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">All Postings ({allJobs.length})</h3>
         </div>
         <div className="p-6">
-          {activeJobs.length > 0 ? (
+          {allJobs.length > 0 ? (
             <div className="space-y-4">
-              {activeJobs.map(job => (
-                <div key={job.job_id} className="border border-green-200 rounded-xl p-6 bg-green-50 hover:shadow-lg transition-all duration-200">
+              {allJobs.map(job => (
+                <div key={job.job_id} className={`border ${job.job_is_active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'} rounded-xl p-6 hover:shadow-lg transition-all duration-200`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h4 className="text-lg font-semibold text-gray-900">{job.job_name}</h4>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
+                        <span className={`px-2 py-1 ${job.job_is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} text-xs font-medium rounded-full`}>{job.job_is_active ? 'Active' : 'Inactive'}</span>
                       </div>
                       <div className="flex items-center space-x-6 text-sm text-gray-500 mb-3">
                         <div className="flex items-center space-x-1">
@@ -181,23 +204,40 @@ export default function AllPostingsPage() {
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <button
-                        onClick={() => handleJobAction(job.job_id, 'view')}
+                        onClick={() => handleViewJob(job.job_id)}
                         className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
                       >
                         View
                       </button>
                       <button
-                        onClick={() => handleJobAction(job.job_id, 'edit')}
+                        onClick={() => handleEditJob(job.job_id)}
                         className="px-4 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors font-medium"
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleJobAction(job.job_id, 'disable')}
-                        className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
-                      >
-                        Disable
-                      </button>
+                      {job.job_is_active ? (
+                        <button
+                          onClick={() => handleJobAction(job.job_id, 'disable')}
+                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                        >
+                          Disable
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleJobAction(job.job_id, 'reactivate')}
+                            className="px-4 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
+                          >
+                            Reactivate
+                          </button>
+                          <button
+                            onClick={() => handleJobAction(job.job_id, 'delete')}
+                            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -208,15 +248,12 @@ export default function AllPostingsPage() {
               <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No active job postings</h3>
-              <p className="mt-1 text-gray-500">Get started by creating a new job posting to attract talented candidates.</p>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">No job postings</h3>
+              <p className="mt-1 text-gray-500">You don't have any job postings at the moment.</p>
               <button
                 onClick={() => router.push('/Dashboard/employee/add-job')}
-                className="mt-4 inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
                 Create New Job Posting
               </button>
             </div>

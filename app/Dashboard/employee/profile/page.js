@@ -136,6 +136,11 @@ export default function ProfilePage() {
                   src={profile.profile_photo}
                   alt="Profile"
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
+                    console.error('Error loading profile image:', profile.profile_photo);
+                  }}
                 />
               ) : (
                 <div className="h-full w-full bg-gray-200 flex items-center justify-center">

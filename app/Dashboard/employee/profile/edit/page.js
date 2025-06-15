@@ -112,62 +112,37 @@ export default function EditProfilePage() {
     };
     reader.readAsDataURL(file);
 
-    // Upload photo
-    setPhotoUploading(true);
-    try {
-      const accountId = localStorage.getItem('accountId') || '1';
-      const formData = new FormData();
-      formData.append('photo', file);
-      formData.append('accountId', accountId);
+    // Store the file object for upload
+    setFormData(prev => ({
+      ...prev,
+      profile_photo: file
+    }));
 
-      const response = await fetch('/api/employee/profile/photo', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload photo');
-      }
-
-      if (data.success) {
-        setFormData(prev => ({
-          ...prev,
-          profile_photo: photoPreview
-        }));
-      }
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      setError(error.message);
-    } finally {
-      setPhotoUploading(false);
-    }
+    // No separate upload needed, photo will be saved with form submission
+    setPhotoUploading(false);
   };
 
   const handleRemovePhoto = async () => {
-    try {
-      const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch(`/api/employee/profile/photo?accountId=${accountId}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to remove photo');
+    setFormData(prev => ({
+      ...prev,
+      profile_photo: ''
+    }));
+    setPhotoPreview('');
+    
+    // If there was an existing photo, send request to delete it
+    if (formData.profile_photo && typeof formData.profile_photo === 'string') {
+      try {
+        const accountId = localStorage.getItem('accountId') || '1';
+        const response = await fetch(`/api/employee/profile/photo?accountId=${accountId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to delete profile photo');
+        }
+      } catch (error) {
+        console.error('Error deleting profile photo:', error);
       }
-
-      if (data.success) {
-        setFormData(prev => ({
-          ...prev,
-          profile_photo: ''
-        }));
-        setPhotoPreview('');
-      }
-    } catch (error) {
-      console.error('Error removing photo:', error);
-      setError(error.message);
     }
   };
 
@@ -178,24 +153,56 @@ export default function EditProfilePage() {
 
     try {
       const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch('/api/employee/profile', {
+      
+      // First update profile data
+      const profileResponse = await fetch('/api/employee/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           accountId,
-          ...formData
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          middle_name: formData.middle_name,
+          date_of_birth: formData.date_of_birth,
+          gender_id: formData.gender_id,
+          nationality_id: formData.nationality_id,
+          phone: formData.phone,
+          position_name: formData.position_name,
+          premise_name: formData.premise_name,
+          street_name: formData.street_name,
+          barangay_name: formData.barangay_name,
+          city_name: formData.city_name,
+          password: formData.password
         }),
       });
 
-      const data = await response.json();
+      const profileData = await profileResponse.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
+      if (!profileResponse.ok) {
+        throw new Error(profileData.error || 'Failed to update profile');
       }
 
-      if (data.success) {
+      // If there's a new profile photo, upload it separately
+      if (formData.profile_photo && typeof formData.profile_photo !== 'string') {
+        const photoFormData = new FormData();
+        photoFormData.append('photo', formData.profile_photo);
+        photoFormData.append('accountId', accountId);
+
+        const photoResponse = await fetch('/api/employee/profile/photo', {
+          method: 'POST',
+          body: photoFormData,
+        });
+
+        const photoData = await photoResponse.json();
+
+        if (!photoResponse.ok) {
+          throw new Error(photoData.error || 'Failed to upload profile photo');
+        }
+      }
+
+      if (profileData.success) {
         router.push('/Dashboard/employee/profile');
       }
     } catch (error) {
@@ -257,11 +264,15 @@ export default function EditProfilePage() {
                     alt="Preview"
                     className="h-full w-full object-cover"
                   />
-                ) : formData.profile_photo ? (
+                ) : formData.profile_photo && typeof formData.profile_photo === 'string' ? (
                   <img
                     src={formData.profile_photo}
                     alt="Current Profile"
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
+                    }}
                   />
                 ) : (
                   <div className="h-full w-full bg-gray-200 flex items-center justify-center">

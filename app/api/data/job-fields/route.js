@@ -58,7 +58,7 @@ export async function GET(request) {
         }));
       return {
         ...field,
-        categories: fieldCategories
+        job_categories: fieldCategories
       };
     });
 

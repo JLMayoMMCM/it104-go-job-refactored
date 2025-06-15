@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Initialize Supabase client for database and storage operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -17,9 +18,9 @@ export async function POST(request) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, { status: 400 });
     }
 
     // Validate file size (5MB max)
@@ -28,16 +29,38 @@ export async function POST(request) {
       return NextResponse.json({ error: 'File size too large. Maximum 5MB allowed.' }, { status: 400 });
     }
 
-    // Convert file to base64
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Image = `data:${file.type};base64,${buffer.toString('base64')}`;
+    // Generate a unique filename
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${accountId}-${Date.now()}.${fileExtension}`;
+    const filePath = `photos/${fileName}`;
 
-    // Update account with profile photo as base64
+    // Upload file to Supabase Storage using native Supabase method
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('profile')
+      .upload(filePath, fileBuffer, {
+        contentType: file.type,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      return NextResponse.json({ error: 'Failed to upload profile photo to storage: ' + uploadError.message }, { status: 500 });
+    }
+
+    // Generate a public URL for the uploaded file
+    const { data: publicUrlData } = supabase
+      .storage
+      .from('profile')
+      .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData.publicUrl;
+
+    // Update account with profile photo URL
     const { error: updateError } = await supabase
       .from('account')
       .update({
-        account_profile_photo: base64Image
+        account_profile_photo: publicUrl
       })
       .eq('account_id', accountId);
 
@@ -66,7 +89,38 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
-    // Remove profile photo
+    // First get the current profile photo URL to extract the file path
+    const { data: accountData, error: fetchError } = await supabase
+      .from('account')
+      .select('account_profile_photo')
+      .eq('account_id', accountId)
+      .single();
+
+    if (fetchError) {
+      console.error('Database fetch error:', fetchError);
+      return NextResponse.json({ error: 'Failed to fetch current profile photo' }, { status: 500 });
+    }
+
+    // If there's a photo, extract the file path and delete it from storage
+    if (accountData && accountData.account_profile_photo) {
+      const url = accountData.account_profile_photo;
+      // Extract the file path from the URL (last two segments which should be the subfolder and filename)
+      const filePathSegments = url.split('/profile/')[1]?.split('?')[0];
+      const filePath = filePathSegments || '';
+
+      if (filePath) {
+        const { error: deleteError } = await supabase.storage
+          .from('profile')
+          .remove([filePath]);
+
+        if (deleteError) {
+          console.error('Storage delete error:', deleteError);
+          // Don't fail the request if storage deletion fails, just log the error
+        }
+      }
+    }
+
+    // Remove profile photo reference from database
     const { error: updateError } = await supabase
       .from('account')
       .update({

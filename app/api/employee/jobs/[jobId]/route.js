@@ -8,15 +8,15 @@ const supabase = createClient(
 
 export async function GET(request, { params }) {
   try {
-    const jobId = params.jobId;
+    const jobId = (await params).jobId;
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('accountId');
 
-    if (!jobId || !accountId) {
-      return NextResponse.json({ error: 'Job ID and Account ID are required' }, { status: 400 });
+    if (!accountId) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
-    // Verify employee has access to this job
+    // Get employee's company_id first
     const { data: employee, error: empError } = await supabase
       .from('employee')
       .select('company_id')
@@ -27,8 +27,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Get job details
-    const { data: job, error } = await supabase
+    // Fetch job details with company_id verification
+    const { data: job, error: jobError } = await supabase
       .from('job')
       .select(`
         job_id,
@@ -65,25 +65,41 @@ export async function GET(request, { params }) {
         )
       `)
       .eq('job_id', jobId)
+      .eq('company_id', employee.company_id)
       .single();
 
-    if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 });
+    if (jobError || !job) {
+      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
     }
 
-    if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    }
+    // Get applicant counts
+    const { data: requests, error: requestError } = await supabase
+      .from('job_requests')
+      .select('request_status')
+      .eq('job_id', jobId);
 
-    // Verify job belongs to employee's company
-    if (job.company_id !== employee.company_id) {
-      return NextResponse.json({ error: 'Unauthorized access to job' }, { status: 403 });
+    let applicantData = {
+      applicant_count: 0,
+      accepted_count: 0,
+      denied_count: 0,
+      pending_count: 0
+    };
+
+    if (!requestError && requests) {
+      applicantData = {
+        applicant_count: requests.length,
+        accepted_count: requests.filter(req => req.request_status === 'accepted').length,
+        denied_count: requests.filter(req => req.request_status === 'denied').length,
+        pending_count: requests.filter(req => req.request_status === 'pending').length
+      };
     }
 
     return NextResponse.json({
       success: true,
-      data: job
+      data: {
+        ...job,
+        ...applicantData
+      }
     });
 
   } catch (error) {
@@ -94,7 +110,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const jobId = params.jobId;
+    const jobId = (await params).jobId;
     const body = await request.json();
     const {
       accountId,
@@ -113,11 +129,11 @@ export async function PUT(request, { params }) {
       selected_categories
     } = body;
 
-    if (!jobId || !accountId) {
-      return NextResponse.json({ error: 'Job ID and Account ID are required' }, { status: 400 });
+    if (!accountId) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
-    // Verify employee has access to this job
+    // Get employee's company_id
     const { data: employee, error: empError } = await supabase
       .from('employee')
       .select('company_id')
@@ -128,37 +144,34 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Verify job exists and belongs to company
-    const { data: existingJob, error: jobCheckError } = await supabase
+    // Verify job belongs to employee's company
+    const { data: job, error: jobError } = await supabase
       .from('job')
       .select('company_id')
       .eq('job_id', jobId)
+      .eq('company_id', employee.company_id)
       .single();
 
-    if (jobCheckError || !existingJob) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (jobError || !job) {
+      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
     }
 
-    if (existingJob.company_id !== employee.company_id) {
-      return NextResponse.json({ error: 'Unauthorized access to job' }, { status: 403 });
-    }
-
-    // Update job
+    // Update job details
     const { error: updateError } = await supabase
       .from('job')
       .update({
-        job_name,
-        job_description,
-        job_location,
-        job_quantity: job_quantity || 1,
-        job_requirements,
-        job_benefits,
-        job_type_id,
-        job_experience_level_id: job_experience_level_id || null,
-        job_salary: job_salary || null,
-        job_time,
-        job_hiring_date: job_hiring_date || null,
-        job_closing_date: job_closing_date || null
+        job_name: job_name || job.job_name,
+        job_description: job_description || job.job_description,
+        job_location: job_location || job.job_location,
+        job_quantity: job_quantity || job.job_quantity,
+        job_requirements: job_requirements || job.job_requirements,
+        job_benefits: job_benefits || job.job_benefits,
+        job_type_id: job_type_id || job.job_type_id,
+        job_experience_level_id: job_experience_level_id || job.job_experience_level_id,
+        job_salary: job_salary || job.job_salary,
+        job_time: job_time || job.job_time,
+        job_hiring_date: job_hiring_date || job.job_hiring_date,
+        job_closing_date: job_closing_date || job.job_closing_date
       })
       .eq('job_id', jobId);
 
@@ -167,9 +180,9 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
     }
 
-    // Update job categories if provided
-    if (selected_categories && Array.isArray(selected_categories)) {
-      // Remove existing category links
+    // Update categories if provided
+    if (selected_categories && selected_categories.length > 0) {
+      // First delete existing category links
       const { error: deleteError } = await supabase
         .from('job_category_list')
         .delete()
@@ -177,97 +190,30 @@ export async function PUT(request, { params }) {
 
       if (deleteError) {
         console.error('Category deletion error:', deleteError);
-        return NextResponse.json({ error: 'Failed to update job categories' }, { status: 500 });
+        // Continue anyway, we'll try to insert new ones
       }
 
-      // Add new category links
-      if (selected_categories.length > 0) {
-        const categoryLinks = selected_categories.map(categoryId => ({
-          job_id: parseInt(jobId),
-          job_category_id: categoryId
-        }));
+      // Then insert new category links
+      const categoryLinks = selected_categories.map(categoryId => ({
+        job_id: jobId,
+        job_category_id: categoryId
+      }));
 
-        const { error: categoryError } = await supabase
-          .from('job_category_list')
-          .insert(categoryLinks);
+      const { error: categoryError } = await supabase
+        .from('job_category_list')
+        .insert(categoryLinks);
 
-        if (categoryError) {
-          console.error('Category linking error:', categoryError);
-          return NextResponse.json({ error: 'Failed to update job categories' }, { status: 500 });
-        }
+      if (categoryError) {
+        console.error('Category linking error:', categoryError);
+        return NextResponse.json({ error: 'Failed to update job categories' }, { status: 500 });
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Job updated successfully'
+      message: 'Job updated successfully',
+      job_id: jobId
     });
-
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function PATCH(request, { params }) {
-  try {
-    const jobId = params.jobId;
-    const { searchParams } = new URL(request.url);
-    const accountId = searchParams.get('accountId');
-    const action = searchParams.get('action'); // 'toggle' or 'delete'
-
-    if (!jobId || !accountId || !action) {
-      return NextResponse.json({ error: 'Job ID, Account ID, and action are required' }, { status: 400 });
-    }
-
-    // Verify employee has access to this job
-    const { data: employee, error: empError } = await supabase
-      .from('employee')
-      .select('company_id')
-      .eq('account_id', accountId)
-      .single();
-
-    if (empError || !employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    }
-
-    // Verify job exists and belongs to company
-    const { data: existingJob, error: jobCheckError } = await supabase
-      .from('job')
-      .select('company_id, job_is_active')
-      .eq('job_id', jobId)
-      .single();
-
-    if (jobCheckError || !existingJob) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    }
-
-    if (existingJob.company_id !== employee.company_id) {
-      return NextResponse.json({ error: 'Unauthorized access to job' }, { status: 403 });
-    }
-
-    if (action === 'toggle') {
-      // Toggle job status
-      const { error: toggleError } = await supabase
-        .from('job')
-        .update({
-          job_is_active: !existingJob.job_is_active
-        })
-        .eq('job_id', jobId);
-
-      if (toggleError) {
-        console.error('Job toggle error:', toggleError);
-        return NextResponse.json({ error: 'Failed to toggle job status' }, { status: 500 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Job ${existingJob.job_is_active ? 'disabled' : 'enabled'} successfully`,
-        new_status: !existingJob.job_is_active
-      });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {
     console.error('API error:', error);
@@ -277,30 +223,15 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const jobId = params.jobId;
-    const body = await request.json();
-    const { accountId, password } = body;
+    const jobId = (await params).jobId;
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get('accountId');
 
-    if (!jobId || !accountId || !password) {
-      return NextResponse.json({ error: 'Job ID, Account ID, and password are required' }, { status: 400 });
+    if (!accountId) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
-    // Verify password
-    const { data: account, error: authError } = await supabase
-      .from('account')
-      .select('account_password')
-      .eq('account_id', accountId)
-      .single();
-
-    if (authError || !account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-    }
-
-    if (account.account_password !== password) {
-      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
-    }
-
-    // Verify employee has access to this job
+    // Get employee's company_id
     const { data: employee, error: empError } = await supabase
       .from('employee')
       .select('company_id')
@@ -311,22 +242,19 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Verify job exists and belongs to company
-    const { data: existingJob, error: jobCheckError } = await supabase
+    // Verify job belongs to employee's company
+    const { data: job, error: jobError } = await supabase
       .from('job')
       .select('company_id')
       .eq('job_id', jobId)
+      .eq('company_id', employee.company_id)
       .single();
 
-    if (jobCheckError || !existingJob) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (jobError || !job) {
+      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
     }
 
-    if (existingJob.company_id !== employee.company_id) {
-      return NextResponse.json({ error: 'Unauthorized access to job' }, { status: 403 });
-    }
-
-    // Delete job (this will cascade delete related records due to foreign key constraints)
+    // Delete job
     const { error: deleteError } = await supabase
       .from('job')
       .delete()
@@ -339,7 +267,71 @@ export async function DELETE(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: 'Job deleted successfully'
+      message: 'Job deleted successfully',
+      job_id: jobId
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request, { params }) {
+  try {
+    const jobId = (await params).jobId;
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get('accountId');
+    const action = searchParams.get('action'); // 'enable' or 'disable'
+
+    if (!accountId) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+    }
+
+    if (!['enable', 'disable'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action. Use enable or disable.' }, { status: 400 });
+    }
+
+    // Get employee's company_id
+    const { data: employee, error: empError } = await supabase
+      .from('employee')
+      .select('company_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (empError || !employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    // Verify job belongs to employee's company
+    const { data: job, error: jobError } = await supabase
+      .from('job')
+      .select('company_id')
+      .eq('job_id', jobId)
+      .eq('company_id', employee.company_id)
+      .single();
+
+    if (jobError || !job) {
+      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
+    }
+
+    // Update job status
+    const newStatus = action === 'enable' ? true : false;
+    const { error: updateError } = await supabase
+      .from('job')
+      .update({ job_is_active: newStatus })
+      .eq('job_id', jobId);
+
+    if (updateError) {
+      console.error('Job status update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update job status' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Job ${action}d successfully`,
+      job_id: jobId,
+      job_is_active: newStatus
     });
 
   } catch (error) {

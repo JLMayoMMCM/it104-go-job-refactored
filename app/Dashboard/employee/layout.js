@@ -149,6 +149,11 @@ export default function EmployeeDashboardLayout({ children }) {
                     src={employee.profilePhoto}
                     alt="Profile"
                     className="w-full h-full rounded-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
+                      console.error('Error loading profile image in header:', employee.profilePhoto);
+                    }}
                   />
                 ) : (
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,91 +181,82 @@ export default function EmployeeDashboardLayout({ children }) {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`${sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'} fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:opacity-100 lg:static lg:inset-0 rounded-r-xl backdrop-blur-sm bg-opacity-95`}>
-          <div className="flex flex-col h-full pt-16 lg:pt-6">
-            {/* User Info Section */}
-            <div className="px-4 py-6 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                  {employee?.profilePhoto ? (
-                    <img
-                      src={employee.profilePhoto}
-                      alt="Profile"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{employee?.firstName} {employee?.lastName}</h3>
-                  <p className="text-sm text-gray-500">{employee?.position} at {employee?.companyName}</p>
-                </div>
+        <aside className={`fixed inset-y-0 left-0 z-10 w-64 bg-white border-r border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto md:w-64`}>
+          <div className="flex h-full flex-col">
+            {/* Logo */}
+            <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+              <div className="flex items-center">
+                <img src="/Assets/Logo.png" alt="Logo" className="h-8 w-auto mr-2" />
+                <span className="text-xl font-bold text-gray-900">GoJob</span>
               </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            
-            <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <div className="flex-1 px-3 bg-white divide-y divide-gray-200">
-                <ul className="space-y-1">
-                  {sidebarItems.map((item) => (
-                    <li key={item.name}>
-                      <button
-                        onClick={() => {
-                          router.push(item.href);
-                          setSidebarOpen(false);
-                        }}
-                        className="group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
-                      >
-                        <div className="flex-shrink-0 w-8 text-gray-500 group-hover:text-gray-900">
-                          {getIcon(item.icon)}
-                        </div>
-                        <span className="ml-3">{item.name}</span>
-                        {item.badge > 0 && (
-                          <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
-                            {item.badge}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      // Clear all stored user data
-                      localStorage.removeItem('accountId');
-                      localStorage.removeItem('accountType');
-                      localStorage.removeItem('username');
-                      localStorage.removeItem('userEmail');
-                      localStorage.removeItem('authToken');
-                      // Redirect to login page
-                      router.push('/Login');
-                    }}
-                    className="group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg text-red-600 hover:text-red-900 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200"
-                  >
-                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span className="ml-3">Logout</span>
-                  </button>
-                </div>
-              </div>
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-4">
+              <ul className="space-y-1">
+                {sidebarItems.map((item) => (
+                  <li key={item.name}>
+                    <button
+                      onClick={() => {
+                        router.push(item.href);
+                        setSidebarOpen(false);
+                      }}
+                      className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-700`}
+                    >
+                      <div className="flex-shrink-0 w-8 text-gray-500">
+                        {getIcon(item.icon)}
+                      </div>
+                      <span className="ml-3">{item.name}</span>
+                      {item.badge > 0 && (
+                        <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  // Clear all stored user data
+                  localStorage.removeItem('accountId');
+                  localStorage.removeItem('accountType');
+                  localStorage.removeItem('username');
+                  localStorage.removeItem('userEmail');
+                  localStorage.removeItem('authToken');
+                  // Redirect to login page
+                  router.push('/Login');
+                }}
+                className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700"
+              >
+                <svg className="h-5 w-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </div>
           </div>
         </aside>
-
-        {/* Overlay for mobile */}
+        {/* Backdrop for mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-40 bg-gray-900 bg-opacity-60 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+            className="fixed inset-0 z-0 bg-black opacity-50 md:hidden"
             onClick={() => setSidebarOpen(false)}
-          />
+          ></div>
         )}
 
         {/* Main content */}
-        <main className="flex-1 lg:ml-0">
+        <main className="flex-1 md:ml-64">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {children}
