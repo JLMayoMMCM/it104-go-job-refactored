@@ -13,6 +13,10 @@ export default function EmployeeDashboard() {
   const [activeJobs, setActiveJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -54,52 +58,66 @@ export default function EmployeeDashboard() {
     }
   };
 
+  const handleDisableClick = (jobId) => {
+    setSelectedJobId(jobId);
+    setShowPasswordModal(true);
+    setPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      return;
+    }
+
+    try {
+      const accountId = localStorage.getItem('accountId') || '1';
+      const response = await fetch(`/api/employee/jobs/${selectedJobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId,
+          action: 'disable',
+          employee_password: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setPasswordError('Invalid password');
+          return;
+        }
+        throw new Error(data.error || 'Failed to disable job posting');
+      }
+
+      if (data.success) {
+        setActiveJobs(activeJobs.map(job => 
+          job.job_id === selectedJobId ? { ...job, job_is_active: false } : job
+        ));
+        setShowPasswordModal(false);
+        setPassword('');
+        setPasswordError('');
+        setSelectedJobId(null);
+      }
+    } catch (error) {
+      console.error('Error disabling job posting:', error);
+      setError(error.message);
+    }
+  };
+
   const handleJobAction = async (jobId, action) => {
     try {
       switch (action) {
         case 'view':
-          router.push(`/Dashboard/employee/all-postings/view/${jobId}`);
+          router.push(`/Dashboard/employee/view-job/${jobId}`);
           break;
         case 'edit':
-          router.push(`/Dashboard/employee/all-postings/edit/${jobId}`);
-          break;
-        case 'disable':
-          try {
-            const accountId = localStorage.getItem('accountId');
-            if (!accountId) {
-              throw new Error('User not authenticated');
-            }
-  
-            const response = await fetch(`/api/employee/jobs/${jobId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                accountId,
-                toggleStatus: true
-              }),
-            });
-  
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to toggle job status');
-            }
-  
-            const result = await response.json();
-            if (!result.success) {
-              throw new Error(result.error || 'Failed to toggle job status');
-            }
-  
-            // Update local state
-            setActiveJobs(prev => prev.map(job => 
-              job.job_id === jobId 
-                ? { ...job, job_is_active: !job.job_is_active }
-                : job
-            ));
-          } catch (error) {
-            console.error('Error toggling job status:', error);
-          }
+          router.push(`/Dashboard/employee/edit-job/${jobId}`);
           break;
       }
     } catch (error) {
@@ -258,20 +276,7 @@ export default function EmployeeDashboard() {
           <p className="text-sm text-[var(--text-light)] mt-1">Manage your recruitment tasks efficiently</p>
         </div>
         <div className="p-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                      <button
-                        onClick={() => handleJobAction(job.job_id, 'view')}
-                        className="btn btn-primary text-sm"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleJobAction(job.job_id, 'edit')}
-                        className="btn btn-primary text-sm"
-                      >
-                        Edit
-                      </button>
-
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             <button
               onClick={() => router.push('/Dashboard/employee/all-postings')}
               className="group flex flex-col items-center p-6 bg-gradient-to-br from-[rgba(143, 211, 163, 0.1)] to-[rgba(143, 211, 163, 0.2)] hover:from-[rgba(143, 211, 163, 0.2)] hover:to-[rgba(143, 211, 163, 0.3)] rounded-xl transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg border border-[rgba(143, 211, 163, 0.3)]"
@@ -291,7 +296,7 @@ export default function EmployeeDashboard() {
             >
               <div className="w-12 h-12 bg-[var(--accent-color)] rounded-xl flex items-center justify-center mb-3 group-hover:bg-[var(--secondary-color)] transition-colors">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <span className="text-sm font-semibold text-[var(--accent-color)] text-center">Job Requests</span>
@@ -315,21 +320,21 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Active Postings */}
-        <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-[var(--background)] to-[rgba(128, 128, 128, 0.1)] border-b border-[var(--border-color)]">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold text-[var(--foreground)]">Recent Job Postings</h3>
-                <p className="text-sm text-[var(--text-light)] mt-1">Your latest active job listings</p>
-              </div>
-              <button
-                onClick={() => router.push('/Dashboard/employee/all-postings')}
-                className="btn btn-primary text-sm font-medium"
-              >
-                View All
-              </button>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-[var(--background)] to-[rgba(128, 128, 128, 0.1)] border-b border-[var(--border-color)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-[var(--foreground)]">Recent Job Postings</h3>
+              <p className="text-sm text-[var(--text-light)] mt-1">Your latest active job listings</p>
             </div>
+            <button
+              onClick={() => router.push('/Dashboard/employee/all-postings')}
+              className="btn btn-primary text-sm font-medium"
+            >
+              View All
+            </button>
           </div>
+        </div>
         <div className="p-6">
           {activeJobs.length > 0 ? (
             <div className="space-y-4">
@@ -381,6 +386,15 @@ export default function EmployeeDashboard() {
                       >
                         Edit
                       </button>
+                      {job.job_is_active && (
+                        <button
+                          onClick={() => handleDisableClick(job.job_id)}
+                          className="btn text-sm"
+                          style={{ backgroundColor: 'var(--error-color)', color: 'white' }}
+                        >
+                          Disable
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -408,6 +422,79 @@ export default function EmployeeDashboard() {
           )}
         </div>
       </div>
+
+      {/* Password Confirmation Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-[var(--foreground)]">Confirm Password</h3>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setPasswordError('');
+                  setSelectedJobId(null);
+                }}
+                className="text-[var(--text-light)] hover:text-[var(--foreground)]"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-[var(--text-light)] mb-4">
+              Please enter your password to confirm disabling this job posting.
+            </p>
+            
+            <div className="mb-4">
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] bg-[var(--background)]"
+                placeholder="Enter your password"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePasswordSubmit();
+                  }
+                }}
+              />
+              {passwordError && (
+                <p className="mt-1 text-sm text-[var(--error-color)]">{passwordError}</p>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setPasswordError('');
+                  setSelectedJobId(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-light)] bg-[var(--background)] border border-[var(--border-color)] rounded-md hover:bg-[var(--card-background)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-4 py-2 text-sm font-medium text-white bg-[var(--error-color)] rounded-md hover:bg-[var(--error-color)] focus:outline-none focus:ring-2 focus:ring-[var(--error-color)]"
+              >
+                Disable Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

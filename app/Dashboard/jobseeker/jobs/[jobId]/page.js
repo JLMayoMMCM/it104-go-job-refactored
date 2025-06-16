@@ -221,9 +221,9 @@ export default function ViewJob() {
                 Posted {job.posted || 'N/A'}
               </div>
             </div>
-            {job.matchPercentage && (
+            {typeof job.match === 'number' && (
               <div className="mt-2 text-sm text-green-200 bg-green-900 bg-opacity-30 inline-block px-3 py-1 rounded-full">
-                {job.matchPercentage}% Match
+                {job.match}% Match
               </div>
             )}
           </div>
@@ -318,23 +318,23 @@ export default function ViewJob() {
             </div>
           </div>
           
-          {/* Responsibilities */}
+          {/* Benefits */}
           <div className="bg-white shadow-lg rounded-xl overflow-hidden">
             <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Responsibilities</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Benefits</h3>
             </div>
             <div className="p-6">
               <div className="prose max-w-none">
                 <ul className="space-y-2">
-                  {job.responsibilities ? job.responsibilities.split('\n').filter(Boolean).map((resp, index) => (
+                  {job.benefits ? job.benefits.split('\n').filter(Boolean).map((benefit, index) => (
                     <li key={index} className="flex items-start">
                       <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-gray-700">{resp}</span>
+                      <span className="text-gray-700">{benefit}</span>
                     </li>
                   )) : (
-                    <li className="text-gray-500 italic">No specific responsibilities listed.</li>
+                    <li className="text-gray-500 italic">No specific benefits listed.</li>
                   )}
                 </ul>
               </div>
@@ -377,13 +377,13 @@ export default function ViewJob() {
                 <p className="text-sm text-gray-500">Field</p>
                 <p className="font-medium">{job.field || 'Not specified'}</p>
               </div>
-              {job.matchPercentage && (
+              {typeof job.match === 'number' && (
                 <div>
                   <p className="text-sm text-gray-500">Profile Match</p>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${job.matchPercentage}%` }}></div>
+                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${job.match}%` }}></div>
                   </div>
-                  <p className="text-sm font-medium text-green-700">{job.matchPercentage}% Match</p>
+                  <p className="text-sm font-medium text-green-700">{job.match}% Match</p>
                 </div>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase';
+import { calculateJobMatch, prepareJobSeekerDataForMatching } from '../../../../lib/matchingAlgorithm';
 
 export async function GET(request) {
   try {
@@ -34,7 +35,7 @@ export async function GET(request) {
         job_name,
         job_description,
         job_requirements,
-        job_responsibilities,
+        job_benefits,
         job_location,
         job_salary,
         job_posted_date,
@@ -108,23 +109,26 @@ export async function GET(request) {
       console.warn('Error checking applied status:', error);
     }
 
-    // Get jobseeker's preferred fields for match percentage
-    const { data: preferences, error: prefError } = await supabase
-      .from('jobseeker_field_preference')
-      .select('preferred_job_field_id')
-      .eq('jobseeker_id', jobSeekerId);
-
+    // Calculate enhanced match percentage using improved algorithm
     let matchPercentage = 0;
-    if (prefError) {
-      console.warn('Preferences fetch error:', prefError);
-    } else {
-      const preferredFields = preferences?.map(p => p.preferred_job_field_id) || [];
-      if (preferredFields.length > 0) {
-        // Calculate match percentage based on matching categories
+    try {
+      const jobSeekerMatchingData = await prepareJobSeekerDataForMatching(supabase, accountId, jobSeekerId);
+      if (jobSeekerMatchingData) {
+        matchPercentage = calculateJobMatch(jobSeekerMatchingData, jobData);
+      }
+    } catch (error) {
+      console.warn('Error calculating match percentage:', error);
+      // Fallback to basic calculation if enhanced algorithm fails
+      const { data: preferences } = await supabase
+        .from('jobseeker_field_preference')
+        .select('preferred_job_field_id')
+        .eq('jobseeker_id', jobSeekerId);
+
+      if (preferences && preferences.length > 0) {
+        const preferredFields = preferences.map(p => p.preferred_job_field_id);
         const jobCategories = jobData.job_category_list?.map(jcl => jcl.job_category?.category_field?.category_field_id) || [];
         const matchingFieldsCount = jobCategories.filter(fieldId => preferredFields.includes(fieldId)).length;
-        const totalPreferredFields = preferredFields.length;
-        matchPercentage = totalPreferredFields > 0 ? Math.round((matchingFieldsCount / totalPreferredFields) * 100) : 0;
+        matchPercentage = preferredFields.length > 0 ? Math.round((matchingFieldsCount / preferredFields.length) * 100) : 0;
       }
     }
 
@@ -158,7 +162,7 @@ export async function GET(request) {
       posted: postedAgo,
       description: jobData.job_description || 'No description provided.',
       requirements: jobData.job_requirements || 'No specific requirements listed.',
-      responsibilities: jobData.job_responsibilities || 'No specific responsibilities listed.',
+      benefits: jobData.job_benefits || 'No specific benefits listed.',
       experienceLevel: jobData.experience_level?.experience_level_name || 'Not specified',
       category: jobData.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
       field: jobData.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',

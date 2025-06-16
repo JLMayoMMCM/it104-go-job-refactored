@@ -41,12 +41,14 @@ export async function GET(request) {
         ),
         job_seeker:job_seeker_id (
           job_seeker_id,
+          account_id,
           person:person_id (
             first_name,
             last_name,
             middle_name
           ),
           account:account_id (
+            account_id,
             account_email,
             account_username
           )
@@ -86,12 +88,14 @@ export async function GET(request) {
       },
       job_seeker: {
         job_seeker_id: request.job_seeker?.job_seeker_id,
+        account_id: request.job_seeker?.account_id,
         person: {
           first_name: request.job_seeker?.person?.first_name || '',
           last_name: request.job_seeker?.person?.last_name || '',
           middle_name: request.job_seeker?.person?.middle_name || ''
         },
         account: {
+          account_id: request.job_seeker?.account?.account_id,
           account_email: request.job_seeker?.account?.account_email || '',
           account_username: request.job_seeker?.account?.account_username || ''
         }

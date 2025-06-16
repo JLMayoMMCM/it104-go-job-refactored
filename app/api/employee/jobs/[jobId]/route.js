@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request, { params }) {
   try {
@@ -273,9 +274,8 @@ export async function DELETE(request, { params }) {
 export async function PATCH(request, { params }) {
   try {
     const jobId = (await params).jobId;
-    const { searchParams } = new URL(request.url);
-    const accountId = searchParams.get('accountId');
-    const action = searchParams.get('action'); // 'enable' or 'disable'
+    const body = await request.json();
+    const { accountId, action, employee_password } = body;
 
     if (!accountId) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
@@ -283,6 +283,30 @@ export async function PATCH(request, { params }) {
 
     if (!['enable', 'disable'].includes(action)) {
       return NextResponse.json({ error: 'Invalid action. Use enable or disable.' }, { status: 400 });
+    }
+
+    // For disable action, require password confirmation
+    if (action === 'disable') {
+      if (!employee_password) {
+        return NextResponse.json({ error: 'Password is required to disable job posting' }, { status: 400 });
+      }
+
+      // Verify employee password
+      const { data: accountData, error: accountError } = await supabase
+        .from('account')
+        .select('account_password')
+        .eq('account_id', accountId)
+        .single();
+
+      if (accountError || !accountData) {
+        return NextResponse.json({ error: 'Employee account not found' }, { status: 404 });
+      }
+
+      // Verify password using bcryptjs
+      const isPasswordValid = await bcrypt.compare(employee_password, accountData.account_password);
+      if (!isPasswordValid) {
+        return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+      }
     }
 
     // Get employee's company_id

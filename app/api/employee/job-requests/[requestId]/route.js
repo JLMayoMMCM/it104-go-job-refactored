@@ -1,0 +1,125 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '../../../../lib/supabase';
+import bcrypt from 'bcryptjs';
+
+export async function PUT(request, { params }) {
+  try {
+    const { requestId } = params;
+    const body = await request.json();
+    const {
+      accountId,
+      request_status,
+      employee_password
+    } = body;
+
+    if (!accountId || !requestId || !request_status) {
+      return NextResponse.json({ error: 'Account ID, request ID, and status are required' }, { status: 400 });
+    }
+
+    if (!['accepted', 'denied'].includes(request_status)) {
+      return NextResponse.json({ error: 'Invalid status. Must be "accepted" or "denied"' }, { status: 400 });
+    }
+
+    if (!employee_password) {
+      return NextResponse.json({ error: 'Employee password is required for this action' }, { status: 400 });
+    }
+
+    // Verify employee password
+    const { data: accountData, error: accountError } = await supabase
+      .from('account')
+      .select('account_password')
+      .eq('account_id', accountId)
+      .single();
+
+    if (accountError || !accountData) {
+      return NextResponse.json({ error: 'Employee account not found' }, { status: 404 });
+    }
+
+    // Verify password using bcryptjs
+    const isPasswordValid = await bcrypt.compare(employee_password, accountData.account_password);
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+    }
+
+    // Get employee's company_id
+    const { data: employee, error: empError } = await supabase
+      .from('employee')
+      .select('company_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (empError || !employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    // Get the job request with job details
+    const { data: jobRequest, error: requestError } = await supabase
+      .from('job_requests')
+      .select(`
+        request_id,
+        job_id,
+        request_status,
+        job:job_id (
+          company_id,
+          job_is_active,
+          job_name
+        )
+      `)
+      .eq('request_id', requestId)
+      .single();
+
+    if (requestError || !jobRequest) {
+      return NextResponse.json({ error: 'Job request not found' }, { status: 404 });
+    }
+
+    // Verify the job belongs to employee's company
+    if (jobRequest.job.company_id !== employee.company_id) {
+      return NextResponse.json({ error: 'Unauthorized access to job request' }, { status: 403 });
+    }
+
+    // Check if request is still pending
+    if (jobRequest.request_status !== 'pending') {
+      return NextResponse.json({ error: 'Job request has already been processed' }, { status: 400 });
+    }
+
+    // Auto-deny if job is inactive and action is accept
+    let finalStatus = request_status;
+    let finalMessage = '';
+    
+    if (request_status === 'accepted' && !jobRequest.job.job_is_active) {
+      finalStatus = 'denied';
+      finalMessage = 'This position is no longer available.';
+    } else {
+      if (request_status === 'accepted') {
+        finalMessage = 'Congratulations! Your application has been accepted. We will contact you soon with next steps.';
+      } else {
+        finalMessage = 'Thank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates.';
+      }
+    }
+
+    // Update the job request
+    const { error: updateError } = await supabase
+      .from('job_requests')
+      .update({
+        request_status: finalStatus,
+        employee_response: finalMessage,
+        response_date: new Date().toISOString()
+      })
+      .eq('request_id', requestId);
+
+    if (updateError) {
+      console.error('Job request update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update job request' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Job request ${finalStatus} successfully`,
+      status: finalStatus
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

@@ -7,6 +7,10 @@ export default function AllPostingsPage() {
   const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -42,24 +46,73 @@ export default function AllPostingsPage() {
     router.push(`/Dashboard/employee/edit-job/${jobId}`);
   };
 
+  const handleDisableClick = (jobId) => {
+    setSelectedJobId(jobId);
+    setShowPasswordModal(true);
+    setPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      return;
+    }
+
+    try {
+      const accountId = localStorage.getItem('accountId') || '1';
+      const response = await fetch(`/api/employee/jobs/${selectedJobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId,
+          action: 'disable',
+          employee_password: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setPasswordError('Invalid password');
+          return;
+        }
+        throw new Error(data.error || 'Failed to disable job posting');
+      }
+
+      if (data.success) {
+        setAllJobs(allJobs.map(job => 
+          job.job_id === selectedJobId ? { ...job, job_is_active: false } : job
+        ));
+        setShowPasswordModal(false);
+        setPassword('');
+        setPasswordError('');
+        setSelectedJobId(null);
+      }
+    } catch (error) {
+      console.error('Error disabling job posting:', error);
+      setError(error.message);
+    }
+  };
+
   const handleJobAction = async (jobId, action) => {
     try {
       const accountId = localStorage.getItem('accountId') || '1';
       let response;
       
       if (action === 'reactivate') {
-        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=enable`, {
+        response = await fetch(`/api/employee/jobs/${jobId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-          }
-        });
-      } else if (action === 'disable') {
-        response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}&action=disable`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          },
+          body: JSON.stringify({
+            accountId,
+            action: 'enable'
+          })
         });
       } else if (action === 'delete') {
         if (!confirm(`Are you sure you want to permanently delete this job posting? This action cannot be undone.`)) {
@@ -85,10 +138,6 @@ export default function AllPostingsPage() {
         if (action === 'reactivate') {
           setAllJobs(allJobs.map(job => 
             job.job_id === jobId ? { ...job, job_is_active: true } : job
-          ));
-        } else if (action === 'disable') {
-          setAllJobs(allJobs.map(job => 
-            job.job_id === jobId ? { ...job, job_is_active: false } : job
           ));
         } else if (action === 'delete') {
           setAllJobs(allJobs.filter(job => job.job_id !== jobId));
@@ -217,7 +266,7 @@ export default function AllPostingsPage() {
                       </button>
                       {job.job_is_active ? (
                         <button
-                          onClick={() => handleJobAction(job.job_id, 'disable')}
+                          onClick={() => handleDisableClick(job.job_id)}
                           className="btn text-sm"
                           style={{ backgroundColor: 'var(--error-color)', color: 'white' }}
                         >
@@ -263,6 +312,79 @@ export default function AllPostingsPage() {
           )}
         </div>
       </div>
+
+      {/* Password Confirmation Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-[var(--foreground)]">Confirm Password</h3>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setPasswordError('');
+                  setSelectedJobId(null);
+                }}
+                className="text-[var(--text-light)] hover:text-[var(--foreground)]"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-[var(--text-light)] mb-4">
+              Please enter your password to confirm disabling this job posting.
+            </p>
+            
+            <div className="mb-4">
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] bg-[var(--background)]"
+                placeholder="Enter your password"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePasswordSubmit();
+                  }
+                }}
+              />
+              {passwordError && (
+                <p className="mt-1 text-sm text-[var(--error-color)]">{passwordError}</p>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setPasswordError('');
+                  setSelectedJobId(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-light)] bg-[var(--background)] border border-[var(--border-color)] rounded-md hover:bg-[var(--card-background)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-4 py-2 text-sm font-medium text-white bg-[var(--error-color)] rounded-md hover:bg-[var(--error-color)] focus:outline-none focus:ring-2 focus:ring-[var(--error-color)]"
+              >
+                Disable Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
