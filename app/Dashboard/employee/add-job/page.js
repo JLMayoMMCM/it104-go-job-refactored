@@ -130,6 +130,8 @@ export default function AddJobPage() {
 
     try {
       const accountId = localStorage.getItem('accountId') || '1';
+      // Create a new object without any potential job_hiring_date field
+      const { job_hiring_date, ...payloadData } = formData;
       const response = await fetch('/api/employee/jobs', {
         method: 'POST',
         headers: {
@@ -137,7 +139,7 @@ export default function AddJobPage() {
         },
         body: JSON.stringify({
           accountId,
-          ...formData
+          ...payloadData
         }),
       });
 

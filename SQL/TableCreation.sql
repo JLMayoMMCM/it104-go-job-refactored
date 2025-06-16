@@ -94,8 +94,8 @@ CREATE TABLE account (
   account_id       SERIAL      PRIMARY KEY,
   account_email    VARCHAR(100) NOT NULL UNIQUE,
   account_username VARCHAR(50) NOT NULL UNIQUE,
-  account_profile_photo BYTEA,
-  account_resume BYTEA,
+  account_profile_photo VARCHAR(255),
+  account_resume VARCHAR(255),
   account_phone VARCHAR(20),
   account_number   VARCHAR(30) NOT NULL UNIQUE,
   account_password VARCHAR(100) NOT NULL,
@@ -206,12 +206,12 @@ CREATE TABLE job_category_list (
 
 -- Jobseeker preference table - to store preferences of job seekers for algorithmic matching
 CREATE TABLE jobseeker_preference(
-  person_id INTEGER NOT NULL REFERENCES person(person_id) ON DELETE CASCADE,
+  jobseeker_id INTEGER NOT NULL REFERENCES job_seeker(job_seeker_id) ON DELETE CASCADE,
   preferred_job_category_id INTEGER NOT NULL REFERENCES job_category(job_category_id) ON DELETE CASCADE
 );
 
 CREATE TABLE jobseeker_field_preference(
-  person_id INTEGER NOT NULL REFERENCES person(person_id) ON DELETE CASCADE,
+  jobseeker_id INTEGER NOT NULL REFERENCES job_seeker(job_seeker_id) ON DELETE CASCADE,
   preferred_job_field_id INTEGER NOT NULL REFERENCES category_field(category_field_id) ON DELETE CASCADE
 );
 

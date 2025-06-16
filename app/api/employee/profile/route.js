@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabase';
 import bcrypt from 'bcryptjs';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 export async function GET(request) {
   try {
@@ -32,10 +27,10 @@ export async function GET(request) {
             gender_id,
             gender_name
           ),
-          nationality:nationality_id (
-            nationality_id,
-            nationality_name
-          ),
+        nationality:nationality_id (
+          nationality_id,
+          nationality_name
+        ),
           address:address_id (
             address_id,
             premise_name,

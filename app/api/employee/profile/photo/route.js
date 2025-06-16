@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client for database and storage operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { createStorageClient, supabase } from '../../../../lib/supabase';
 
 export async function POST(request) {
   try {
@@ -34,9 +28,12 @@ export async function POST(request) {
     const fileName = `${accountId}-${Date.now()}.${fileExtension}`;
     const filePath = `photos/${fileName}`;
 
-    // Upload file to Supabase Storage using native Supabase method
+    // Create storage client for file operations
+    const storageClient = createStorageClient();
+
+    // Upload file to Supabase Storage using storage client
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await storageClient.storage
       .from('profile')
       .upload(filePath, fileBuffer, {
         contentType: file.type,
@@ -49,14 +46,14 @@ export async function POST(request) {
     }
 
     // Generate a public URL for the uploaded file
-    const { data: publicUrlData } = supabase
+    const { data: publicUrlData } = storageClient
       .storage
       .from('profile')
       .getPublicUrl(filePath);
 
     const publicUrl = publicUrlData.publicUrl;
 
-    // Update account with profile photo URL
+    // Update account with profile photo URL using anon key (database operations)
     const { error: updateError } = await supabase
       .from('account')
       .update({
@@ -89,7 +86,10 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
-    // First get the current profile photo URL to extract the file path
+    // Create storage client for file operations
+    const storageClient = createStorageClient();
+
+    // First get the current profile photo URL to extract the file path (using anon key for database)
     const { data: accountData, error: fetchError } = await supabase
       .from('account')
       .select('account_profile_photo')
@@ -109,7 +109,7 @@ export async function DELETE(request) {
       const filePath = filePathSegments || '';
 
       if (filePath) {
-        const { error: deleteError } = await supabase.storage
+        const { error: deleteError } = await storageClient.storage
           .from('profile')
           .remove([filePath]);
 
@@ -120,7 +120,7 @@ export async function DELETE(request) {
       }
     }
 
-    // Remove profile photo reference from database
+    // Remove profile photo reference from database using anon key
     const { error: updateError } = await supabase
       .from('account')
       .update({

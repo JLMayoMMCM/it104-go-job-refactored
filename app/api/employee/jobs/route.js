@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabase } from '../../../lib/supabase';
 
 export async function GET(request) {
   try {
@@ -41,7 +36,6 @@ export async function GET(request) {
         job_salary,
         job_time,
         job_posted_date,
-        job_hiring_date,
         job_closing_date,
         job_is_active,
         job_type:job_type_id (
@@ -177,7 +171,6 @@ export async function POST(request) {
         job_experience_level_id: job_experience_level_id || null,
         job_salary: job_salary || null,
         job_time,
-        job_hiring_date: job_hiring_date || null,
         job_closing_date: job_closing_date || null,
         job_is_active: true
       })

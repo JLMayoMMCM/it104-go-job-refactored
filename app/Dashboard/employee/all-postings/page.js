@@ -111,7 +111,7 @@ export default function AllPostingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
       </div>
     );
   }
@@ -119,14 +119,14 @@ export default function AllPostingsPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Error loading job postings</h3>
-        <p className="text-gray-600">{error}</p>
+        <h3 className="text-lg font-medium text-[var(--foreground)]">Error loading job postings</h3>
+        <p className="text-[var(--text-light)]">{error}</p>
         <button
           onClick={() => {
             setLoading(true);
             fetchJobs();
           }}
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]"
         >
           Try Again
         </button>
@@ -139,12 +139,12 @@ export default function AllPostingsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Job Postings</h1>
-          <p className="text-gray-600">Manage all your job postings</p>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">All Job Postings</h1>
+          <p className="text-[var(--text-light)]">Manage all your job postings</p>
         </div>
         <button
           onClick={() => router.push('/Dashboard/employee/add-job')}
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]"
         >
           <svg className="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -154,22 +154,22 @@ export default function AllPostingsPage() {
       </div>
 
       {/* Job Postings */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">All Postings ({allJobs.length})</h3>
+      <div className="bg-[var(--card-background)] shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-[var(--border-color)]">
+          <h3 className="text-lg font-medium text-[var(--foreground)]">All Postings ({allJobs.length})</h3>
         </div>
         <div className="p-6">
           {allJobs.length > 0 ? (
             <div className="space-y-4">
               {allJobs.map(job => (
-                <div key={job.job_id} className={`border ${job.job_is_active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'} rounded-xl p-6 hover:shadow-lg transition-all duration-200`}>
+                <div key={job.job_id} className={`border ${job.job_is_active ? 'border-[var(--success-color)]-200 bg-[var(--success-color)]-50' : 'border-[var(--border-color)] bg-[rgba(128, 128, 128, 0.05)]'} rounded-xl p-6 hover:shadow-lg transition-all duration-200`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h4 className="text-lg font-semibold text-gray-900">{job.job_name}</h4>
-                        <span className={`px-2 py-1 ${job.job_is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} text-xs font-medium rounded-full`}>{job.job_is_active ? 'Active' : 'Inactive'}</span>
+                        <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.job_name}</h4>
+                        <span className={`px-2 py-1 ${job.job_is_active ? 'bg-[var(--success-color)]-100 text-[var(--success-color)]' : 'bg-[rgba(128, 128, 128, 0.1)] text-[var(--text-dark)]'} text-xs font-medium rounded-full`}>{job.job_is_active ? 'Active' : 'Inactive'}</span>
                       </div>
-                      <div className="flex items-center space-x-6 text-sm text-gray-500 mb-3">
+                      <div className="flex items-center space-x-6 text-sm text-[var(--text-light)] mb-3">
                         <div className="flex items-center space-x-1">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -191,13 +191,13 @@ export default function AllPostingsPage() {
                       </div>
                       {job.applicant_count !== undefined && (
                         <div className="flex items-center space-x-2 text-sm">
-                          <span className="text-gray-600">Applications:</span>
-                          <span className="font-semibold text-blue-600">{job.applicant_count}</span>
+                          <span className="text-[var(--text-light)]">Applications:</span>
+                          <span className="font-semibold text-[var(--primary-color)]">{job.applicant_count}</span>
                           {job.pending_count > 0 && (
-                            <span className="text-yellow-600">({job.pending_count} pending)</span>
+                            <span className="text-[var(--warning-color)]">({job.pending_count} pending)</span>
                           )}
                           {job.accepted_count > 0 && (
-                            <span className="text-green-600">({job.accepted_count} accepted)</span>
+                            <span className="text-[var(--success-color)]">({job.accepted_count} accepted)</span>
                           )}
                         </div>
                       )}
@@ -205,20 +205,21 @@ export default function AllPostingsPage() {
                     <div className="flex space-x-2 ml-4">
                       <button
                         onClick={() => handleViewJob(job.job_id)}
-                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+                        className="btn btn-primary text-sm"
                       >
                         View
                       </button>
                       <button
                         onClick={() => handleEditJob(job.job_id)}
-                        className="px-4 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors font-medium"
+                        className="btn btn-primary text-sm"
                       >
                         Edit
                       </button>
                       {job.job_is_active ? (
                         <button
                           onClick={() => handleJobAction(job.job_id, 'disable')}
-                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          className="btn text-sm"
+                          style={{ backgroundColor: 'var(--error-color)', color: 'white' }}
                         >
                           Disable
                         </button>
@@ -226,13 +227,15 @@ export default function AllPostingsPage() {
                         <>
                           <button
                             onClick={() => handleJobAction(job.job_id, 'reactivate')}
-                            className="px-4 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
+                            className="btn text-sm"
+                            style={{ backgroundColor: 'var(--success-color)', color: 'white' }}
                           >
                             Reactivate
                           </button>
                           <button
                             onClick={() => handleJobAction(job.job_id, 'delete')}
-                            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                            className="btn text-sm"
+                            style={{ backgroundColor: 'var(--error-color)', color: 'white' }}
                           >
                             Delete
                           </button>
@@ -245,14 +248,14 @@ export default function AllPostingsPage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No job postings</h3>
-              <p className="mt-1 text-gray-500">You don't have any job postings at the moment.</p>
+              <h3 className="mt-2 text-lg font-medium text-[var(--foreground)]">No job postings</h3>
+              <p className="mt-1 text-[var(--text-light)]">You don't have any job postings at the moment.</p>
               <button
                 onClick={() => router.push('/Dashboard/employee/add-job')}
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]"
               >
                 Create New Job Posting
               </button>

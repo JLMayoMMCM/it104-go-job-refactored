@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabase } from '../../../lib/supabase';
 
 export async function GET(request) {
   try {
@@ -64,7 +59,7 @@ export async function GET(request) {
       
       // Extract notification type from text if needed (this is a simple heuristic)
       let notificationType = 'general';
-      const textLower = notification.text.toLowerCase();
+      const textLower = notification.notification_text?.toLowerCase() || '';
       if (textLower.includes('job posting') && textLower.includes('added')) {
         notificationType = 'job_added';
       } else if (textLower.includes('applied') || textLower.includes('application')) {

@@ -167,13 +167,15 @@ export default function EditJobPage() {
 
     try {
       const accountId = localStorage.getItem('accountId') || '1';
+      // Create a new object without any potential job_hiring_date field
+      const { job_hiring_date, ...payloadData } = formData;
       const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData
+          ...payloadData
         }),
       });
 

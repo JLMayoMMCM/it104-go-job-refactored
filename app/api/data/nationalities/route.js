@@ -11,7 +11,10 @@ export async function GET() {
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json(
-        { message: 'Failed to fetch nationalities' },
+        { 
+          success: false,
+          message: 'Failed to fetch nationalities' 
+        },
         { status: 500 }
       );
     }
@@ -23,7 +26,10 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching nationalities:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { 
+        success: false,
+        message: 'Internal server error' 
+      },
       { status: 500 }
     );
   }

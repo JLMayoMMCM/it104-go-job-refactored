@@ -107,7 +107,7 @@ export default function CompanyRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-violet-100 py-8 px-4">
+    <div className="min-h-screen bg-[var(--background)] py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -121,12 +121,12 @@ export default function CompanyRegistrationPage() {
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Company Registration</h1>
-          <p className="mt-2 text-gray-600">Register your organization to start hiring</p>
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">Company Registration</h1>
+          <p className="mt-2 text-[var(--text-light)]">Register your organization to start hiring</p>
         </div>
 
         {/* Registration Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Company Details Section */}
             <div className="border-b border-gray-200 pb-6">
@@ -306,7 +306,7 @@ export default function CompanyRegistrationPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="text-[var(--error-color)] text-sm bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-3">
                 {error}
               </div>
             )}

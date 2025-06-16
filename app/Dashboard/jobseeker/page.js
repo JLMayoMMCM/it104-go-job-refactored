@@ -4,343 +4,494 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function JobseekerDashboard() {
-  const [dashboardData, setDashboardData] = useState({
-    appliedJobs: 0,
-    acceptedApplications: 0,
-    pendingApplications: 0,
-    savedJobs: 0
-  });
-  const [recentApplications, setRecentApplications] = useState([]);
+  const [recentJobs, setRecentJobs] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [coverLetter, setCoverLetter] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    const accountId = localStorage.getItem('accountId');
+    const accountType = localStorage.getItem('accountType');
+    
+    if (!accountId || accountType !== '2') {
+      router.push('/Login');
+      return;
+    }
+    
+    fetchDashboardData(accountId);
+  }, [router]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (accountId) => {
     try {
-      // TODO: Replace with actual API calls when jobseeker APIs are implemented
-      // Simulating API response for now
-      setDashboardData({
-        appliedJobs: 12,
-        acceptedApplications: 3,
-        pendingApplications: 5,
-        savedJobs: 8
-      });
-
-      setRecentApplications([
-        {
-          job_id: 1,
-          job_name: 'Frontend Developer',
-          company_name: 'Tech Corp',
-          application_date: '2024-01-20',
-          status: 'pending'
-        },
-        {
-          job_id: 2,
-          job_name: 'UI/UX Designer',
-          company_name: 'Design Studio',
-          application_date: '2024-01-18',
-          status: 'accepted'
-        },
-        {
-          job_id: 3,
-          job_name: 'Software Engineer',
-          company_name: 'StartupXYZ',
-          application_date: '2024-01-15',
-          status: 'denied'
-        }
-      ]);
-
-      setRecommendedJobs([
-        {
-          job_id: 4,
-          job_name: 'React Developer',
-          company_name: 'WebTech Solutions',
-          job_location: 'Manila, Philippines',
-          job_salary: 50000,
-          job_posted_date: '2024-01-22'
-        },
-        {
-          job_id: 5,
-          job_name: 'Full Stack Developer',
-          company_name: 'Innovation Hub',
-          job_location: 'Cebu City, Philippines',
-          job_salary: 60000,
-          job_posted_date: '2024-01-21'
-        }
-      ]);
+      setLoading(true);
+      setError(null);
+      
+      // Fetch recent jobs
+      const recentResponse = await fetch(`/api/jobseeker/jobs?limit=5&type=recent&accountId=${accountId}`);
+      const recentData = await recentResponse.json();
+      
+      if (!recentResponse.ok) {
+        throw new Error(recentData.error || 'Failed to fetch recent jobs');
+      }
+      
+      if (recentData.success && recentData.data) {
+        console.log("Recent jobs data:", recentData.data);
+        setRecentJobs(recentData.data);
+      }
+      
+      // Fetch recommended jobs
+      const recommendedResponse = await fetch(`/api/jobseeker/jobs?limit=5&type=recommended&accountId=${accountId}`);
+      const recommendedData = await recommendedResponse.json();
+      
+      if (!recommendedResponse.ok) {
+        throw new Error(recommendedData.error || 'Failed to fetch recommended jobs');
+      }
+      
+      if (recommendedData.success && recommendedData.data) {
+        console.log("Recommended jobs data:", recommendedData.data);
+        setRecommendedJobs(recommendedData.data);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const handleViewAllRecent = () => {
+    router.push('/Dashboard/jobseeker/jobs/all-jobs');
   };
 
-  const formatSalary = (salary) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 0
-    }).format(salary);
+  const handleViewAllRecommended = () => {
+    router.push('/Dashboard/jobseeker/jobs/recommended-jobs');
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'accepted':
-        return 'bg-green-100 text-green-800';
-      case 'denied':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleViewJob = (jobId) => {
+    router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
+  };
+
+  const handleSaveJob = async (jobId) => {
+    try {
+      const accountId = localStorage.getItem('accountId');
+      const response = await fetch(`/api/jobseeker/saved-jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobId, accountId }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSuccessMessage('Job saved successfully!');
+        setTimeout(() => setSuccessMessage(''), 2000);
+      } else {
+        throw new Error(data.error || 'Failed to save job');
+      }
+    } catch (error) {
+      console.error('Error saving job:', error);
+      setError('Failed to save job. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleQuickApply = (job) => {
+    setSelectedJob(job);
+    setShowApplyModal(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!selectedJob) return;
+    
+    try {
+      console.log("Submitting application for job ID:", selectedJob.id);
+      const accountId = localStorage.getItem('accountId');
+      const response = await fetch(`/api/jobseeker/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          jobId: selectedJob.id, 
+          accountId, 
+          coverLetter: coverLetter || 'I am interested in this position and would like to apply.'
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setShowApplyModal(false);
+        setCoverLetter('');
+        setSelectedJob(null);
+        setSuccessMessage('Your application has been submitted successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        throw new Error(data.error || 'Failed to submit application');
+      }
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      setError('Failed to submit application. Please try again.');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-[var(--error-color)]">Error loading dashboard</h3>
+              <div className="mt-2 text-sm text-[var(--error-color)]">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setLoading(true);
+                    const accountId = localStorage.getItem('accountId');
+                    if (accountId) fetchDashboardData(accountId);
+                  }}
+                  className="bg-[rgba(231, 76, 60, 0.1)] px-4 py-2 rounded-md text-sm font-medium text-[var(--error-color)] hover:bg-[rgba(231, 76, 60, 0.2)]"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Job Seeker Dashboard</h1>
-        <p className="text-gray-600">Welcome to your job search dashboard</p>
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
+        <h1 className="text-3xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
+        <p className="text-[var(--light-color)] text-lg">Discover new opportunities and manage your applications.</p>
       </div>
 
-      {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Applied Jobs</dt>
-                  <dd className="text-lg font-medium text-gray-900">{dashboardData.appliedJobs}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Accepted</dt>
-                  <dd className="text-lg font-medium text-gray-900">{dashboardData.acceptedApplications}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
-                  <dd className="text-lg font-medium text-gray-900">{dashboardData.pendingApplications}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Saved Jobs</dt>
-                  <dd className="text-lg font-medium text-gray-900">{dashboardData.savedJobs}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => router.push('/Dashboard/jobseeker/jobs/all-jobs')}
-              className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-            >
-              <svg className="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
-              <span className="text-sm font-medium text-blue-900">Search Jobs</span>
-            </button>
-
-            <button
-              onClick={() => router.push('/Dashboard/jobseeker/jobs/recommended-jobs')}
-              className="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-            >
-              <svg className="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </div>
+            <div className="ml-3">
+              <div className="text-sm text-green-700">
+                <p>{successMessage}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span className="text-sm font-medium text-green-900">Recommended</span>
-            </button>
+            </div>
+            <div className="ml-3">
+              <div className="text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <button
-              onClick={() => router.push('/Dashboard/jobseeker/profile')}
-              className="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-light)]">Applications</p>
+              <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
+            </div>
+            <div className="bg-blue-100 p-3 rounded-full">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => router.push('/Dashboard/jobseeker/applications')}
+              className="text-sm text-[var(--primary-color)] hover:underline"
             >
-              <svg className="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              View Applications →
+            </button>
+          </div>
+        </div>
+        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-light)]">Saved Jobs</p>
+              <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
+            </div>
+            <div className="bg-purple-100 p-3 rounded-full">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => router.push('/Dashboard/jobseeker/saved-jobs')}
+              className="text-sm text-[var(--primary-color)] hover:underline"
+            >
+              View Saved Jobs →
+            </button>
+          </div>
+        </div>
+        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-light)]">Profile Views</p>
+              <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
+            </div>
+            <div className="bg-green-100 p-3 rounded-full">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span className="text-sm font-medium text-purple-900">My Profile</span>
-            </button>
-
-            <button
-              onClick={() => router.push('/Dashboard/jobseeker/company/all')}
-              className="flex flex-col items-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            </div>
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => router.push('/Dashboard/jobseeker/profile')}
+              className="text-sm text-[var(--primary-color)] hover:underline"
             >
-              <svg className="w-8 h-8 text-indigo-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span className="text-sm font-medium text-indigo-900">Companies</span>
+              Update Profile →
             </button>
           </div>
         </div>
       </div>
 
-      {/* Recent Applications */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Recent Applications</h3>
+      {/* Recent Jobs */}
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">Recent Job Postings</h2>
+          <button 
+            onClick={handleViewAllRecent}
+            className="text-sm text-[var(--primary-color)] hover:underline"
+          >
+            View All Jobs →
+          </button>
         </div>
         <div className="p-6">
-          {recentApplications.length > 0 ? (
+          {recentJobs.length === 0 ? (
+            <div className="text-center py-8 border border-dashed border-[var(--border-color)] rounded-lg">
+              <svg className="mx-auto h-10 w-10 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <div className="mt-2 text-sm text-[var(--text-light)]">
+                <p>No recent job postings available at the moment.</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={handleViewAllRecent}
+                  className="btn btn-primary text-sm"
+                >
+                  Search Jobs
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {recentApplications.map((application) => (
-                <div key={application.job_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-medium text-gray-900">{application.job_name}</h4>
-                      <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Company: {application.company_name}</span>
-                        <span>•</span>
-                        <span>Applied: {formatDate(application.application_date)}</span>
-                      </div>
+              {recentJobs.map((job, index) => (
+                <div
+                  key={job.id}
+                  className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
+                    index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
+                  } hover:shadow-md transition-shadow`}
+                >
+                  <div className="mb-3 md:mb-0 md:w-1/3">
+                    <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
+                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{job.postedDate}</p>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
+                    <div className="flex items-center text-[var(--text-light)] text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      {job.jobType}
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                      {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                    </span>
+                    <div className="flex items-center text-[var(--text-light)] text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.salary}
+                    </div>
+                  </div>
+                  <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleSaveJob(job.id)}
+                      className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleQuickApply(job)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => handleViewJob(job.id)}
+                      className="btn btn-primary text-sm"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No applications yet</h3>
-              <p className="mt-1 text-sm text-gray-500">Start applying to jobs to see your applications here.</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Recommended Jobs */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Recommended Jobs</h3>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">Recommended for You</h2>
+          <button 
+            onClick={handleViewAllRecommended}
+            className="text-sm text-[var(--primary-color)] hover:underline"
+          >
+            View All Recommended →
+          </button>
         </div>
         <div className="p-6">
-          {recommendedJobs.length > 0 ? (
+          {recommendedJobs.length === 0 ? (
+            <div className="text-center py-8 border border-dashed border-[var(--border-color)] rounded-lg">
+              <svg className="mx-auto h-10 w-10 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="mt-2 text-sm text-[var(--text-light)]">
+                <p>No recommended jobs available at the moment. Update your profile for better matches.</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={handleViewAllRecommended}
+                  className="btn btn-primary text-sm"
+                >
+                  Search Jobs
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {recommendedJobs.map((job) => (
-                <div key={job.job_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="text-lg font-medium text-gray-900">{job.job_name}</h4>
-                      <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                        <span>📍 {job.job_location}</span>
-                        <span>•</span>
-                        <span>🏢 {job.company_name}</span>
-                        <span>•</span>
-                        <span>💰 {formatSalary(job.job_salary)}</span>
-                        <span>•</span>
-                        <span>Posted: {formatDate(job.job_posted_date)}</span>
-                      </div>
+              {recommendedJobs.map((job, index) => (
+                <div
+                  key={job.id}
+                  className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
+                    index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
+                  } hover:shadow-md transition-shadow`}
+                >
+                  <div className="mb-3 md:mb-0 md:w-1/3">
+                    <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
+                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{job.postedDate}</p>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
+                    <div className="flex items-center text-[var(--text-light)] text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      {job.jobType}
                     </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
-                        View
-                      </button>
-                      <button className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
-                        Apply
-                      </button>
+                    <div className="flex items-center text-[var(--text-light)] text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.salary}
                     </div>
+                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.matchPercentage}% Match
+                    </div>
+                  </div>
+                  <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleSaveJob(job.id)}
+                      className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleQuickApply(job)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => handleViewJob(job.id)}
+                      className="btn btn-primary text-sm"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No recommendations yet</h3>
-              <p className="mt-1 text-sm text-gray-500">Complete your profile to get personalized job recommendations.</p>
-            </div>
           )}
         </div>
       </div>
+
+      {/* Quick Apply Modal */}
+      {showApplyModal && selectedJob && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+            <h2 className="text-xl font-bold mb-4">Apply for {selectedJob.title}</h2>
+            <p className="text-gray-600 mb-4">at {selectedJob.company}</p>
+            <textarea 
+              value={coverLetter} 
+              onChange={(e) => setCoverLetter(e.target.value)} 
+              placeholder="Enter your cover letter or a brief message (optional). A default message will be sent if left empty." 
+              className="w-full p-2 border rounded mb-4 h-32"
+            ></textarea>
+            <div className="flex justify-end space-x-3">
+              <button onClick={() => {
+                setShowApplyModal(false);
+                setSelectedJob(null);
+                setCoverLetter('');
+              }} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
+              <button onClick={handleSubmitApplication} className="px-4 py-2 bg-green-600 text-white rounded-md">Submit Application</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

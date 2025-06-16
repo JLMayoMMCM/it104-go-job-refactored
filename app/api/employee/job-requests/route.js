@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabase } from '../../../lib/supabase';
 
 export async function GET(request) {
   try {
@@ -81,15 +76,26 @@ export async function GET(request) {
       request.job && request.job.company_id === employee.company_id
     );
 
-    // Format the response data
+    // Format the response data to match frontend expectations
     const formattedRequests = companyRequests.map(request => ({
       request_id: request.request_id,
       job_id: request.job_id,
-      job_name: request.job?.job_name || 'Unknown Job',
-      job_is_active: request.job?.job_is_active || false,
-      job_seeker_id: request.job_seeker?.job_seeker_id,
-      applicant_name: `${request.job_seeker?.person?.first_name || ''} ${request.job_seeker?.person?.middle_name || ''} ${request.job_seeker?.person?.last_name || ''}`.trim(),
-      applicant_email: request.job_seeker?.account?.account_email || '',
+      job: {
+        job_name: request.job?.job_name || 'Unknown Job',
+        job_is_active: request.job?.job_is_active || false
+      },
+      job_seeker: {
+        job_seeker_id: request.job_seeker?.job_seeker_id,
+        person: {
+          first_name: request.job_seeker?.person?.first_name || '',
+          last_name: request.job_seeker?.person?.last_name || '',
+          middle_name: request.job_seeker?.person?.middle_name || ''
+        },
+        account: {
+          account_email: request.job_seeker?.account?.account_email || '',
+          account_username: request.job_seeker?.account?.account_username || ''
+        }
+      },
       request_date: request.request_date,
       request_status: request.request_status,
       cover_letter: request.cover_letter,

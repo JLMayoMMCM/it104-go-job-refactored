@@ -39,7 +39,13 @@ export default function EmployeeRegistrationPage() {
         const response = await fetch('/api/data/nationalities');
         if (response.ok) {
           const data = await response.json();
-          setNationalities(data);
+          if (data.success) {
+            setNationalities(data.data);
+          } else {
+            console.error('Nationalities API error:', data.message);
+          }
+        } else {
+          console.error('Failed to fetch nationalities:', response.status);
         }
       } catch (error) {
         console.error('Failed to load nationalities:', error);
@@ -176,7 +182,7 @@ export default function EmployeeRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 py-8 px-4">
+    <div className="min-h-screen bg-[var(--background)] py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -190,20 +196,20 @@ export default function EmployeeRegistrationPage() {
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Employee Registration</h1>
-          <p className="mt-2 text-gray-600">Join your company's hiring team</p>
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">Employee Registration</h1>
+          <p className="mt-2 text-[var(--text-light)]">Join your company's hiring team</p>
         </div>
 
         {/* Registration Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Personal Details Section */}
             <div className="border-b border-gray-200 pb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Personal Details</h3>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Personal Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-[var(--text-dark)]">
                     First Name *
                   </label>
                   <input
@@ -218,7 +224,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Last Name *
                   </label>
                   <input
@@ -233,7 +239,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="middleName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="middleName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Middle Name
                   </label>
                   <input
@@ -247,7 +253,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-[var(--text-dark)]">
                     Date of Birth *
                   </label>
                   <input
@@ -262,7 +268,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="gender" className="block text-sm font-medium text-[var(--text-dark)]">
                     Gender *
                   </label>
                   <select
@@ -282,7 +288,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="nationalityId" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nationalityId" className="block text-sm font-medium text-[var(--text-dark)]">
                     Nationality *
                   </label>
                   <select
@@ -306,11 +312,11 @@ export default function EmployeeRegistrationPage() {
 
             {/* Account Details Section */}
             <div className="border-b border-gray-200 pb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Account Details</h3>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Account Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="email" className="block text-sm font-medium text-[var(--text-dark)]">
                     Email Address *
                   </label>
                   <input
@@ -325,7 +331,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="username" className="block text-sm font-medium text-[var(--text-dark)]">
                     Username *
                   </label>
                   <input
@@ -340,7 +346,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="phone" className="block text-sm font-medium text-[var(--text-dark)]">
                     Phone Number *
                   </label>
                   <input
@@ -358,7 +364,7 @@ export default function EmployeeRegistrationPage() {
                 <div></div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="password" className="block text-sm font-medium text-[var(--text-dark)]">
                     Password *
                   </label>
                   <div className="mt-1 relative">
@@ -375,7 +381,7 @@ export default function EmployeeRegistrationPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-light)] hover:text-[var(--text-dark)]"
                     >
                       {showPassword ? (
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,7 +398,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--text-dark)]">
                     Confirm Password *
                   </label>
                   <div className="mt-1 relative">
@@ -408,7 +414,7 @@ export default function EmployeeRegistrationPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-light)] hover:text-[var(--text-dark)]"
                     >
                       {showConfirmPassword ? (
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,11 +434,11 @@ export default function EmployeeRegistrationPage() {
 
             {/* Company Details Section */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Company Details</h3>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Company Details</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="companyId" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="companyId" className="block text-sm font-medium text-[var(--text-dark)]">
                     Company ID *
                   </label>
                   <div className="mt-1 flex space-x-2">
@@ -456,14 +462,14 @@ export default function EmployeeRegistrationPage() {
                   </div>
                   
                   {companyVerification && (
-                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="mt-2 p-3 bg-[rgba(83, 168, 182, 0.1)] border border-[var(--success-color)] rounded-md">
                       <div className="flex items-center">
-                        <svg className="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="h-5 w-5 text-[var(--success-color)] mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <div>
-                          <p className="text-sm font-medium text-green-800">Company Verified</p>
-                          <p className="text-sm text-green-600">{companyVerification.company_name}</p>
+                          <p className="text-sm font-medium text-[var(--success-color)]">Company Verified</p>
+                          <p className="text-sm text-[var(--success-color)]">{companyVerification.company_name}</p>
                         </div>
                       </div>
                     </div>
@@ -471,7 +477,7 @@ export default function EmployeeRegistrationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="positionName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="positionName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Position/Role *
                   </label>
                   <input
@@ -490,7 +496,7 @@ export default function EmployeeRegistrationPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="text-[var(--error-color)] text-sm bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-3">
                 {error}
               </div>
             )}
@@ -500,7 +506,7 @@ export default function EmployeeRegistrationPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="text-gray-600 hover:text-gray-800 font-medium"
+                className="text-[var(--text-light)] hover:text-[var(--text-dark)] font-medium"
               >
                 ← Back
               </button>

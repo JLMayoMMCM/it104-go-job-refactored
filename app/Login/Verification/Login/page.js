@@ -97,10 +97,27 @@ function LoginVerificationContent() {
         }
         
         // Store user information for dashboard access
-        localStorage.setItem('accountId', data.user.id);
+        localStorage.setItem('accountId', data.user.account_id);
         localStorage.setItem('accountType', data.user.accountType);
         localStorage.setItem('userEmail', data.user.email);
         localStorage.setItem('username', data.user.username);
+        
+        // Store additional user data for jobseeker
+        if (data.user.person_id) {
+          localStorage.setItem('personId', data.user.person_id);
+        }
+        if (data.user.firstName) {
+          localStorage.setItem('firstName', data.user.firstName);
+        }
+        if (data.user.lastName) {
+          localStorage.setItem('lastName', data.user.lastName);
+        }
+        if (data.user.job_seeker_id) {
+          localStorage.setItem('jobseekerId', data.user.job_seeker_id);
+        }
+        if (data.user.profilePhoto) {
+          localStorage.setItem('profilePhoto', data.user.profilePhoto);
+        }
         
         // Route based on account type
         if (data.user.accountType === 1) {

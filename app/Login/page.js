@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const [userType, setUserType] = useState('2'); // Default to Jobseeker
+  const [theme, setTheme] = useState('jobseeker'); // Default theme
   const [credentials, setCredentials] = useState({
     usernameOrEmail: '',
     password: ''
@@ -15,6 +16,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   
   const router = useRouter();
+
+  useEffect(() => {
+    // Set the data-theme attribute on the HTML element based on the selected theme
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -63,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
@@ -77,37 +83,43 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <h2 className="text-3xl font-bold text-[var(--foreground)]">Welcome Back</h2>
+          <p className="mt-2 text-[var(--text-light)]">Sign in to your account</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
           <form className="space-y-6" onSubmit={handleLogin}>
             {/* User Type Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-3">
                 I am a:
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setUserType('1')}
+                  onClick={() => {
+                    setUserType('1');
+                    setTheme('employee');
+                  }}
                   className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                     userType === '1'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-[var(--primary-color)] bg-[var(--light-color)] text-[var(--text-dark)]'
+                      : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
                   }`}
                 >
                   Employee
                 </button>
                 <button
                   type="button"
-                  onClick={() => setUserType('2')}
+                  onClick={() => {
+                    setUserType('2');
+                    setTheme('jobseeker');
+                  }}
                   className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                     userType === '2'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-[var(--primary-color)] bg-[var(--light-color)] text-[var(--text-dark)]'
+                      : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
                   }`}
                 >
                   Jobseeker
@@ -117,9 +129,9 @@ export default function LoginPage() {
 
             {/* Username/Email Input */}
             <div>
-              <label htmlFor="usernameOrEmail" className="block text-sm font-medium text-gray-700">
-                Username or Email
-              </label>
+                <label htmlFor="usernameOrEmail" className="block text-sm font-medium text-[var(--foreground)]">
+                  Username or Email
+                </label>
               <input
                 id="usernameOrEmail"
                 name="usernameOrEmail"
@@ -127,16 +139,16 @@ export default function LoginPage() {
                 required
                 value={credentials.usernameOrEmail}
                 onChange={handleInputChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-[var(--border-color)] rounded-md shadow-sm placeholder-[var(--text-light)] focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                 placeholder="Enter your username or email"
               />
             </div>
 
             {/* Password Input with Show/Hide Toggle */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+                <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)]">
+                  Password
+                </label>
               <div className="mt-1 relative">
                 <input
                   id="password"
@@ -145,13 +157,13 @@ export default function LoginPage() {
                   required
                   value={credentials.password}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-3 py-2 pr-10 border border-[var(--border-color)] rounded-md shadow-sm placeholder-[var(--text-light)] focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-light)] hover:text-[var(--foreground)]"
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +181,7 @@ export default function LoginPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="text-[var(--error-color)] text-sm bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-3">
                 {error}
               </div>
             )}
@@ -178,7 +190,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary w-full"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -188,17 +200,17 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => router.push('/Login/ForgotPassword')}
-                className="w-full text-center text-sm text-blue-600 hover:text-blue-500 font-medium"
+                className="w-full text-center text-sm text-[var(--primary-color)] hover:text-[var(--secondary-color)] font-medium"
               >
                 Forgot your password?
               </button>
               
               <div className="text-center">
-                <span className="text-sm text-gray-600">Don't have an account? </span>
+                <span className="text-sm text-[var(--text-light)]">Don't have an account? </span>
                 <button
                   type="button"
                   onClick={() => router.push('/Login/Register')}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                  className="text-sm font-medium text-[var(--primary-color)] hover:text-[var(--secondary-color)]"
                 >
                   Sign up
                 </button>

@@ -40,6 +40,10 @@ export default function EditProfilePage() {
       const profileRes = await fetch(`/api/employee/profile?accountId=${accountId}`);
       const profileData = await profileRes.json();
       if (profileRes.ok && profileData.success) {
+        console.log('Profile data received:', profileData.data);
+        console.log('Person data:', profileData.data.person);
+        console.log('Nationality data:', profileData.data.person?.nationality);
+        
         setFormData({
           first_name: profileData.data.person?.first_name || '',
           last_name: profileData.data.person?.last_name || '',

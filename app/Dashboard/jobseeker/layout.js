@@ -5,218 +5,417 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 
 export default function JobseekerLayout({ children }) {
+  const [jobseeker, setJobseeker] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState('jobs'); // 'jobs' or 'companies'
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check if user is logged in and is a jobseeker
-    const accountType = localStorage.getItem('accountType');
     const accountId = localStorage.getItem('accountId');
-    const username = localStorage.getItem('username');
-    const userEmail = localStorage.getItem('userEmail');
-
+    const accountType = localStorage.getItem('accountType');
+    
     if (!accountId || accountType !== '2') {
-      // Not logged in or not a jobseeker, redirect to login
       router.push('/Login');
       return;
     }
-
-    setUserInfo({
-      accountId,
-      username,
-      userEmail
-    });
+    
+    // Set theme based on account type
+    document.documentElement.setAttribute('data-theme', 'jobseeker');
+    
+    // Set dark/light mode based on user preference or system setting
+    const savedMode = localStorage.getItem('colorMode');
+    if (savedMode) {
+      document.documentElement.setAttribute('data-mode', savedMode);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-mode', prefersDark ? 'dark' : 'light');
+    }
+    
+    // Load data from localStorage for immediate display
+    const firstName = localStorage.getItem('firstName') || '';
+    const lastName = localStorage.getItem('lastName') || '';
+    const profilePhoto = localStorage.getItem('profilePhoto') || '';
+    
+    if (firstName || lastName) {
+      setJobseeker({
+        firstName,
+        lastName,
+        profilePhoto: profilePhoto || null
+      });
+    }
+    
+    fetchJobseekerData(accountId);
   }, [router]);
 
-  const handleLogout = () => {
-    // Clear all stored user data
-    localStorage.removeItem('accountId');
-    localStorage.removeItem('accountType');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('authToken');
-    
-    // Redirect to login page
-    router.push('/Login');
+  const fetchJobseekerData = async (accountId) => {
+    try {
+      // Fetch jobseeker profile data if session data is incomplete or for updates
+      if (!localStorage.getItem('firstName') || !localStorage.getItem('lastName')) {
+        const profileResponse = await fetch(`/api/jobseeker/profile?accountId=${accountId}`);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.success) {
+            const newFirstName = profileData.data.person.first_name;
+            const newLastName = profileData.data.person.last_name;
+            const newProfilePhoto = profileData.data.account.account_profile_photo || '';
+            
+            setJobseeker({
+              firstName: newFirstName,
+              lastName: newLastName,
+              profilePhoto: newProfilePhoto || null
+            });
+            
+            // Update localStorage with fetched data
+            localStorage.setItem('firstName', newFirstName);
+            localStorage.setItem('lastName', newLastName);
+            if (newProfilePhoto) {
+              localStorage.setItem('profilePhoto', newProfilePhoto);
+            }
+          }
+        }
+      }
+
+      // Fetch notification count
+      const notificationsResponse = await fetch(`/api/jobseeker/notifications?accountId=${accountId}`);
+      if (notificationsResponse.ok) {
+        const notificationsData = await notificationsResponse.json();
+        if (notificationsData.success) {
+          setUnreadNotifications(notificationsData.data.unread_count);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching jobseeker data:', error);
+      // Keep using session data if API call fails
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const navigation = [
-    { name: 'Dashboard', href: '/Dashboard/jobseeker', icon: '🏠' },
-    { name: 'Find Jobs', href: '/Dashboard/jobseeker/jobs/all-jobs', icon: '🔍' },
-    { name: 'Recommended', href: '/Dashboard/jobseeker/jobs/recommended-jobs', icon: '💡' },
-    { name: 'My Applications', href: '/Dashboard/jobseeker/applications', icon: '📋' },
-    { name: 'Saved Jobs', href: '/Dashboard/jobseeker/saved-jobs', icon: '❤️' },
-    { name: 'Companies', href: '/Dashboard/jobseeker/company/all', icon: '🏢' },
-    { name: 'Followed Companies', href: '/Dashboard/jobseeker/company/followed', icon: '⭐' },
-    { name: 'My Profile', href: '/Dashboard/jobseeker/profile', icon: '👤' },
-    { name: 'Notifications', href: '/Dashboard/notifications', icon: '🔔' },
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    // TODO: Implement actual search functionality when API is available
+    // For now, simulate search navigation
+    if (searchType === 'jobs') {
+      alert(`Searching for jobs matching: "${searchQuery}"\nFull search functionality will be implemented soon.`);
+    } else {
+      alert(`Searching for companies matching: "${searchQuery}"\nFull search functionality will be implemented soon.`);
+    }
+    setSearchQuery('');
+  };
+
+  const handleProfilePhotoUpdate = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const accountId = localStorage.getItem('accountId');
+    if (!accountId) return;
+
+    const formData = new FormData();
+    formData.append('profilePhoto', file);
+    formData.append('accountId', accountId);
+
+    try {
+      const response = await fetch('/api/jobseeker/profile/photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the jobseeker state with the new profile photo
+        setJobseeker(prev => ({
+          ...prev,
+          profilePhoto: data.profilePhotoUrl
+        }));
+        // Update localStorage as well
+        localStorage.setItem('profilePhoto', data.profilePhotoUrl);
+      } else {
+        console.error('Failed to update profile photo:', data.error);
+        alert('Failed to update profile photo. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile photo:', error);
+      alert('Error updating profile photo. Please try again.');
+    }
+  };
+
+  const sidebarItems = [
+    { name: 'Dashboard', href: '/Dashboard/jobseeker', icon: 'dashboard' },
+    { name: 'Profile', href: '/Dashboard/jobseeker/profile', icon: 'profile' },
+    { name: 'Job Search', href: '/Dashboard/jobseeker/jobs/all-jobs', icon: 'search' },
+    { name: 'Recommended Jobs', href: '/Dashboard/jobseeker/jobs/recommended-jobs', icon: 'recommended' },
+    { name: 'Applications', href: '/Dashboard/jobseeker/applications', icon: 'applications' },
+    { name: 'Saved Jobs', href: '/Dashboard/jobseeker/saved-jobs', icon: 'saved' },
+    { name: 'Notifications', href: '/Dashboard/jobseeker/notifications', icon: 'notifications', badge: unreadNotifications }
   ];
 
-  const isCurrentPath = (href) => {
-    if (href === '/Dashboard/jobseeker') {
-      return pathname === href;
+  const getIcon = (iconName) => {
+    const iconClass = "w-5 h-5";
+    switch (iconName) {
+      case 'dashboard':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+          </svg>
+        );
+      case 'profile':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        );
+      case 'search':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        );
+      case 'applications':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+case 'saved':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        );
+      case 'preferences':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 00.955.806c1.759.467 2.527 2.951 1.191 4.291a1.724 1.724 0 00-.302.983c.084 1.8-1.459 3.336-3.259 3.252a1.724 1.724 0 00-1.569.873c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-.955-.806c-1.759-.467-2.527-2.951-1.191-4.291a1.724 1.724 0 00.302-.983c-.084-1.8 1.459-3.336 3.259-3.252a1.724 1.724 0 001.569-.873z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        );
+      case 'recommended':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+      case 'notifications':
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19.5A2.5 2.5 0 01 1.5 17V12A8.5 8.5 0 0110 3.5h4A8.5 8.5 0 0122.5 12v5a2.5 2.5 0 01-2.5 2.5H4z" />
+          </svg>
+        );
+      default:
+        return null;
     }
-    return pathname.startsWith(href);
   };
 
-  if (!userInfo) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-screen bg-gray-50 overflow-hidden">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-4 bg-blue-600">
-            <Image
-              src="/Assets/Title.png"
-              alt="GoJob"
-              width={120}
-              height={48}
-              className="h-8 w-auto"
-            />
-          </div>
-
-          {/* User info */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-medium text-sm">
-                  {userInfo.username?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {userInfo.username}
-                </p>
-                <p className="text-xs text-gray-500 truncate">Job Seeker</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => {
-                  router.push(item.href);
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isCurrentPath(item.href)
-                    ? 'bg-blue-100 text-blue-900 border-r-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.name}
-              </button>
-            ))}
-          </nav>
-
-          {/* Logout button */}
-          <div className="p-4 border-t border-gray-200">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition-colors"
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div className="flex items-center justify-between px-6 h-18">
+          {/* Left side - Logo */}
+          <div className="flex items-center">
+            <div
+              onClick={() => router.push('/Dashboard/jobseeker')}
+              className="cursor-pointer"
             >
-              <span className="mr-3 text-lg">🚪</span>
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-col flex-1 lg:ml-64">
-        {/* Top navigation */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <h1 className="ml-2 text-xl font-semibold text-gray-900 lg:ml-0">
-                Job Seeker Portal
-              </h1>
+              <Image
+                src="/Assets/Title.png"
+                alt="GoJob Logo"
+                width={120}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
             </div>
+          </div>
 
-            <div className="flex items-center space-x-4">
-              {/* Quick search */}
-              <div className="hidden md:block">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search jobs..."
-                    className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          {/* Right side - User info, search and sidebar toggle */}
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-3">
+              <span className="text-gray-700">
+                Hello, <span className="font-semibold">{jobseeker?.firstName} {jobseeker?.lastName}</span>
+              </span>
+              <div className="relative w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                {jobseeker?.profilePhoto ? (
+                  <img
+                    src={jobseeker.profilePhoto}
+                    alt="Profile"
+                    className="w-full h-full rounded-full object-cover group-hover:opacity-75 transition-opacity"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
+                      console.error('Error loading profile image in header:', jobseeker.profilePhoto);
+                    }}
                   />
-                  <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                ) : (
+                  <svg className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
               </div>
-
-              {/* Notifications */}
-              <button 
-                onClick={() => router.push('/Dashboard/notifications')}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-md relative"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19.5A2.5 2.5 0 01 1.5 17V12A8.5 8.5 0 0110 3.5h4A8.5 8.5 0 0122.5 12v5a2.5 2.5 0 01-2.5 2.5H4z" />
-                </svg>
-                {/* Notification badge - you can make this dynamic */}
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* Profile dropdown */}
-              <div className="relative">
+            </div>
+            <form onSubmit={handleSearch} className="flex items-center max-w-md mx-auto">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder={searchType === 'jobs' ? 'Search jobs...' : 'Search companies...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
                 <button
-                  onClick={() => router.push('/Dashboard/jobseeker/profile')}
-                  className="flex items-center space-x-2 p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                  type="button"
+                  onClick={() => setSearchType(searchType === 'jobs' ? 'companies' : 'jobs')}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
                 >
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-medium text-xs">
-                      {userInfo.username?.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="hidden md:block text-sm font-medium">
-                    {userInfo.username}
-                  </span>
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    {searchType === 'jobs' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m3-3h8a2 2 0 002-2v-1a2 2 0 00-2-2H8a2 2 0 00-2 2v1a2 2 0 002 2z" />
+                    )}
+                  </svg>
                 </button>
               </div>
+              <button
+                type="submit"
+                className="ml-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </form>
+            <button
+              onClick={() => {
+                const currentMode = document.documentElement.getAttribute('data-mode') || 'light';
+                const newMode = currentMode === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-mode', newMode);
+                localStorage.setItem('colorMode', newMode);
+              }}
+              className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {sidebarOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className={`fixed inset-y-0 right-0 z-30 w-64 bg-white border-l border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out`}>
+          <div className="flex h-full flex-col">
+            {/* Logo */}
+            <div className="flex items-center justify-between h-18 px-6 border-b border-gray-200">
+              <div className="flex items-center justify-center w-full">
+                <img src="/Assets/Title.png" alt="GoJob Logo" className="h-10 w-auto" />
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-4">
+              <ul className="space-y-1">
+                {sidebarItems.map((item) => (
+                  <li key={item.name}>
+                    <button
+                      onClick={() => {
+                        router.push(item.href);
+                        setSidebarOpen(false);
+                      }}
+                      className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-700`}
+                    >
+                      <div className="flex-shrink-0 w-8 text-gray-500">
+                        {getIcon(item.icon)}
+                      </div>
+                      <span className="ml-3">{item.name}</span>
+                      {item.badge > 0 && (
+                        <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  // Clear all stored user data
+                  localStorage.removeItem('accountId');
+                  localStorage.removeItem('accountType');
+                  localStorage.removeItem('username');
+                  localStorage.removeItem('userEmail');
+                  localStorage.removeItem('authToken');
+                  localStorage.removeItem('hasJobPreferences');
+                  // Redirect to login page
+                  router.push('/Login');
+                }}
+                className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700"
+              >
+                <svg className="h-5 w-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </div>
           </div>
-        </header>
+        </aside>
+        {/* Backdrop for all screens */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-20 bg-black opacity-50"
+            onClick={() => setSidebarOpen(false)}
+          ></div>
+        )}
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            {children}
+        {/* Main content */}
+        <main className="flex-1">
+          <div className="py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {children}
+            </div>
           </div>
         </main>
       </div>

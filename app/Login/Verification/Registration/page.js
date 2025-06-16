@@ -98,6 +98,9 @@ function VerificationContent() {
         // Redirect based on type
         if (type === 'company') {
           router.push('/Login?verified=company');
+        } else if (type === 'jobseeker') {
+          // Redirect jobseekers to job preferences page
+          router.push(`/Login/JobPreferences?accountId=${accountId}`);
         } else {
           router.push('/Login?verified=success');
         }

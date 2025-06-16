@@ -16,7 +16,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(educationLevels);
+    return NextResponse.json({
+      success: true,
+      data: educationLevels
+    });
   } catch (error) {
     console.error('Error fetching education levels:', error);
     return NextResponse.json(

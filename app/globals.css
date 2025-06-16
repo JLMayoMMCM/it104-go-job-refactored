@@ -41,7 +41,38 @@
     --foreground: #e8f4f8;
     --card-background: #243447;
     --border-color: var(--first-color);
+    --text-light: #adb5bd;
+    --text-dark: #f8f9fa;
   }
+}
+
+/* Dark Mode Support with data-mode attribute */
+[data-mode="dark"] {
+  --background: #1a2332;
+  --foreground: #e8f4f8;
+  --card-background: #243447;
+  --border-color: var(--first-color);
+  --text-light: #adb5bd;
+  --text-dark: #f8f9fa;
+}
+
+/* Theme-specific dark mode overrides */
+[data-theme="jobseeker"][data-mode="dark"] {
+  --primary-color: #5ca9b8;
+  --secondary-color: #9bd1d9;
+  --accent-color: #3d6d8c;
+  --background: #19212e;
+  --foreground: #e8f4f8;
+  --light-color: #c0e0e5;
+}
+
+[data-theme="employee"][data-mode="dark"] {
+  --primary-color: #6ca080;
+  --secondary-color: #a8c9ad;
+  --accent-color: #3d7a8c;
+  --background: #1a242e;
+  --foreground: #e8f4f8;
+  --light-color: #c0d9c5;
 }
 
 body {
@@ -50,6 +81,7 @@ body {
   font-family: 'Inter', Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Global Utility Classes */
@@ -124,4 +156,69 @@ body {
   border-radius: 6px;
   border-left: 4px solid var(--success-color);
   margin: 1rem 0;
+}
+
+/* Jobseeker Theme */
+[data-theme="jobseeker"] {
+  --primary-color: #79c2d0;
+  --secondary-color: #bbe4e9;
+  --accent-color: #5585b5;
+  --background: #f0f8ff;
+  --foreground: #2c3e50;
+}
+
+/* Employee Theme */
+[data-theme="employee"] {
+  --primary-color: #8fd3a3;
+  --secondary-color: #c8e6c9;
+  --accent-color: #53a8b6;
+  --background: #f5fff5;
+  --foreground: #2c3e50;
+}
+
+/* Theme-specific gradients for login pages */
+.jobseeker-gradient {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+}
+
+.employee-gradient {
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 50%, #a5d6a7 100%);
+}
+
+/* Theme-specific button styles */
+[data-theme="jobseeker"] .btn-primary,
+.jobseeker-theme .btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+[data-theme="jobseeker"] .btn-primary:hover,
+.jobseeker-theme .btn-primary:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+[data-theme="employee"] .btn-primary,
+.employee-theme .btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+[data-theme="employee"] .btn-primary:hover,
+.employee-theme .btn-primary:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* Theme-specific focus colors */
+[data-theme="jobseeker"] .form-input:focus,
+.jobseeker-theme .form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
+}
+
+[data-theme="employee"] .form-input:focus,
+.employee-theme .form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
 }

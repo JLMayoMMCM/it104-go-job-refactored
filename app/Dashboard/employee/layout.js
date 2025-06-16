@@ -22,6 +22,18 @@ export default function EmployeeDashboardLayout({ children }) {
       return;
     }
 
+    // Set theme based on account type
+    document.documentElement.setAttribute('data-theme', 'employee');
+    
+    // Set dark/light mode based on user preference or system setting
+    const savedMode = localStorage.getItem('colorMode');
+    if (savedMode) {
+      document.documentElement.setAttribute('data-mode', savedMode);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-mode', prefersDark ? 'dark' : 'light');
+    }
+    
     fetchEmployeeData(accountId);
   }, [router]);
 
@@ -55,6 +67,41 @@ export default function EmployeeDashboardLayout({ children }) {
       console.error('Error fetching employee data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProfilePhotoUpdate = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const accountId = localStorage.getItem('accountId');
+    if (!accountId) return;
+
+    const formData = new FormData();
+    formData.append('profilePhoto', file);
+    formData.append('accountId', accountId);
+
+    try {
+      const response = await fetch('/api/employee/profile/photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the employee state with the new profile photo
+        setEmployee(prev => ({
+          ...prev,
+          profilePhoto: data.profilePhotoUrl
+        }));
+      } else {
+        console.error('Failed to update profile photo:', data.error);
+        alert('Failed to update profile photo. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile photo:', error);
+      alert('Error updating profile photo. Please try again.');
     }
   };
 
@@ -124,17 +171,22 @@ export default function EmployeeDashboardLayout({ children }) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-6 h-18">
           {/* Left side - Logo */}
           <div className="flex items-center">
-            <Image
-              src="/Assets/Title.png"
-              alt="GoJob Logo"
-              width={120}
-              height={40}
-              className="h-10 w-auto"
-              priority
-            />
+            <div
+              onClick={() => router.push('/Dashboard/employee')}
+              className="cursor-pointer"
+            >
+              <Image
+                src="/Assets/Title.png"
+                alt="GoJob Logo"
+                width={120}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+            </div>
           </div>
 
           {/* Right side - User info and sidebar toggle */}
@@ -143,12 +195,12 @@ export default function EmployeeDashboardLayout({ children }) {
               <span className="text-gray-700">
                 Hello, <span className="font-semibold">{employee?.firstName} {employee?.lastName}</span>
               </span>
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+              <div className="relative w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                 {employee?.profilePhoto ? (
                   <img
                     src={employee.profilePhoto}
                     alt="Profile"
-                    className="w-full h-full rounded-full object-cover"
+                    className="w-full h-full rounded-full object-cover group-hover:opacity-75 transition-opacity"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
@@ -156,16 +208,35 @@ export default function EmployeeDashboardLayout({ children }) {
                     }}
                   />
                 ) : (
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 )}
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
             
             <button
+              onClick={() => {
+                const currentMode = document.documentElement.getAttribute('data-mode') || 'light';
+                const newMode = currentMode === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-mode', newMode);
+                localStorage.setItem('colorMode', newMode);
+              }}
+              className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </button>
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+              className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {sidebarOpen ? (
@@ -181,13 +252,12 @@ export default function EmployeeDashboardLayout({ children }) {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-10 w-64 bg-white border-r border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto md:w-64`}>
+        <aside className={`fixed inset-y-0 right-0 z-30 w-64 bg-white border-l border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out`}>
           <div className="flex h-full flex-col">
             {/* Logo */}
-            <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-              <div className="flex items-center">
-                <img src="/Assets/Logo.png" alt="Logo" className="h-8 w-auto mr-2" />
-                <span className="text-xl font-bold text-gray-900">GoJob</span>
+            <div className="flex items-center justify-between h-18 px-6 border-b border-gray-200">
+              <div className="flex items-center justify-center w-full">
+                <img src="/Assets/Title.png" alt="GoJob Logo" className="h-10 w-auto" />
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -247,16 +317,16 @@ export default function EmployeeDashboardLayout({ children }) {
             </div>
           </div>
         </aside>
-        {/* Backdrop for mobile */}
+        {/* Backdrop for all screens */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-0 bg-black opacity-50 md:hidden"
+            className="fixed inset-0 z-20 bg-black opacity-50"
             onClick={() => setSidebarOpen(false)}
           ></div>
         )}
 
         {/* Main content */}
-        <main className="flex-1 md:ml-64">
+        <main className="flex-1">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {children}
