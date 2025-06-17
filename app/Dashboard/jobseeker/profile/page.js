@@ -49,6 +49,7 @@ export default function JobseekerProfile() {
   const [jobPreferences, setJobPreferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cacheBuster, setCacheBuster] = useState(Date.now());
   const router = useRouter();
 
   useEffect(() => {
@@ -60,15 +61,17 @@ export default function JobseekerProfile() {
       return;
     }
     
+    // Refresh data when component mounts or after edit
     fetchProfileData(accountId);
-  }, [router]);
+  }, [router, cacheBuster]);
 
   const fetchProfileData = async (accountId) => {
     try {
       setError(null);
       console.log('Fetching profile data for accountId:', accountId);
       
-      const response = await fetch(`/api/jobseeker/profile?accountId=${accountId}`);
+      // Add cache buster to URL to ensure fresh data
+      const response = await fetch(`/api/jobseeker/profile?accountId=${accountId}&cb=${Date.now()}`);
       console.log('API response status:', response.status);
       
       if (!response.ok) {
@@ -110,6 +113,8 @@ export default function JobseekerProfile() {
 
   const handleEditProfile = useCallback(() => {
     router.push('/Dashboard/jobseeker/profile/edit');
+    // Update cache buster to ensure refresh when returning
+    setCacheBuster(Date.now());
   }, [router]);
 
   // Resume PDF Component
@@ -213,7 +218,7 @@ export default function JobseekerProfile() {
         <div className="flex justify-end mb-4">
           <button
             onClick={handleEditProfile}
-            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-white bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+            className="btn-primary flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
           >
             Edit Profile
           </button>
@@ -297,20 +302,28 @@ export default function JobseekerProfile() {
                 <div className="space-y-4">
                   {profile.resume ? (
                     <div className="space-y-4">
-                      <iframe
-                        src={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
-                        className="w-full h-96 border border-[var(--border-color)] rounded-lg"
-                        title="Resume Preview"
-                      ></iframe>
-                      <div className="flex justify-end">
-                        <a
-                          href={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-                        >
-                          Download Resume
-                        </a>
+                      <div className="border border-[var(--border-color)] rounded-lg p-4 bg-[var(--background)]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <svg className="w-6 h-6 text-[var(--primary-color)] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm font-medium text-[var(--foreground)]">{profile.resume.name}</p>
+                              <p className="text-xs text-[var(--text-light)]">{profile.resume.size}</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <a
+                              href={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+                            >
+                              View Resume
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -318,7 +331,7 @@ export default function JobseekerProfile() {
                       <svg className="mx-auto h-16 w-16 text-[var(--text-light)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <p className="text-[var(--foreground)] text-lg">Resume Preview Not Available</p>
+                      <p className="text-[var(--foreground)] text-lg">Resume Not Available</p>
                       <p className="text-sm text-[var(--text-light)] mt-2">Upload your resume to showcase your professional experience and skills.</p>
                     </div>
                   )}

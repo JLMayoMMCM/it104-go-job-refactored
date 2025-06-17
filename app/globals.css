@@ -63,7 +63,7 @@
   --accent-color: #3d6d8c;
   --background: #19212e;
   --foreground: #e8f4f8;
-  --light-color: #c0e0e5;
+  --light-color: #ffffff;
 }
 
 [data-theme="employee"][data-mode="dark"] {
@@ -72,7 +72,7 @@
   --accent-color: #3d7a8c;
   --background: #1a242e;
   --foreground: #e8f4f8;
-  --light-color: #c0d9c5;
+  --light-color: #ffffff;
 }
 
 /* Ensure theme colors override base colors for specific components */
@@ -144,12 +144,13 @@ body {
 
 .btn-secondary {
   background-color: var(--third-color);
-  color: var(--text-dark);
+  color: white;
 }
 
 .btn-secondary:hover {
   background-color: var(--second-color);
   color: white;
+  transform: translateY(-2px);
 }
 
 .card {
@@ -371,7 +372,7 @@ body {
 .text-heading {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--foreground);
+  color: var(--text-black);
   margin-bottom: 1rem;
 }
 
@@ -384,7 +385,7 @@ body {
 
 .text-description {
   font-size: 1rem;
-  color: var(--text-light);
+  color: var(--text-black);
   line-height: 1.6;
 }
 

@@ -140,19 +140,60 @@ export async function GET(request) {
     if (personData.address?.city_name) addressParts.push(personData.address.city_name);
     const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
 
-    // Format resume data
+    // Format resume data with metadata from storage if available
     let resumeData = null;
     if (accountData.account_resume) {
-      // Extract filename from URL
-      const url = new URL(accountData.account_resume);
-      const pathParts = url.pathname.split('/');
-      const fileName = pathParts[pathParts.length - 1];
-      
-      resumeData = {
-        url: accountData.account_resume,
-        name: fileName.replace(/^resume_\d+_\d+\./, '').replace(/^resume_/, '') || 'Resume.pdf',
-        size: 'Unknown size' // We don't store file size in DB, but could be added later
-      };
+      try {
+        // Extract file path from URL
+        const url = new URL(accountData.account_resume);
+        const pathParts = url.pathname.split('/profile/')[1]?.split('?')[0];
+        const filePath = pathParts || '';
+        
+        if (filePath) {
+          // Get file metadata from Supabase Storage
+          const { data: metadata, error } = await supabase.storage
+            .from('profile')
+            .list(filePath.split('/')[0], { 
+              limit: 1, 
+              search: filePath.split('/')[1] 
+            });
+            
+          let fileSize = 'Unknown size';
+          let fileName = filePath.split('/')[1].replace(/^resume_\d+_\d+\./, '').replace(/^resume_/, '') || 'Resume.pdf';
+          
+          if (error) {
+            console.warn('Could not get resume metadata:', error.message);
+          } else if (metadata && metadata[0] && metadata[0].metadata) {
+            const sizeInBytes = metadata[0].metadata.size;
+            if (sizeInBytes) {
+              if (sizeInBytes < 1024) fileSize = sizeInBytes + ' B';
+              else if (sizeInBytes < 1048576) fileSize = (sizeInBytes / 1024).toFixed(1) + ' KB';
+              else fileSize = (sizeInBytes / 1048576).toFixed(1) + ' MB';
+            }
+          }
+          
+          resumeData = {
+            url: accountData.account_resume,
+            name: fileName,
+            size: fileSize
+          };
+        } else {
+          // Fallback if path extraction fails
+          resumeData = {
+            url: accountData.account_resume,
+            name: 'Resume.pdf',
+            size: 'Unknown size'
+          };
+        }
+      } catch (err) {
+        console.error('Error fetching resume metadata:', err.message);
+        // Fallback on error
+        resumeData = {
+          url: accountData.account_resume,
+          name: 'Resume.pdf',
+          size: 'Unknown size'
+        };
+      }
     }
 
     console.log('Successfully formatted profile data');
