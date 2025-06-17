@@ -112,6 +112,55 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Failed to update job request' }, { status: 500 });
     }
 
+    // Get jobseeker account ID to send notification
+    const { data: jobSeekerData, error: jobSeekerError } = await supabase
+      .from('job_requests')
+      .select(`
+        job_seeker_id,
+        job_seeker:job_seeker_id (
+          account_id
+        ),
+        job:job_id (
+          job_name,
+          company:company_id (
+            company_name
+          )
+        )
+      `)
+      .eq('request_id', requestId)
+      .single();
+
+    if (jobSeekerError) {
+      console.error('Error fetching jobseeker data for notification:', jobSeekerError);
+    } else {
+      const jobSeekerAccountId = jobSeekerData.job_seeker.account_id;
+      const jobName = jobSeekerData.job.job_name;
+      const companyName = jobSeekerData.job.company.company_name;
+      let notificationText = '';
+      
+      if (finalStatus === 'accepted') {
+        notificationText = `Application Accepted for ${jobName} at ${companyName}\n${finalMessage}`;
+      } else {
+        notificationText = `Application Update for ${jobName} at ${companyName}\n${finalMessage}`;
+      }
+      
+      // Create a notification for the jobseeker
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert([
+          {
+            account_id: jobSeekerAccountId,
+            notification_text: notificationText,
+            sender_account_id: accountId // Employee account ID
+          }
+        ]);
+
+      if (notificationError) {
+        console.error('Notification insert error:', notificationError);
+        // Don't fail the request just because notification failed
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: `Job request ${finalStatus} successfully`,

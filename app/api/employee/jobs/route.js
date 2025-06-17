@@ -199,6 +199,48 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to link job categories' }, { status: 500 });
     }
 
+    // Get company name for notifications
+    const { data: companyData, error: companyError } = await supabase
+      .from('company')
+      .select('company_name')
+      .eq('company_id', employee.company_id)
+      .single();
+
+    if (companyError) {
+      console.error('Error fetching company data for notification:', companyError);
+    } else {
+      // Get followers of the company
+      const { data: followersData, error: followersError } = await supabase
+        .from('followed_companies')
+        .select(`
+          job_seeker_id,
+          job_seeker:job_seeker_id (
+            account_id
+          )
+        `)
+        .eq('company_id', employee.company_id);
+
+      if (followersError) {
+        console.error('Error fetching company followers for notification:', followersError);
+      } else if (followersData && followersData.length > 0) {
+        // Create notifications for each follower
+        const notifications = followersData.map(follower => ({
+          account_id: follower.job_seeker.account_id,
+          notification_text: `New Job Posting: ${job_name} at ${companyData.company_name}\nA new position is available that might interest you.`,
+          sender_account_id: accountId // Employee account ID
+        }));
+
+        const { error: notificationsError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notificationsError) {
+          console.error('Error creating follower notifications:', notificationsError);
+          // Don't fail the request just because notifications failed
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Job created successfully',
