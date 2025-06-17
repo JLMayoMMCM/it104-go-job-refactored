@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Theme Test</title>
+    <style>
+        /* Import the CSS variables */
+        :root {
+            --first-color: #5585b5;
+            --second-color: #53a8b6;
+            --third-color: #79c2d0;
+            --fourth-color: #bbe4e9;
+            --primary-color: var(--first-color);
+            --secondary-color: var(--second-color);
+            --accent-color: var(--third-color);
+            --light-color: var(--fourth-color);
+            --background: #ffffff;
+            --foreground: #2c3e50;
+            --text-light: #6c757d;
+            --text-dark: #343a40;
+            --card-background: #ffffff;
+            --border-color: var(--fourth-color);
+            --hover-color: var(--third-color);
+            --success-color: var(--second-color);
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+        }
+
+        [data-mode="dark"] {
+            --background: #1a2332;
+            --foreground: #e8f4f8;
+            --card-background: #243447;
+            --border-color: var(--first-color);
+            --text-light: #adb5bd;
+            --text-dark: #f8f9fa;
+        }
+
+        [data-theme="jobseeker"] {
+            --primary-color: #79c2d0;
+            --secondary-color: #bbe4e9;
+            --accent-color: #5585b5;
+            --background: #f0f8ff;
+            --foreground: #2c3e50;
+            --light-color: #bbe4e9;
+        }
+
+        [data-theme="employee"] {
+            --primary-color: #8fd3a3;
+            --secondary-color: #c8e6c9;
+            --accent-color: #53a8b6;
+            --background: #f5fff5;
+            --foreground: #2c3e50;
+            --light-color: #c8e6c9;
+        }
+
+        /* Theme-specific light mode overrides for better contrast */
+        [data-theme="jobseeker"][data-mode="light"] {
+            --primary-color: #5585b5;
+            --secondary-color: #79c2d0;
+            --accent-color: #53a8b6;
+            --light-color: #bbe4e9;
+        }
+
+        [data-theme="employee"][data-mode="light"] {
+            --primary-color: #53a8b6;
+            --secondary-color: #8fd3a3;
+            --accent-color: #79c2d0;
+            --light-color: #c8e6c9;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--foreground);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .header-demo {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .panel-demo {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--background) 0%, rgba(128,128,128,0.1) 100%);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .panel-header-featured {
+            background: linear-gradient(135deg, var(--light-color) 0%, var(--background) 100%);
+            color: var(--primary-color);
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body data-theme="" data-mode="light">
+    <div class="theme-controls">
+        <h3>Theme Test Controls</h3>
+        <div>
+            <strong>Theme:</strong>
+            <button onclick="setTheme('')">Default</button>
+            <button onclick="setTheme('jobseeker')">Jobseeker</button>
+            <button onclick="setTheme('employee')">Employee</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <strong>Mode:</strong>
+            <button onclick="setMode('light')">Light</button>
+            <button onclick="setMode('dark')">Dark</button>
+        </div>
+    </div>
+
+    <div class="header-demo">
+        <h1>Profile Header Demo</h1>
+        <p>This demonstrates the standardized header design with theme-aware gradients</p>
+    </div>
+
+    <div class="panel-demo">
+        <div class="panel-header">
+            Standard Panel Header
+        </div>
+        <div class="panel-content">
+            <p style="color: var(--text-light); margin: 0;">Content with theme-aware text colors</p>
+        </div>
+    </div>
+
+    <div class="panel-demo">
+        <div class="panel-header panel-header-featured">
+            Featured Panel Header
+        </div>
+        <div class="panel-content">
+            <p style="color: var(--foreground); margin: 0;">Featured content section with enhanced styling</p>
+        </div>
+    </div>
+
+    <script>
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+        }
+
+        function setMode(mode) {
+            document.body.setAttribute('data-mode', mode);
+        }
+    </script>
+</body>
+</html>

@@ -170,7 +170,7 @@ export default function ViewJob() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-700 to-gray-900 rounded-lg shadow-lg p-8 text-white">
+      <div className="profile-header">
         <div className="flex flex-col md:flex-row items-center md:items-start">
           <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
             <img
@@ -266,13 +266,13 @@ export default function ViewJob() {
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
-        <button onClick={handleSaveJob} className={`px-6 py-2 rounded-md font-medium text-white ${isSaved ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
+        <button onClick={handleSaveJob} className={`btn btn-primary px-6 py-2 font-medium ${isSaved ? 'bg-blue-400' : ''}`}>
           {isSaved ? 'Saved' : 'Save Job'}
         </button>
-        <button onClick={handleApplyJob} className={`px-6 py-2 rounded-md font-medium text-white ${hasApplied ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`} disabled={hasApplied}>
+        <button onClick={handleApplyJob} className={`btn btn-primary px-6 py-2 font-medium ${hasApplied ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`} disabled={hasApplied}>
           {hasApplied ? 'Applied' : 'Apply Now'}
         </button>
-        <button onClick={handleViewCompany} className="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-md font-medium text-white">
+        <button onClick={handleViewCompany} className="btn btn-secondary px-6 py-2 font-medium">
           View Company
         </button>
       </div>
@@ -282,13 +282,13 @@ export default function ViewJob() {
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
           {/* Description */}
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Job Description</h3>
+          <div className="card">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold">Job Description</h3>
             </div>
             <div className="p-6">
               <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                <p className="text-[var(--foreground)] leading-relaxed whitespace-pre-line">
                   {job.description || 'No description provided for this job.'}
                 </p>
               </div>
@@ -296,9 +296,9 @@ export default function ViewJob() {
           </div>
           
           {/* Requirements */}
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Requirements</h3>
+          <div className="card">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold">Requirements</h3>
             </div>
             <div className="p-6">
               <div className="prose max-w-none">
@@ -308,10 +308,10 @@ export default function ViewJob() {
                       <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-gray-700">{req}</span>
+                      <span className="text-[var(--foreground)]">{req}</span>
                     </li>
                   )) : (
-                    <li className="text-gray-500 italic">No specific requirements listed.</li>
+                    <li className="text-[var(--text-light)] italic">No specific requirements listed.</li>
                   )}
                 </ul>
               </div>
@@ -319,9 +319,9 @@ export default function ViewJob() {
           </div>
           
           {/* Benefits */}
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Benefits</h3>
+          <div className="card">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold">Benefits</h3>
             </div>
             <div className="p-6">
               <div className="prose max-w-none">
@@ -331,10 +331,10 @@ export default function ViewJob() {
                       <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-gray-700">{benefit}</span>
+                      <span className="text-[var(--foreground)]">{benefit}</span>
                     </li>
                   )) : (
-                    <li className="text-gray-500 italic">No specific benefits listed.</li>
+                    <li className="text-[var(--text-light)] italic">No specific benefits listed.</li>
                   )}
                 </ul>
               </div>
@@ -344,42 +344,42 @@ export default function ViewJob() {
         
         {/* Right Column */}
         <div className="lg:col-span-1">
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden sticky top-6">
-            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Job Summary</h3>
+          <div className="card sticky top-6">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold">Job Summary</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Posted Date</p>
-                <p className="font-medium">{job.posted || 'N/A'}</p>
+                <p className="text-sm text-[var(--text-light)]">Posted Date</p>
+                <p className="font-medium text-[var(--foreground)]">{job.posted || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Location</p>
-                <p className="font-medium">{job.location || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Location</p>
+                <p className="font-medium text-[var(--foreground)]">{job.location || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Job Type</p>
-                <p className="font-medium">{job.type || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Job Type</p>
+                <p className="font-medium text-[var(--foreground)]">{job.type || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Salary</p>
-                <p className="font-medium">{job.salary || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Salary</p>
+                <p className="font-medium text-[var(--foreground)]">{job.salary || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Experience Level</p>
-                <p className="font-medium">{job.experienceLevel || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Experience Level</p>
+                <p className="font-medium text-[var(--foreground)]">{job.experienceLevel || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Category</p>
-                <p className="font-medium">{job.category || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Category</p>
+                <p className="font-medium text-[var(--foreground)]">{job.category || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Field</p>
-                <p className="font-medium">{job.field || 'Not specified'}</p>
+                <p className="text-sm text-[var(--text-light)]">Field</p>
+                <p className="font-medium text-[var(--foreground)]">{job.field || 'Not specified'}</p>
               </div>
               {typeof job.match === 'number' && (
                 <div>
-                  <p className="text-sm text-gray-500">Profile Match</p>
+                  <p className="text-sm text-[var(--text-light)]">Profile Match</p>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${job.match}%` }}></div>
                   </div>
@@ -393,19 +393,22 @@ export default function ViewJob() {
 
       {/* Apply Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
+          <div className="modal-content">
             <h2 className="text-xl font-bold mb-4">Apply for {job.title}</h2>
-            <p className="text-gray-600 mb-4">at {job.company}</p>
-            <textarea 
-              value={coverLetter} 
-              onChange={(e) => setCoverLetter(e.target.value)} 
-              placeholder="Enter your cover letter or a brief message (optional). A default message will be sent if left empty." 
-              className="w-full p-2 border rounded mb-4 h-32"
-            ></textarea>
-            <div className="flex justify-end space-x-3">
-              <button onClick={() => setShowApplyModal(false)} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
-              <button onClick={handleSubmitApplication} className="px-4 py-2 bg-green-600 text-white rounded-md">Submit Application</button>
+            <p className="text-[var(--text-light)] mb-4">at {job.company}</p>
+            <div className="mb-4">
+              <label className="form-label">Cover Letter (optional)</label>
+              <textarea 
+                value={coverLetter} 
+                onChange={(e) => setCoverLetter(e.target.value)} 
+                placeholder="Enter your cover letter or a brief message. A default message will be sent if left empty." 
+                className="form-textarea"
+              ></textarea>
+            </div>
+            <div className="button-group">
+              <button onClick={() => setShowApplyModal(false)} className="btn btn-secondary">Cancel</button>
+              <button onClick={handleSubmitApplication} className="btn btn-primary">Submit Application</button>
             </div>
           </div>
         </div>

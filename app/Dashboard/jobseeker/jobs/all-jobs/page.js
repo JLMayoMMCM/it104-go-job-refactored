@@ -17,6 +17,7 @@ export default function AllJobs() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
+  const [applicationStatus, setApplicationStatus] = useState({});
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -50,6 +51,7 @@ export default function AllJobs() {
     fetchFilterOptions();
     // Only fetch jobs on initial load with default values
     fetchJobs();
+    fetchApplicationStatus(accountId);
   }, [router]);
 
   // Separate useEffect for pagination only
@@ -219,6 +221,23 @@ export default function AllJobs() {
     setShowApplyModal(true);
   };
 
+  const fetchApplicationStatus = async (accountId) => {
+    try {
+      const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success && data.data) {
+        const statusMap = {};
+        data.data.forEach(app => {
+          statusMap[app.job_id] = app.request_status;
+        });
+        setApplicationStatus(statusMap);
+      }
+    } catch (error) {
+      console.error('Error fetching application status:', error);
+    }
+  };
+
   const handleSubmitApplication = async () => {
     if (!selectedJob) return;
     
@@ -244,6 +263,8 @@ export default function AllJobs() {
         setSelectedJob(null);
         setSuccessMessage('Your application has been submitted successfully!');
         setTimeout(() => setSuccessMessage(''), 3000);
+        // Update application status
+        setApplicationStatus(prev => ({ ...prev, [selectedJob.id]: 'pending' }));
       } else {
         throw new Error(data.error || 'Failed to submit application');
       }
@@ -265,7 +286,7 @@ export default function AllJobs() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
@@ -284,7 +305,7 @@ export default function AllJobs() {
                     setLoading(true);
                     fetchJobs();
                   }}
-                  className="bg-[rgba(231, 76, 60, 0.1)] px-4 py-2 rounded-md text-sm font-medium text-[var(--error-color)] hover:bg-[rgba(231, 76, 60, 0.2)]"
+                  className="btn btn-secondary"
                 >
                   Try Again
                 </button>
@@ -299,22 +320,22 @@ export default function AllJobs() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">All Job Postings</h1>
-        <p className="text-[var(--light-color)] text-lg">Browse through the latest job opportunities and find your perfect match.</p>
+      <div className="profile-header">
+        <h1 className="text-heading">All Job Postings</h1>
+        <p className="text-description text-[var(--light-color)]">Browse through the latest job opportunities and find your perfect match.</p>
       </div>
 
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+        <div className="success-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-green-700">
+              <div className="text-sm text-[var(--success-color)]">
                 <p>{successMessage}</p>
               </div>
             </div>
@@ -322,15 +343,15 @@ export default function AllJobs() {
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-red-700">
+              <div className="text-sm text-[var(--error-color)]">
                 <p>{error}</p>
               </div>
             </div>
@@ -339,7 +360,7 @@ export default function AllJobs() {
       )}
 
       {/* Search and Filters */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="p-6">
           <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-4">
@@ -349,7 +370,7 @@ export default function AllJobs() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by job title, company, or location..."
-                  className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+                  className="form-input"
                 />
                 <svg className="absolute right-3 top-3.5 w-5 h-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -373,55 +394,55 @@ export default function AllJobs() {
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-sm text-[var(--text-light)]">Active filters:</span>
               {filters.category && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
                   Category: {filterOptions.categories.find(c => c.category_field_id == filters.category)?.category_field_name}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, category: '' }))}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
                   </button>
                 </span>
               )}
               {filters.jobType && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
                   Type: {filterOptions.jobTypes.find(jt => jt.job_type_id == filters.jobType)?.job_type_name}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, jobType: '' }))}
-                    className="ml-1 text-green-600 hover:text-green-800"
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
                   </button>
                 </span>
               )}
               {filters.experienceLevel && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
                   Experience: {filterOptions.experienceLevels.find(el => el.job_seeker_experience_level_id == filters.experienceLevel)?.experience_level_name}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, experienceLevel: '' }))}
-                    className="ml-1 text-purple-600 hover:text-purple-800"
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
                   </button>
                 </span>
               )}
               {(filters.salaryMin || filters.salaryMax) && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
                   Salary: {filters.salaryMin && `₱${filters.salaryMin}+`} {filters.salaryMax && `- ₱${filters.salaryMax}`}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, salaryMin: '', salaryMax: '' }))}
-                    className="ml-1 text-yellow-600 hover:text-yellow-800"
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
                   </button>
                 </span>
               )}
               {filters.location && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
                   Location: {filters.location}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, location: '' }))}
-                    className="ml-1 text-red-600 hover:text-red-800"
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
                   </button>
@@ -437,7 +458,7 @@ export default function AllJobs() {
                   salaryMax: '',
                   location: ''
                 })}
-                className="text-xs text-red-600 hover:text-red-800 underline"
+                className="text-xs text-[var(--error-color)] hover:text-[var(--error-color)] underline"
               >
                 Clear all
               </button>
@@ -452,7 +473,7 @@ export default function AllJobs() {
       </div>
 
       {/* Jobs Grid */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="p-6">
           {filteredJobs.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
@@ -485,56 +506,61 @@ export default function AllJobs() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid-responsive">
               {getPaginatedJobs().map((job) => (
                 <div
                   key={job.id}
-                  className="flex flex-col border border-[var(--border-color)] rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                  className="job-card flex flex-col overflow-hidden"
                 >
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">{job.title}</h3>
-                    <p className="text-sm text-[var(--text-light)] mb-1">{job.company} • {job.location}</p>
-                    <div className="flex flex-wrap gap-2 mb-3 text-[var(--text-light)] text-sm">
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        {job.jobType}
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {job.salary}
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {job.postedDate}
-                      </div>
+                  <h3 className="job-card-title">{job.title}</h3>
+                  <p className="job-card-subtitle">{job.company} • {job.location}</p>
+                  <div className="flex flex-wrap gap-2 mb-3 text-[var(--text-light)] text-sm">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      {job.jobType}
                     </div>
-                    <p className="text-sm text-[var(--text-light)] mb-4 flex-grow">{job.description}</p>
-                    <div className="mt-auto flex space-x-2">
-                      <button
-                        onClick={() => handleSaveJob(job.id)}
-                        className="px-3 py-1.5 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => handleQuickApply(job)}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
-                      >
-                        Apply
-                      </button>
-                      <button
-                        onClick={() => handleViewJob(job.id)}
-                        className="btn btn-primary text-sm flex-grow"
-                      >
-                        View Details
-                      </button>
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.salary}
                     </div>
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.postedDate}
+                    </div>
+                  </div>
+                  <p className="text-sm text-[var(--text-light)] mb-4 flex-grow">{job.description}</p>
+                  <div className="button-group mt-auto">
+                    <button
+                      onClick={() => handleSaveJob(job.id)}
+                      className="px-3 py-1.5 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleQuickApply(job)}
+                      disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted' || applicationStatus[job.id] === 'rejected'}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                        applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted' || applicationStatus[job.id] === 'rejected'
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {applicationStatus[job.id] === 'pending' ? 'Applied' : 
+                       applicationStatus[job.id] === 'accepted' ? 'Accepted' : 
+                       applicationStatus[job.id] === 'rejected' ? 'Rejected' : 'Apply'}
+                    </button>
+                    <button
+                      onClick={() => handleViewJob(job.id)}
+                      className="btn btn-primary text-sm"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </div>
               ))}
@@ -554,7 +580,7 @@ export default function AllJobs() {
                 disabled={currentPage === 1}
                 className={`px-3 py-1 rounded-md text-sm font-medium ${
                   currentPage === 1
-                    ? 'bg-gray-200 text-[var(--text-light)] cursor-not-allowed'
+                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
                     : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
                 }`}
               >
@@ -569,7 +595,7 @@ export default function AllJobs() {
                   className={`px-3 py-1 rounded-md text-sm font-medium ${
                     currentPage === page
                       ? 'bg-[var(--primary-color)] text-white'
-                      : 'bg-gray-200 text-[var(--text-light)] hover:bg-gray-300'
+                      : 'bg-[var(--border-color)] text-[var(--text-light)] hover:bg-[var(--hover-color)]'
                   }`}
                 >
                   {page}
@@ -581,7 +607,7 @@ export default function AllJobs() {
                 disabled={currentPage === totalPages}
                 className={`px-3 py-1 rounded-md text-sm font-medium ${
                   currentPage === totalPages
-                    ? 'bg-gray-200 text-[var(--text-light)] cursor-not-allowed'
+                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
                     : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
                 }`}
               >
@@ -766,23 +792,26 @@ export default function AllJobs() {
 
       {/* Quick Apply Modal */}
       {showApplyModal && selectedJob && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-xl font-bold mb-4">Apply for {selectedJob.title}</h2>
-            <p className="text-gray-600 mb-4">at {selectedJob.company}</p>
-            <textarea 
-              value={coverLetter} 
-              onChange={(e) => setCoverLetter(e.target.value)} 
-              placeholder="Enter your cover letter or a brief message (optional). A default message will be sent if left empty." 
-              className="w-full p-2 border rounded mb-4 h-32"
-            ></textarea>
-            <div className="flex justify-end space-x-3">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
+          <div className="modal-content">
+            <h2 className="text-subheading">Apply for {selectedJob.title}</h2>
+            <p className="text-description mb-4">at {selectedJob.company}</p>
+            <div className="mb-4">
+              <label className="form-label">Cover Letter (optional)</label>
+              <textarea 
+                value={coverLetter} 
+                onChange={(e) => setCoverLetter(e.target.value)} 
+                placeholder="Enter your cover letter or a brief message. A default message will be sent if left empty." 
+                className="form-textarea"
+              ></textarea>
+            </div>
+            <div className="button-group">
               <button onClick={() => {
                 setShowApplyModal(false);
                 setSelectedJob(null);
                 setCoverLetter('');
-              }} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
-              <button onClick={handleSubmitApplication} className="px-4 py-2 bg-green-600 text-white rounded-md">Submit Application</button>
+              }} className="btn btn-secondary">Cancel</button>
+              <button onClick={handleSubmitApplication} className="btn btn-primary">Submit Application</button>
             </div>
           </div>
         </div>

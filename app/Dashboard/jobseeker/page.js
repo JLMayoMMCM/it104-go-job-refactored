@@ -187,24 +187,24 @@ export default function JobseekerDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-[var(--background)] space-y-8">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
+      <div className="profile-header">
         <h1 className="text-3xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
-        <p className="text-[var(--light-color)] text-lg">Discover new opportunities and manage your applications.</p>
+        <p className="text-white text-opacity-90 text-lg">Discover new opportunities and manage your applications.</p>
       </div>
 
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+        <div className="success-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-green-700">
+              <div className="text-sm text-[var(--success-color)]">
                 <p>{successMessage}</p>
               </div>
             </div>
@@ -212,15 +212,15 @@ export default function JobseekerDashboard() {
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-red-700">
+              <div className="text-sm text-[var(--error-color)]">
                 <p>{error}</p>
               </div>
             </div>
@@ -230,14 +230,14 @@ export default function JobseekerDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+        <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-light)]">Applications</p>
               <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
             </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[var(--primary-color)] bg-opacity-20 p-3 rounded-full">
+              <svg className="w-6 h-6 text-[var(--primary-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
@@ -251,14 +251,14 @@ export default function JobseekerDashboard() {
             </button>
           </div>
         </div>
-        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+        <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-light)]">Saved Jobs</p>
               <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
             </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[var(--secondary-color)] bg-opacity-20 p-3 rounded-full">
+              <svg className="w-6 h-6 text-[var(--secondary-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
@@ -272,14 +272,14 @@ export default function JobseekerDashboard() {
             </button>
           </div>
         </div>
-        <div className="bg-[var(--card-background)] shadow-lg rounded-xl p-6 border border-[var(--border-color)]">
+        <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-light)]">Profile Views</p>
               <h3 className="text-3xl font-bold text-[var(--foreground)]">0</h3>
             </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[var(--accent-color)] bg-opacity-20 p-3 rounded-full">
+              <svg className="w-6 h-6 text-[var(--accent-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
@@ -296,12 +296,12 @@ export default function JobseekerDashboard() {
       </div>
 
       {/* Recent Jobs */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Recent Job Postings</h2>
+      <div className="card overflow-hidden">
+        <div className="panel-header flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-white">Recent Job Postings</h2>
           <button 
             onClick={handleViewAllRecent}
-            className="text-sm text-[var(--primary-color)] hover:underline"
+            className="text-sm text-white hover:text-[var(--light-color)] transition-colors"
           >
             View All Jobs →
           </button>
@@ -354,6 +354,12 @@ export default function JobseekerDashboard() {
                   </div>
                   <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
                     <button
+                      onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
+                      className="btn btn-secondary text-sm"
+                    >
+                      View Company
+                    </button>
+                    <button
                       onClick={() => handleSaveJob(job.id)}
                       className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
                     >
@@ -369,7 +375,7 @@ export default function JobseekerDashboard() {
                       onClick={() => handleViewJob(job.id)}
                       className="btn btn-primary text-sm"
                     >
-                      View Details
+                      View Job
                     </button>
                   </div>
                 </div>
@@ -380,12 +386,12 @@ export default function JobseekerDashboard() {
       </div>
 
       {/* Recommended Jobs */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Recommended for You</h2>
+      <div className="card overflow-hidden">
+        <div className="panel-header flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-white">Recommended for You</h2>
           <button 
             onClick={handleViewAllRecommended}
-            className="text-sm text-[var(--primary-color)] hover:underline"
+            className="text-sm text-white hover:text-[var(--light-color)] transition-colors"
           >
             View All Recommended →
           </button>
@@ -444,6 +450,12 @@ export default function JobseekerDashboard() {
                   </div>
                   <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
                     <button
+                      onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
+                      className="btn btn-secondary text-sm"
+                    >
+                      View Company
+                    </button>
+                    <button
                       onClick={() => handleSaveJob(job.id)}
                       className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
                     >
@@ -459,7 +471,7 @@ export default function JobseekerDashboard() {
                       onClick={() => handleViewJob(job.id)}
                       className="btn btn-primary text-sm"
                     >
-                      View Details
+                      View Job
                     </button>
                   </div>
                 </div>
@@ -471,23 +483,33 @@ export default function JobseekerDashboard() {
 
       {/* Quick Apply Modal */}
       {showApplyModal && selectedJob && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-xl font-bold mb-4">Apply for {selectedJob.title}</h2>
-            <p className="text-gray-600 mb-4">at {selectedJob.company}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-lg w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Apply for {selectedJob.title}</h2>
+            <p className="text-[var(--text-light)] mb-4">at {selectedJob.company}</p>
             <textarea 
               value={coverLetter} 
               onChange={(e) => setCoverLetter(e.target.value)} 
               placeholder="Enter your cover letter or a brief message (optional). A default message will be sent if left empty." 
-              className="w-full p-2 border rounded mb-4 h-32"
+              className="form-input mb-4 h-32 resize-none"
             ></textarea>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => {
-                setShowApplyModal(false);
-                setSelectedJob(null);
-                setCoverLetter('');
-              }} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
-              <button onClick={handleSubmitApplication} className="px-4 py-2 bg-green-600 text-white rounded-md">Submit Application</button>
+              <button 
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                  setCoverLetter('');
+                }} 
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSubmitApplication} 
+                className="btn btn-primary"
+              >
+                Submit Application
+              </button>
             </div>
           </div>
         </div>

@@ -117,7 +117,7 @@ export default function Applications() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
@@ -137,7 +137,7 @@ export default function Applications() {
                     const accountId = localStorage.getItem('accountId');
                     if (accountId) fetchApplications(accountId, activeTab);
                   }}
-                  className="bg-[rgba(231, 76, 60, 0.1)] px-4 py-2 rounded-md text-sm font-medium text-[var(--error-color)] hover:bg-[rgba(231, 76, 60, 0.2)]"
+                  className="btn btn-secondary"
                 >
                   Try Again
                 </button>
@@ -152,20 +152,20 @@ export default function Applications() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
+      <div className="profile-header">
         <h1 className="text-3xl font-bold mb-2">My Applications</h1>
-        <p className="text-[var(--light-color)] text-lg">Track the status of your job applications and manage your career journey.</p>
+        <p className="text-white text-opacity-90 text-lg">Track the status of your job applications and manage your career journey.</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="flex flex-col sm:flex-row">
           <button
             onClick={() => handleTabChange('pending')}
             className={`px-6 py-4 text-center font-medium focus:outline-none transition-all duration-200 ${
               activeTab === 'pending'
                 ? 'bg-[var(--primary-color)] text-white'
-                : 'bg-gray-50 text-[var(--text-light)] hover:bg-gray-100'
+                : 'bg-[var(--background)] text-[var(--text-light)] hover:bg-[var(--border-color)]'
             }`}
           >
             <div className="flex items-center justify-center">
@@ -180,7 +180,7 @@ export default function Applications() {
             className={`px-6 py-4 text-center font-medium focus:outline-none transition-all duration-200 ${
               activeTab === 'accepted'
                 ? 'bg-[var(--primary-color)] text-white'
-                : 'bg-gray-50 text-[var(--text-light)] hover:bg-gray-100'
+                : 'bg-[var(--background)] text-[var(--text-light)] hover:bg-[var(--border-color)]'
             }`}
           >
             <div className="flex items-center justify-center">
@@ -195,7 +195,7 @@ export default function Applications() {
             className={`px-6 py-4 text-center font-medium focus:outline-none transition-all duration-200 ${
               activeTab === 'rejected'
                 ? 'bg-[var(--primary-color)] text-white'
-                : 'bg-gray-50 text-[var(--text-light)] hover:bg-gray-100'
+                : 'bg-[var(--background)] text-[var(--text-light)] hover:bg-[var(--border-color)]'
             }`}
           >
             <div className="flex items-center justify-center">
@@ -209,7 +209,7 @@ export default function Applications() {
       </div>
 
       {/* Applications List */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="p-6">
           {applications.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
@@ -257,7 +257,7 @@ export default function Applications() {
                       </svg>
                       {app.salary}
                     </div>
-                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(app.status)}">
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(app.status)}`}>
                       <span className="mr-1">{getStatusIcon(app.status)}</span>
                       {app.status}
                     </div>
@@ -285,8 +285,8 @@ export default function Applications() {
 
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto mx-4">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-xl font-bold text-[var(--foreground)]">{selectedApplication.jobTitle}</h2>
@@ -306,7 +306,7 @@ export default function Applications() {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-semibold text-[var(--foreground)]">Application Status</h3>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(selectedApplication.status)}">
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(selectedApplication.status)}`}>
                     <span className="mr-1">{getStatusIcon(selectedApplication.status)}</span>
                     {selectedApplication.status}
                   </div>
@@ -338,7 +338,7 @@ export default function Applications() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-md text-[var(--foreground)]"
+                  className="btn btn-secondary"
                 >
                   Close
                 </button>

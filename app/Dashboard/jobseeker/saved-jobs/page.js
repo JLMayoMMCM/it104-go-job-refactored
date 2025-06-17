@@ -130,7 +130,7 @@ export default function SavedJobs() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
@@ -150,7 +150,7 @@ export default function SavedJobs() {
                     const accountId = localStorage.getItem('accountId');
                     if (accountId) fetchSavedJobs(accountId);
                   }}
-                  className="bg-[rgba(231, 76, 60, 0.1)] px-4 py-2 rounded-md text-sm font-medium text-[var(--error-color)] hover:bg-[rgba(231, 76, 60, 0.2)]"
+                  className="btn btn-secondary"
                 >
                   Try Again
                 </button>
@@ -165,22 +165,22 @@ export default function SavedJobs() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
+      <div className="profile-header">
         <h1 className="text-3xl font-bold mb-2">Saved Jobs</h1>
-        <p className="text-[var(--light-color)] text-lg">Manage your bookmarked jobs and apply when you're ready.</p>
+        <p className="text-white text-opacity-90 text-lg">Manage your bookmarked jobs and apply when you're ready.</p>
       </div>
 
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+        <div className="success-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-green-700">
+              <div className="text-sm text-[var(--success-color)]">
                 <p>{successMessage}</p>
               </div>
             </div>
@@ -188,15 +188,15 @@ export default function SavedJobs() {
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="error-message">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-red-700">
+              <div className="text-sm text-[var(--error-color)]">
                 <p>{error}</p>
               </div>
             </div>
@@ -205,7 +205,7 @@ export default function SavedJobs() {
       )}
 
       {/* Saved Jobs List */}
-      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="p-6">
           {savedJobs.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
@@ -260,6 +260,12 @@ export default function SavedJobs() {
                   </div>
                   <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
                     <button
+                      onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
+                      className="btn btn-secondary text-sm"
+                    >
+                      View Company
+                    </button>
+                    <button
                       onClick={() => handleRemoveSavedJob(job.jobId)}
                       className="px-4 py-2 border border-[var(--error-color)] text-[var(--error-color)] rounded-md text-sm font-medium hover:bg-[var(--error-color)] hover:text-white transition-all"
                     >
@@ -275,7 +281,7 @@ export default function SavedJobs() {
                       onClick={() => handleViewJob(job.jobId)}
                       className="btn btn-primary text-sm"
                     >
-                      View Details
+                      View Job
                     </button>
                   </div>
                 </div>
@@ -287,23 +293,33 @@ export default function SavedJobs() {
 
       {/* Quick Apply Modal */}
       {showApplyModal && selectedJob && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-xl font-bold mb-4">Apply for {selectedJob.title}</h2>
-            <p className="text-gray-600 mb-4">at {selectedJob.company}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-lg w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Apply for {selectedJob.title}</h2>
+            <p className="text-[var(--text-light)] mb-4">at {selectedJob.company}</p>
             <textarea 
               value={coverLetter} 
               onChange={(e) => setCoverLetter(e.target.value)} 
               placeholder="Enter your cover letter or a brief message (optional). A default message will be sent if left empty." 
-              className="w-full p-2 border rounded mb-4 h-32"
+              className="form-input mb-4 h-32 resize-none"
             ></textarea>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => {
-                setShowApplyModal(false);
-                setSelectedJob(null);
-                setCoverLetter('');
-              }} className="px-4 py-2 bg-gray-300 rounded-md">Cancel</button>
-              <button onClick={handleSubmitApplication} className="px-4 py-2 bg-green-600 text-white rounded-md">Submit Application</button>
+              <button 
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setSelectedJob(null);
+                  setCoverLetter('');
+                }} 
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSubmitApplication} 
+                className="btn btn-primary"
+              >
+                Submit Application
+              </button>
             </div>
           </div>
         </div>

@@ -174,16 +174,16 @@ export default function JobseekerProfile() {
   if (error || !profile) {
     return (
       <div className="space-y-6">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-[var(--error-color)] bg-opacity-10 border border-[var(--error-color)] border-opacity-20 rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading profile</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-[var(--error-color)]">Error loading profile</h3>
+              <div className="mt-2 text-sm text-[var(--error-color)]">
                 <p>{error || 'Profile data not found'}</p>
               </div>
               <div className="mt-4">
@@ -194,7 +194,7 @@ export default function JobseekerProfile() {
                     const accountId = localStorage.getItem('accountId');
                     if (accountId) fetchProfileData(accountId);
                   }}
-                  className="bg-red-100 px-4 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
+                  className="bg-[var(--error-color)] bg-opacity-10 px-4 py-2 rounded-md text-sm font-medium text-[var(--error-color)] hover:bg-opacity-20"
                 >
                   Try Again
                 </button>
@@ -209,17 +209,17 @@ export default function JobseekerProfile() {
   return (
     <div className="space-y-8">
       {/* Header */}
-<div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] rounded-lg shadow-lg p-8 text-white">
-  <div className="flex justify-end mb-4">
-    <button
-      onClick={handleEditProfile}
-      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-    >
-      Edit Profile
-    </button>
-  </div>
+      <div className="profile-header">
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleEditProfile}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-white bg-opacity-20 hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+          >
+            Edit Profile
+          </button>
+        </div>
         <div className="flex flex-col md:flex-row items-center md:items-start">
-                    <div className="w-24 h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
+          <div className="w-24 h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
             {profile.profilePhoto ? (
               <img
                 src={profile.profilePhoto}
@@ -249,80 +249,79 @@ export default function JobseekerProfile() {
         <div className="lg:col-span-2 space-y-8">
           {/* Personal Information */}
           <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-[var(--background)] to-[rgba(128, 128, 128, 0.1)] border-b border-[var(--border-color)]">
-              <h3 className="text-lg font-semibold text-[var(--foreground)]">Personal Information</h3>
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold text-white">Personal Information</h3>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Email Address</p>
-                  <p className="font-medium">{profile.email}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.email}</p>
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Phone Number</p>
-                  <p className="font-medium">{profile.phone}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.phone}</p>
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-sm text-[var(--text-light)]">Address</p>
-                  <p className="font-medium">{profile.address}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.address}</p>
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Nationality</p>
-                  <p className="font-medium">{profile.nationality}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.nationality}</p>
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Gender</p>
-                  <p className="font-medium">{profile.gender}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.gender}</p>
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Education Level</p>
-                  <p className="font-medium">{profile.educationLevel}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.educationLevel}</p>
                 </div>
                 <div>
                   <p className="text-sm text-[var(--text-light)]">Experience Level</p>
-                  <p className="font-medium">{profile.experienceLevel}</p>
+                  <p className="font-medium text-[var(--foreground)]">{profile.experienceLevel}</p>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Resume */}
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-[var(--light-color)] to-[var(--background)] border-b border-[var(--border-color)]">
-              <h3 className="text-lg font-semibold text-[var(--primary-color)]">Resume</h3>
-              <p className="text-sm text-[var(--text-light)] mt-1">Your professional document</p>
+          <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold text-white">Resume</h3>
+              <p className="text-sm text-white text-opacity-80 mt-1">Your professional document</p>
             </div>
             <div className="p-6">
               {profile ? (
                 <div className="space-y-4">
-                  
-{profile.resume ? (
-  <div className="space-y-4">
-    <iframe
-      src={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
-      className="w-full h-96 border border-gray-300 rounded-lg"
-      title="Resume Preview"
-    ></iframe>
-    <div className="flex justify-end">
-      <a
-        href={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-      >
-        Download Resume
-      </a>
-    </div>
-  </div>
-) : (
-  <div className="text-center p-8 border border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)]">
-    <svg className="mx-auto h-16 w-16 text-[var(--text-light)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-    <p className="text-[var(--foreground)] text-lg">Resume Preview Not Available</p>
-    <p className="text-sm text-[var(--text-light)] mt-2">Upload your resume to showcase your professional experience and skills.</p>
-  </div>
-)}
+                  {profile.resume ? (
+                    <div className="space-y-4">
+                      <iframe
+                        src={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
+                        className="w-full h-96 border border-[var(--border-color)] rounded-lg"
+                        title="Resume Preview"
+                      ></iframe>
+                      <div className="flex justify-end">
+                        <a
+                          href={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+                        >
+                          Download Resume
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)]">
+                      <svg className="mx-auto h-16 w-16 text-[var(--text-light)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-[var(--foreground)] text-lg">Resume Preview Not Available</p>
+                      <p className="text-sm text-[var(--text-light)] mt-2">Upload your resume to showcase your professional experience and skills.</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center p-8 border-2 border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)]">
@@ -339,24 +338,24 @@ export default function JobseekerProfile() {
         
         {/* Right Column - Job Preferences */}
         <div className="lg:col-span-1">
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden sticky top-6">
-            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Job Preferences</h3>
-              <p className="text-sm text-gray-600 mt-1">Your selected job fields</p>
+          <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden sticky top-6">
+            <div className="panel-header">
+              <h3 className="text-lg font-semibold text-white">Job Preferences</h3>
+              <p className="text-sm text-white text-opacity-80 mt-1">Your selected job fields</p>
             </div>
             <div className="p-6">
               {jobPreferences.length > 0 ? (
                 <div className="space-y-4">
                   {jobPreferences.map((pref, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-3">
-                      <h4 className="text-sm font-semibold text-gray-900">{pref.category_name}</h4>
-                      <p className="text-xs text-gray-500">{pref.field_name}</p>
+                    <div key={index} className="border border-[var(--border-color)] rounded-lg p-3">
+                      <h4 className="text-sm font-semibold text-[var(--foreground)]">{pref.category_name}</h4>
+                      <p className="text-xs text-[var(--text-light)]">{pref.field_name}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center p-4 border border-dashed border-gray-300 rounded-lg">
-                  <p className="text-sm text-gray-600">No job preferences set</p>
+                <div className="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg">
+                  <p className="text-sm text-[var(--text-light)]">No job preferences set</p>
                   <button
                     onClick={() => router.push('/Dashboard/jobseeker/preferences')}
                     className="mt-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"

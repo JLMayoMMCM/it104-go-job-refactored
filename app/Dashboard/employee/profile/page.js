@@ -81,7 +81,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
       </div>
     );
   }
@@ -89,14 +89,14 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Error loading profile</h3>
-        <p className="text-gray-600">{error}</p>
+        <h3 className="text-lg font-medium text-[var(--foreground)]">Error loading profile</h3>
+        <p className="text-[var(--text-light)]">{error}</p>
         <button
           onClick={() => {
             setLoading(true);
             fetchProfile();
           }}
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
         >
           Try Again
         </button>
@@ -107,9 +107,9 @@ export default function ProfilePage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 text-white">
+      <div className="profile-header">
         <div className="flex flex-col md:flex-row items-center md:items-start">
-          <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
+          <div className="w-24 h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
             {profile.profile_photo ? (
               <img
                 src={profile.profile_photo}
@@ -121,18 +121,18 @@ export default function ProfilePage() {
                 }}
               />
             ) : (
-              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-12 h-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             )}
           </div>
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-3xl font-bold mb-2">{profile.first_name} {profile.last_name}</h1>
-            <p className="text-blue-100 text-lg mb-2">{profile.position_name}</p>
-            <p className="text-blue-200 text-md mb-4">{profile.company_name}</p>
+            <p className="text-[var(--light-color)] text-lg mb-2">{profile.position_name}</p>
+            <p className="text-[var(--light-color)] text-md mb-4">{profile.company_name}</p>
             <button
               onClick={() => router.push('/Dashboard/employee/profile/edit')}
-              className="px-4 py-2 bg-white text-blue-700 rounded-md text-sm font-medium hover:bg-blue-50"
+              className="px-4 py-2 bg-white text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--hover-color)]"
             >
               Edit Profile
             </button>
@@ -140,35 +140,34 @@ export default function ProfilePage() {
         </div>
       </div>
 
-
       {/* Profile Information */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="panel-header">
+          <h3 className="text-lg font-semibold text-white">Personal Information</h3>
         </div>
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">Full Name</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Full Name</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.first_name} {profile.middle_name} {profile.last_name}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Date of Birth</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Date of Birth</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.date_of_birth ? formatDate(profile.date_of_birth) : 'Not provided'}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Gender</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Gender</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.gender}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Nationality</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Nationality</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.nationality}
               </p>
             </div>
@@ -177,21 +176,21 @@ export default function ProfilePage() {
       </div>
 
       {/* Contact Information */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="panel-header">
+          <h3 className="text-lg font-semibold text-white">Contact Information</h3>
         </div>
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">Email Address</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Email Address</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.email}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Phone Number</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Phone Number</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.phone}
               </p>
             </div>
@@ -200,15 +199,15 @@ export default function ProfilePage() {
       </div>
 
       {/* Address Information */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Address</h3>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="panel-header">
+          <h3 className="text-lg font-semibold text-white">Address</h3>
         </div>
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">Full Address</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Full Address</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.address.premise_name || profile.address.street_name || profile.address.barangay_name || profile.address.city_name
                   ? `${profile.address.premise_name || ''} ${profile.address.street_name || ''}, ${profile.address.barangay_name || ''}, ${profile.address.city_name || ''}`
                   : 'Not provided'}
@@ -219,22 +218,22 @@ export default function ProfilePage() {
       </div>
 
       {/* Employment Information */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900">Employment Information</h3>
-          <p className="text-sm text-blue-700 mt-1">Your professional details</p>
+      <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
+        <div className="panel-header">
+          <h3 className="text-lg font-semibold text-white">Employment Information</h3>
+          <p className="text-sm text-white text-opacity-80 mt-1">Your professional details</p>
         </div>
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-sm font-medium text-gray-500">Company</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Company</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.company_name}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Position</p>
-              <p className="text-lg font-medium text-gray-900">
+              <p className="text-sm font-medium text-[var(--text-light)]">Position</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 {profile.position_name}
               </p>
             </div>

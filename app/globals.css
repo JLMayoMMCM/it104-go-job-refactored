@@ -75,6 +75,40 @@
   --light-color: #c0d9c5;
 }
 
+/* Ensure theme colors override base colors for specific components */
+[data-theme="jobseeker"] {
+  --primary-color: #79c2d0;
+  --secondary-color: #bbe4e9;
+  --accent-color: #5585b5;
+  --background: #f0f8ff;
+  --foreground: #2c3e50;
+  --light-color: #bbe4e9;
+}
+
+[data-theme="employee"] {
+  --primary-color: #8fd3a3;
+  --secondary-color: #c8e6c9;
+  --accent-color: #53a8b6;
+  --background: #f5fff5;
+  --foreground: #2c3e50;
+  --light-color: #c8e6c9;
+}
+
+/* Theme-specific light mode overrides for better contrast */
+[data-theme="jobseeker"][data-mode="light"] {
+  --primary-color: #5585b5;
+  --secondary-color: #79c2d0;
+  --accent-color: #53a8b6;
+  --light-color: #bbe4e9;
+}
+
+[data-theme="employee"][data-mode="light"] {
+  --primary-color: #53a8b6;
+  --secondary-color: #8fd3a3;
+  --accent-color: #79c2d0;
+  --light-color: #c8e6c9;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -158,23 +192,6 @@ body {
   margin: 1rem 0;
 }
 
-/* Jobseeker Theme */
-[data-theme="jobseeker"] {
-  --primary-color: #79c2d0;
-  --secondary-color: #bbe4e9;
-  --accent-color: #5585b5;
-  --background: #f0f8ff;
-  --foreground: #2c3e50;
-}
-
-/* Employee Theme */
-[data-theme="employee"] {
-  --primary-color: #8fd3a3;
-  --secondary-color: #c8e6c9;
-  --accent-color: #53a8b6;
-  --background: #f5fff5;
-  --foreground: #2c3e50;
-}
 
 /* Theme-specific gradients for login pages */
 .jobseeker-gradient {
@@ -221,4 +238,219 @@ body {
 .employee-theme .form-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
+}
+
+/* Profile Header Utilities */
+.profile-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Panel Header Utilities */
+.panel-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+
+/* Dark mode enhancements */
+[data-mode="dark"] .profile-header {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+[data-mode="dark"] .panel-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+
+/* Loading spinner theme support */
+.loading-spinner {
+  border-color: var(--border-color);
+  border-top-color: var(--primary-color);
+}
+
+/* Error message theme support */
+.error-container {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-color: rgba(231, 76, 60, 0.2);
+  color: var(--error-color);
+}
+
+[data-mode="dark"] .error-container {
+  background-color: rgba(231, 76, 60, 0.15);
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+/* Modal Styling */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+[data-mode="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 90%;
+  width: 500px;
+  margin: auto;
+  padding: 1.5rem;
+}
+
+[data-mode="dark"] .modal-content {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Form Elements */
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  min-height: 100px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
+}
+
+[data-theme="jobseeker"] .form-textarea:focus {
+  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
+}
+
+[data-theme="employee"] .form-textarea:focus {
+  box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
+}
+
+/* Grid and Layout */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Typography */
+.text-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+}
+
+.text-subheading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+}
+
+.text-description {
+  font-size: 1rem;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* Job Card */
+.job-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.job-card:hover {
+  box-shadow: 0 4px 12px rgba(85, 133, 181, 0.2);
+  transform: translateY(-4px);
+}
+
+[data-mode="dark"] .job-card:hover {
+  box-shadow: 0 4px 12px rgba(85, 133, 181, 0.3);
+}
+
+.job-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.job-card-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-light);
+  margin-bottom: 0.75rem;
+}
+
+/* Company Card */
+.company-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.company-card:hover {
+  box-shadow: 0 4px 12px rgba(85, 133, 181, 0.2);
+}
+
+[data-mode="dark"] .company-card:hover {
+  box-shadow: 0 4px 12px rgba(85, 133, 181, 0.3);
+}
+
+/* Button Group */
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  .text-heading {
+    font-size: 1.25rem;
+  }
+  
+  .text-subheading {
+    font-size: 1.125rem;
+  }
 }

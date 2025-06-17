@@ -216,9 +216,9 @@ case 'saved':
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--background)] transition-all duration-300">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-[var(--card-background)] shadow-sm border-b border-[var(--border-color)] sticky top-0 z-30">
         <div className="flex items-center justify-between px-6 h-18">
           {/* Left side - Logo */}
           <div className="flex items-center">
@@ -240,7 +240,7 @@ case 'saved':
           {/* Right side - User info, search and sidebar toggle */}
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
-              <span className="text-gray-700">
+              <span className="text-[var(--foreground)]">
                 Hello, <span className="font-semibold">{jobseeker?.firstName} {jobseeker?.lastName}</span>
               </span>
               <div className="relative w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -283,7 +283,7 @@ case 'saved':
             </button>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+              className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {sidebarOpen ? (
@@ -299,16 +299,16 @@ case 'saved':
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 right-0 z-30 w-64 bg-white border-l border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out`}>
+        <aside className={`fixed inset-y-0 right-0 z-30 w-64 bg-[var(--card-background)] border-l border-[var(--border-color)] transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out`}>
           <div className="flex h-full flex-col">
             {/* Logo */}
-            <div className="flex items-center justify-between h-18 px-6 border-b border-gray-200">
+            <div className="flex items-center justify-between h-18 px-6 border-b border-[var(--border-color)]">
               <div className="flex items-center justify-center w-full">
                 <img src="/Assets/Title.png" alt="GoJob Logo" className="h-10 w-auto" />
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="md:hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="md:hidden p-2 rounded-md text-[var(--text-light)] hover:bg-[var(--hover-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -325,9 +325,9 @@ case 'saved':
                         router.push(item.href);
                         setSidebarOpen(false);
                       }}
-                      className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-700`}
+                      className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-color)] hover:text-[var(--primary-color)]`}
                     >
-                      <div className="flex-shrink-0 w-8 text-gray-500">
+                      <div className="flex-shrink-0 w-8 text-[var(--text-light)]">
                         {getIcon(item.icon)}
                       </div>
                       <span className="ml-3">{item.name}</span>
@@ -342,7 +342,7 @@ case 'saved':
               </ul>
             </nav>
             {/* Footer */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-[var(--border-color)]">
               <button
                 onClick={() => {
                   // Clear all stored user data
@@ -355,9 +355,9 @@ case 'saved':
                   // Redirect to login page
                   router.push('/Login');
                 }}
-                className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700"
+                className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--error-color)] hover:bg-opacity-10 hover:text-[var(--error-color)]"
               >
-                <svg className="h-5 w-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 mr-3 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 Logout
