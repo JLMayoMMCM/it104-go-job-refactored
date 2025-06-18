@@ -82,18 +82,30 @@ export async function GET(request) {
 
     // Fetch job preferences
     const { data: jobPreferencesData, error: jobPreferencesError } = await supabase
-      .from('job_seeker_job_category')
-      .select('job_category_id, job_field_id')
-      .eq('job_seeker_id', jobSeekerData.job_seeker_id);
+      .from('jobseeker_preference')
+      .select('preferred_job_category_id')
+      .eq('jobseeker_id', jobSeekerData.job_seeker_id);
 
     if (jobPreferencesError) {
       console.error('Job preferences query error:', jobPreferencesError);
       // Don't fail the whole request for this error, just return empty preferences
     }
 
+    // Also fetch field preferences if they exist
+    const { data: fieldPreferencesData, error: fieldPreferencesError } = await supabase
+      .from('jobseeker_field_preference')
+      .select('preferred_job_field_id')
+      .eq('jobseeker_id', jobSeekerData.job_seeker_id);
+
+    if (fieldPreferencesError) {
+      console.error('Field preferences query error:', fieldPreferencesError);
+      // Don't fail the whole request for this error, just return empty preferences
+    }
+
+    // Combine category and field preferences
     const jobPreferences = jobPreferencesData?.map(pref => ({
-      category_id: pref.job_category_id,
-      field_id: pref.job_field_id
+      category_id: pref.preferred_job_category_id,
+      field_id: fieldPreferencesData?.find(f => f.preferred_job_field_id)?.preferred_job_field_id || 0
     })) || [];
 
     console.log('Job preferences found:', jobPreferences);
@@ -229,16 +241,53 @@ export async function PUT(request) {
       return NextResponse.json({ success: false, error: 'Job seeker data not found' }, { status: 404 });
     }
 
-    // Update person data
-    const addressParts = [];
-    if (premise) addressParts.push(premise);
-    if (street) addressParts.push(street);
-    if (barangay) addressParts.push(barangay);
-    if (city) addressParts.push(city);
-    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '';
+    // First get the current person data to preserve existing values if needed
+    const { data: currentPerson, error: currentPersonError } = await supabase
+      .from('person')
+      .select('address_id, nationality_id, gender')
+      .eq('person_id', jobSeekerData.person_id)
+      .single();
+
+    if (currentPersonError) {
+      console.error('Error fetching current person data:', currentPersonError);
+      return NextResponse.json({ success: false, error: 'Failed to fetch current person data' }, { status: 500 });
+    }
+
+    // Determine address_id to use
+    let addressIdToUse = currentPerson.address_id; // Default to existing
+    // Check if any address fields are provided in the request
+    const addressProvided = premise || street || barangay || city;
+    if (addressProvided) {
+      // If any address fields are provided, update the existing address if it exists
+      if (currentPerson.address_id) {
+        const { data: updatedAddress, error: updateAddressError } = await supabase
+          .from('address')
+          .update({
+            premise_name: premise || '',
+            street_name: street || '',
+            barangay_name: barangay || '',
+            city_name: city || ''
+          })
+          .eq('address_id', currentPerson.address_id)
+          .select('address_id')
+          .single();
+
+        if (updateAddressError) {
+          console.error('Error updating address:', updateAddressError);
+          // If update fails, create a new address
+          addressIdToUse = await getOrCreateAddressId(supabase, premise || '', street || '', barangay || '', city || '');
+        } else {
+          addressIdToUse = updatedAddress.address_id;
+        }
+      } else {
+        // If no existing address, create a new one
+        addressIdToUse = await getOrCreateAddressId(supabase, premise || '', street || '', barangay || '', city || '');
+      }
+    }
+    // If no address fields provided, keep the existing address_id
 
     // First get the nationality ID from the name
-    let nationalityId = null;
+    let nationalityId = currentPerson.nationality_id; // Default to existing
     if (nationality && nationality !== 'Not specified') {
       const { data: nationalityData, error: nationalityError } = await supabase
         .from('nationality')
@@ -254,7 +303,7 @@ export async function PUT(request) {
     }
 
     // Get gender ID from name
-    let genderId = null;
+    let genderId = currentPerson.gender; // Default to existing
     if (gender && gender !== 'Not specified') {
       const { data: genderData, error: genderError } = await supabase
         .from('gender')
@@ -308,8 +357,8 @@ export async function PUT(request) {
         first_name: firstName,
         last_name: lastName,
         nationality_id: nationalityId,
-        gender_id: genderId,
-        address_id: fullAddress ? await getOrCreateAddressId(supabase, premise, street, barangay, city) : null
+        gender: genderId,
+        address_id: addressIdToUse
       })
       .eq('person_id', jobSeekerData.person_id)
       .select()
@@ -365,16 +414,8 @@ export async function PUT(request) {
 // Helper function to get or create address ID
 async function getOrCreateAddressId(supabase, premise, street, barangay, city) {
   try {
-    // First check if address already exists
-    const addressParts = [];
-    if (premise) addressParts.push(premise);
-    if (street) addressParts.push(street);
-    if (barangay) addressParts.push(barangay);
-    if (city) addressParts.push(city);
-    const fullAddress = addressParts.join(', ');
-
-    // Since we don't have a unique identifier for address based on content,
-    // we'll create a new one each time to avoid conflicts
+    // Always create a new address record even if fields are empty
+    // This ensures we never return null and violate the NOT NULL constraint
     const { data: newAddress, error: newAddressError } = await supabase
       .from('address')
       .insert({
@@ -388,12 +429,24 @@ async function getOrCreateAddressId(supabase, premise, street, barangay, city) {
 
     if (newAddressError) {
       console.error('Error creating new address:', newAddressError);
-      return null;
+      // Fallback to a default address if creation fails
+      const { data: defaultAddress, error: defaultError } = await supabase
+        .from('address')
+        .select('address_id')
+        .limit(1)
+        .single();
+      
+      if (defaultError) {
+        console.error('Error fetching default address:', defaultError);
+        throw new Error('Unable to create or fetch address');
+      }
+      
+      return defaultAddress.address_id;
     }
 
     return newAddress.address_id;
   } catch (error) {
     console.error('Error in getOrCreateAddressId:', error);
-    return null;
+    throw error;
   }
 }

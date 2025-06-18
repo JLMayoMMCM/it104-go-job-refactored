@@ -379,16 +379,16 @@ export default function JobseekerDashboard() {
                 {recommendedJobs.map((job, index) => (
                   <div
                     key={job.id}
-                    className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
+                    className={`flex flex-col p-4 border border-[var(--border-color)] rounded-lg ${
                       index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
                     } hover:shadow-md transition-shadow`}
                   >
-                    <div className="mb-3 md:mb-0 md:w-1/3">
+                    <div className="mb-3">
                       <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
                       <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
                       <p className="text-sm text-[var(--text-light)] mt-1">{job.postedDate}</p>
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
+                    <div className="flex flex-wrap gap-3 mb-3">
                       <div className="flex items-center text-[var(--text-light)] text-sm">
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -408,28 +408,28 @@ export default function JobseekerDashboard() {
                         {job.match || 0}% Match
                       </div>
                     </div>
-                    <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
+                    <div className="mt-2 flex flex-wrap gap-2 justify-end">
                       <button
                         onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
-                        className="btn btn-secondary text-sm"
+                        className="btn btn-secondary text-sm min-w-[100px]"
                       >
                         View Company
                       </button>
                       <button
                         onClick={() => handleSaveJob(job.id)}
-                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
+                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all min-w-[80px]"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all min-w-[80px]"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => handleViewJob(job.id)}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-sm min-w-[100px]"
                       >
                         View Job
                       </button>
@@ -474,16 +474,16 @@ export default function JobseekerDashboard() {
                 {recentJobs.map((job, index) => (
                   <div
                     key={job.id}
-                    className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
+                    className={`flex flex-col p-4 border border-[var(--border-color)] rounded-lg ${
                       index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
                     } hover:shadow-md transition-shadow`}
                   >
-                    <div className="mb-3 md:mb-0 md:w-1/3">
+                    <div className="mb-3">
                       <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
                       <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
                       <p className="text-sm text-[var(--text-light)] mt-1">{job.postedDate}</p>
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
+                    <div className="flex flex-wrap gap-3 mb-3">
                       <div className="flex items-center text-[var(--text-light)] text-sm">
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -497,28 +497,28 @@ export default function JobseekerDashboard() {
                         {job.salary}
                       </div>
                     </div>
-                    <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
+                    <div className="mt-2 flex flex-wrap gap-2 justify-end">
                       <button
                         onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
-                        className="btn btn-secondary text-sm"
+                        className="btn btn-secondary text-sm min-w-[100px]"
                       >
                         View Company
                       </button>
                       <button
                         onClick={() => handleSaveJob(job.id)}
-                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
+                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all min-w-[80px]"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all min-w-[80px]"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => handleViewJob(job.id)}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-sm min-w-[100px]"
                       >
                         View Job
                       </button>

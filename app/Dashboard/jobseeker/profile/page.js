@@ -315,7 +315,7 @@ export default function JobseekerProfile() {
                           </div>
                           <div className="flex space-x-2">
                             <a
-                              href={`/api/jobseeker/resume/${localStorage.getItem('accountId')}`}
+                              href={`${profile.resume.url}?cb=${Date.now()}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center px-3 py-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
@@ -333,6 +333,12 @@ export default function JobseekerProfile() {
                       </svg>
                       <p className="text-[var(--foreground)] text-lg">Resume Not Available</p>
                       <p className="text-sm text-[var(--text-light)] mt-2">Upload your resume to showcase your professional experience and skills.</p>
+                      <button
+                        onClick={handleEditProfile}
+                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+                      >
+                        Upload Resume
+                      </button>
                     </div>
                   )}
                 </div>

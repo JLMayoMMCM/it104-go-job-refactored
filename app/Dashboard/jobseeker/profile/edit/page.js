@@ -57,6 +57,8 @@ export default function EditProfile() {
     jobCategories: ''
   });
 
+  const [nationalities, setNationalities] = useState([]);
+
   useEffect(() => {
     const accountId = localStorage.getItem('accountId');
     const accountType = localStorage.getItem('accountType');
@@ -70,6 +72,7 @@ export default function EditProfile() {
     fetchGenders();
     fetchExperienceLevels();
     fetchEducationLevels();
+    fetchNationalities();
   }, [router]);
 
   // Update selected fields when categories change
@@ -299,6 +302,25 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching education levels:', error);
+      setGeneralError(error.message);
+    }
+  };
+
+  const fetchNationalities = async () => {
+    try {
+      const response = await fetch('/api/data/nationalities');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch nationalities (${response.status})`);
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setNationalities(data.data);
+      } else {
+        throw new Error('Failed to fetch nationalities data');
+      }
+    } catch (error) {
+      console.error('Error fetching nationalities:', error);
       setGeneralError(error.message);
     }
   };
@@ -887,14 +909,20 @@ export default function EditProfile() {
             </div>
             <div>
               <label htmlFor="nationality" className="block text-sm font-medium text-[var(--foreground)] mb-1">Nationality</label>
-              <input
-                type="text"
+              <select
                 id="nationality"
                 name="nationality"
                 value={profile.nationality}
                 onChange={handleInputChange}
                 className={`form-input ${fieldErrors.nationality ? 'border-[var(--error-color)]' : ''}`}
-              />
+              >
+                <option value="">Select Nationality</option>
+                {nationalities.map(nationality => (
+                  <option key={nationality.nationality_id} value={nationality.nationality_name}>
+                    {nationality.nationality_name}
+                  </option>
+                ))}
+              </select>
               {fieldErrors.nationality && (
                 <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
