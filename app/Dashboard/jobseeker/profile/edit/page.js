@@ -28,7 +28,9 @@ export default function EditProfile() {
   const [experienceLevels, setExperienceLevels] = useState([]);
   const [educationLevels, setEducationLevels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [generalError, setGeneralError] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [resumeFile, setResumeFile] = useState(null);
   const [resumePreview, setResumePreview] = useState(null);
@@ -39,6 +41,21 @@ export default function EditProfile() {
   const [photoPreview, setPhotoPreview] = useState('');
   const [photoUploading, setPhotoUploading] = useState(false);
   const router = useRouter();
+  const [fieldErrors, setFieldErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    premise: '',
+    street: '',
+    barangay: '',
+    city: '',
+    nationality: '',
+    gender: '',
+    educationLevel: '',
+    experienceLevel: '',
+    jobCategories: ''
+  });
 
   useEffect(() => {
     const accountId = localStorage.getItem('accountId');
@@ -66,9 +83,30 @@ export default function EditProfile() {
     setSelectedFields([...new Set(fieldsFromCategories)]);
   }, [selectedCategories, jobFields]);
 
+  // Clear errors when component mounts or profile data is reloaded
+  useEffect(() => {
+    setGeneralError(null);
+    setPasswordError('');
+    setFieldErrors({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      premise: '',
+      street: '',
+      barangay: '',
+      city: '',
+      nationality: '',
+      gender: '',
+      educationLevel: '',
+      experienceLevel: '',
+      jobCategories: ''
+    });
+  }, []);
+
   const fetchProfileData = async (accountId) => {
     try {
-      setError(null);
+      setGeneralError(null);
       
       const response = await fetch(`/api/jobseeker/profile?accountId=${accountId}`);
       if (!response.ok) {
@@ -121,7 +159,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
-      setError(error.message);
+      setGeneralError(error.message);
     } finally {
       setLoading(false);
     }
@@ -179,7 +217,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching job fields:', error);
-      setError(error.message);
+      setGeneralError(error.message);
     }
   };
 
@@ -223,7 +261,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching genders:', error);
-      setError(error.message);
+      setGeneralError(error.message);
     }
   };
 
@@ -242,7 +280,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching experience levels:', error);
-      setError(error.message);
+      setGeneralError(error.message);
     }
   };
 
@@ -261,7 +299,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Error fetching education levels:', error);
-      setError(error.message);
+      setGeneralError(error.message);
     }
   };
 
@@ -301,14 +339,14 @@ export default function EditProfile() {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
+      setGeneralError('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
       return;
     }
 
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setError('File size too large. Maximum 5MB allowed.');
+      setGeneralError('File size too large. Maximum 5MB allowed.');
       return;
     }
 
@@ -351,16 +389,43 @@ export default function EditProfile() {
 
   const handleSaveProfile = async () => {
     try {
-      setError(null);
+      // Clear previous errors
+      setGeneralError(null);
+      setPasswordError('');
+      setFieldErrors({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        premise: '',
+        street: '',
+        barangay: '',
+        city: '',
+        nationality: '',
+        gender: '',
+        educationLevel: '',
+        experienceLevel: '',
+        jobCategories: ''
+      });
+      
       const accountId = localStorage.getItem('accountId');
       
       if (!accountId) {
-        setError('Account ID not found. Please log in again.');
+        setGeneralError('Account ID not found. Please log in again.');
         return;
       }
       
       if (selectedCategories.length === 0) {
-        setError('Please select at least one job category.');
+        setFieldErrors(prev => ({ ...prev, jobCategories: 'Please select at least one job category.' }));
+        // Scroll to job preferences section
+        document.querySelector('.card:nth-last-child(2)').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      
+      if (!password) {
+        setPasswordError('Please enter your password to save changes.');
+        // Scroll to password field
+        document.querySelector('#password').scrollIntoView({ behavior: 'smooth' });
         return;
       }
       
@@ -379,12 +444,16 @@ export default function EditProfile() {
         
         if (!photoResponse.ok) {
           const errorData = await photoResponse.json();
-          throw new Error(errorData.error || 'Failed to upload profile photo');
+          setGeneralError(errorData.error || 'Failed to upload profile photo');
+          setPhotoUploading(false);
+          return;
         }
         
         const photoData = await photoResponse.json();
         if (!photoData.success) {
-          throw new Error(photoData.error || 'Failed to upload profile photo');
+          setGeneralError(photoData.error || 'Failed to upload profile photo');
+          setPhotoUploading(false);
+          return;
         }
         
         // Update profile with new photo URL
@@ -423,12 +492,16 @@ export default function EditProfile() {
         
         if (!resumeResponse.ok) {
           const errorData = await resumeResponse.json();
-          throw new Error(errorData.error || 'Failed to upload resume');
+          setGeneralError(errorData.error || 'Failed to upload resume');
+          setResumeUploading(false);
+          return;
         }
         
         const resumeData = await resumeResponse.json();
         if (!resumeData.success) {
-          throw new Error(resumeData.error || 'Failed to upload resume');
+          setGeneralError(resumeData.error || 'Failed to upload resume');
+          setResumeUploading(false);
+          return;
         }
         
         // Update profile with new resume data
@@ -442,6 +515,49 @@ export default function EditProfile() {
         }));
         
         setResumeUploading(false);
+      }
+      
+      // Save profile data
+      const profileResponse = await fetch('/api/jobseeker/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          accountId: accountId,
+          password: password,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          phone: profile.phone,
+          premise: profile.premise,
+          street: profile.street,
+          barangay: profile.barangay,
+          city: profile.city,
+          nationality: profile.nationality,
+          gender: profile.gender,
+          educationLevel: profile.educationLevel,
+          experienceLevel: profile.experienceLevel
+        })
+      });
+      
+      if (!profileResponse.ok) {
+        const errorData = await profileResponse.json();
+        const errorMessage = errorData.error || 'Failed to save profile data';
+        
+        // Check if the error is related to password
+        if (errorMessage.toLowerCase().includes('password')) {
+          setPasswordError(errorMessage);
+          // Scroll to password field
+          document.querySelector('#password').scrollIntoView({ behavior: 'smooth' });
+        } else if (errorMessage.toLowerCase().includes('email')) {
+          setFieldErrors(prev => ({ ...prev, email: errorMessage }));
+          // Scroll to email field
+          document.querySelector('#email').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          setGeneralError(errorMessage);
+        }
+        return;
       }
       
       // Save job preferences
@@ -459,7 +575,8 @@ export default function EditProfile() {
       
       if (!preferencesResponse.ok) {
         const errorData = await preferencesResponse.json();
-        throw new Error(errorData.message || 'Failed to save job preferences');
+        setGeneralError(errorData.message || 'Failed to save job preferences');
+        return;
       }
       
       setSuccessMessage('Your profile has been updated successfully!');
@@ -470,7 +587,7 @@ export default function EditProfile() {
       
     } catch (error) {
       console.error('Error saving profile:', error);
-      setError(error.message);
+      setGeneralError(error.message);
       setResumeUploading(false);
     }
   };
@@ -483,7 +600,7 @@ export default function EditProfile() {
     );
   }
 
-  if (error) {
+  if (generalError) {
     return (
       <div className="space-y-6">
         <div className="bg-[var(--error-color)] bg-opacity-10 border border-[var(--error-color)] border-opacity-20 rounded-md p-4">
@@ -496,12 +613,12 @@ export default function EditProfile() {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-[var(--error-color)]">Error</h3>
               <div className="mt-2 text-sm text-[var(--error-color)]">
-                <p>{error}</p>
+                <p>{generalError}</p>
               </div>
               <div className="mt-4">
                 <button
                   onClick={() => {
-                    setError(null);
+                    setGeneralError(null);
                     setLoading(true);
                     const accountId = localStorage.getItem('accountId');
                     if (accountId) fetchProfileData(accountId);
@@ -624,8 +741,16 @@ export default function EditProfile() {
                 name="firstName"
                 value={profile.firstName}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.firstName ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.firstName && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.firstName}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="lastName" className="block text-sm font-medium text-[var(--foreground)] mb-1">Last Name</label>
@@ -635,8 +760,16 @@ export default function EditProfile() {
                 name="lastName"
                 value={profile.lastName}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.lastName ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.lastName && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.lastName}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[var(--foreground)] mb-1">Email Address</label>
@@ -646,8 +779,16 @@ export default function EditProfile() {
                 name="email"
                 value={profile.email}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.email ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.email && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.email}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-[var(--foreground)] mb-1">Phone Number</label>
@@ -657,8 +798,16 @@ export default function EditProfile() {
                 name="phone"
                 value={profile.phone}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.phone ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.phone && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.phone}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="premise" className="block text-sm font-medium text-[var(--foreground)] mb-1">Premise/Building</label>
@@ -668,8 +817,16 @@ export default function EditProfile() {
                 name="premise"
                 value={profile.premise}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.premise ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.premise && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.premise}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="street" className="block text-sm font-medium text-[var(--foreground)] mb-1">Street</label>
@@ -679,8 +836,16 @@ export default function EditProfile() {
                 name="street"
                 value={profile.street}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.street ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.street && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.street}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="barangay" className="block text-sm font-medium text-[var(--foreground)] mb-1">Barangay</label>
@@ -690,8 +855,16 @@ export default function EditProfile() {
                 name="barangay"
                 value={profile.barangay}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.barangay ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.barangay && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.barangay}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="city" className="block text-sm font-medium text-[var(--foreground)] mb-1">City</label>
@@ -701,8 +874,16 @@ export default function EditProfile() {
                 name="city"
                 value={profile.city}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.city ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.city && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.city}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="nationality" className="block text-sm font-medium text-[var(--foreground)] mb-1">Nationality</label>
@@ -712,8 +893,16 @@ export default function EditProfile() {
                 name="nationality"
                 value={profile.nationality}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.nationality ? 'border-[var(--error-color)]' : ''}`}
               />
+              {fieldErrors.nationality && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.nationality}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="gender" className="block text-sm font-medium text-[var(--foreground)] mb-1">Gender</label>
@@ -722,7 +911,7 @@ export default function EditProfile() {
                 name="gender"
                 value={profile.gender}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.gender ? 'border-[var(--error-color)]' : ''}`}
               >
                 <option value="">Select Gender</option>
                 {genders.map(gender => (
@@ -731,6 +920,14 @@ export default function EditProfile() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.gender && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.gender}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="educationLevel" className="block text-sm font-medium text-[var(--foreground)] mb-1">Education Level</label>
@@ -739,7 +936,7 @@ export default function EditProfile() {
                 name="educationLevel"
                 value={profile.educationLevel}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.educationLevel ? 'border-[var(--error-color)]' : ''}`}
               >
                 <option value="">Select Education Level</option>
                 {educationLevels.map(level => (
@@ -748,6 +945,14 @@ export default function EditProfile() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.educationLevel && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.educationLevel}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="experienceLevel" className="block text-sm font-medium text-[var(--foreground)] mb-1">Experience Level</label>
@@ -756,7 +961,7 @@ export default function EditProfile() {
                 name="experienceLevel"
                 value={profile.experienceLevel}
                 onChange={handleInputChange}
-                className="form-input"
+                className={`form-input ${fieldErrors.experienceLevel ? 'border-[var(--error-color)]' : ''}`}
               >
                 <option value="">Select Experience Level</option>
                 {experienceLevels.map(level => (
@@ -765,6 +970,14 @@ export default function EditProfile() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.experienceLevel && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {fieldErrors.experienceLevel}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1039,6 +1252,48 @@ export default function EditProfile() {
                 )}
               </div>
             ))}
+          </div>
+          {fieldErrors.jobCategories && (
+            <div className="mt-4 p-3 bg-[var(--error-color)] bg-opacity-10 border border-[var(--error-color)] border-opacity-20 rounded-md">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 text-[var(--error-color)] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm text-[var(--error-color)]">{fieldErrors.jobCategories}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Verify Identity */}
+      <div className="card">
+        <div className="panel-header">
+          <h3 className="text-lg font-semibold text-white">Verify Identity</h3>
+          <p className="text-sm text-white text-opacity-80 mt-1">Enter your password to save changes</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)] mb-1">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`form-input ${passwordError ? 'border-[var(--error-color)]' : ''}`}
+                required
+              />
+              {passwordError && (
+                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  {passwordError}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

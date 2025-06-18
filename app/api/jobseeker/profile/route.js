@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request) {
   try {
@@ -79,8 +80,26 @@ export async function GET(request) {
 
     console.log('Person data found:', personData);
 
-    // Fetch education level if available
-    let educationLevel = 'Not specified';
+    // Fetch job preferences
+    const { data: jobPreferencesData, error: jobPreferencesError } = await supabase
+      .from('job_seeker_job_category')
+      .select('job_category_id, job_field_id')
+      .eq('job_seeker_id', jobSeekerData.job_seeker_id);
+
+    if (jobPreferencesError) {
+      console.error('Job preferences query error:', jobPreferencesError);
+      // Don't fail the whole request for this error, just return empty preferences
+    }
+
+    const jobPreferences = jobPreferencesData?.map(pref => ({
+      category_id: pref.job_category_id,
+      field_id: pref.job_field_id
+    })) || [];
+
+    console.log('Job preferences found:', jobPreferences);
+
+    // Fetch education level name
+    let educationLevel = '';
     if (jobSeekerData.job_seeker_education_level_id) {
       const { data: educationData, error: educationError } = await supabase
         .from('job_seeker_education_level')
@@ -88,15 +107,15 @@ export async function GET(request) {
         .eq('job_seeker_education_level_id', jobSeekerData.job_seeker_education_level_id)
         .single();
 
-      if (!educationError && educationData) {
+      if (educationError) {
+        console.error('Education level query error:', educationError);
+      } else if (educationData) {
         educationLevel = educationData.education_level_name;
-      } else {
-        console.warn('Education level not found for ID:', jobSeekerData.job_seeker_education_level_id);
       }
     }
 
-    // Fetch experience level if available
-    let experienceLevel = 'Not specified';
+    // Fetch experience level name
+    let experienceLevel = '';
     if (jobSeekerData.job_seeker_experience_level_id) {
       const { data: experienceData, error: experienceError } = await supabase
         .from('job_seeker_experience_level')
@@ -104,96 +123,32 @@ export async function GET(request) {
         .eq('job_seeker_experience_level_id', jobSeekerData.job_seeker_experience_level_id)
         .single();
 
-      if (!experienceError && experienceData) {
+      if (experienceError) {
+        console.error('Experience level query error:', experienceError);
+      } else if (experienceData) {
         experienceLevel = experienceData.experience_level_name;
-      } else {
-        console.warn('Experience level not found for ID:', jobSeekerData.job_seeker_experience_level_id);
       }
     }
 
-    // Fetch job category preferences with proper JOINs
-    const { data: categoryPreferencesData, error: categoryPreferencesError } = await supabase
-      .from('jobseeker_preference')
-      .select(`
-        preferred_job_category_id,
-        job_category:preferred_job_category_id(job_category_id, job_category_name, category_field_id, category_field:category_field_id(category_field_id, category_field_name))
-      `)
-      .eq('jobseeker_id', jobSeekerData.job_seeker_id);
-
-    if (categoryPreferencesError) {
-      console.error('Error fetching job category preferences:', categoryPreferencesError);
+    // Format address for frontend
+    let fullAddress = '';
+    if (personData.address && personData.address.city_name) {
+      const addressParts = [];
+      if (personData.address.premise_name) addressParts.push(personData.address.premise_name);
+      if (personData.address.street_name) addressParts.push(personData.address.street_name);
+      if (personData.address.barangay_name) addressParts.push(personData.address.barangay_name);
+      addressParts.push(personData.address.city_name);
+      fullAddress = addressParts.join(', ');
     }
 
-    // Format job preferences with actual field and category names
-    const jobPreferences = categoryPreferencesData?.map(pref => ({
-      field_id: pref.job_category?.category_field?.category_field_id || 0,
-      field_name: pref.job_category?.category_field?.category_field_name || 'Unknown Field',
-      category_id: pref.job_category?.job_category_id || 0,
-      category_name: pref.job_category?.job_category_name || 'Unknown Category'
-    })) || [];
-
-    // Format address string
-    const addressParts = [];
-    if (personData.address?.premise_name) addressParts.push(personData.address.premise_name);
-    if (personData.address?.street_name) addressParts.push(personData.address.street_name);
-    if (personData.address?.barangay_name) addressParts.push(personData.address.barangay_name);
-    if (personData.address?.city_name) addressParts.push(personData.address.city_name);
-    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
-
-    // Format resume data with metadata from storage if available
+    // Format resume data if it exists
     let resumeData = null;
     if (accountData.account_resume) {
-      try {
-        // Extract file path from URL
-        const url = new URL(accountData.account_resume);
-        const pathParts = url.pathname.split('/profile/')[1]?.split('?')[0];
-        const filePath = pathParts || '';
-        
-        if (filePath) {
-          // Get file metadata from Supabase Storage
-          const { data: metadata, error } = await supabase.storage
-            .from('profile')
-            .list(filePath.split('/')[0], { 
-              limit: 1, 
-              search: filePath.split('/')[1] 
-            });
-            
-          let fileSize = 'Unknown size';
-          let fileName = filePath.split('/')[1].replace(/^resume_\d+_\d+\./, '').replace(/^resume_/, '') || 'Resume.pdf';
-          
-          if (error) {
-            console.warn('Could not get resume metadata:', error.message);
-          } else if (metadata && metadata[0] && metadata[0].metadata) {
-            const sizeInBytes = metadata[0].metadata.size;
-            if (sizeInBytes) {
-              if (sizeInBytes < 1024) fileSize = sizeInBytes + ' B';
-              else if (sizeInBytes < 1048576) fileSize = (sizeInBytes / 1024).toFixed(1) + ' KB';
-              else fileSize = (sizeInBytes / 1048576).toFixed(1) + ' MB';
-            }
-          }
-          
-          resumeData = {
-            url: accountData.account_resume,
-            name: fileName,
-            size: fileSize
-          };
-        } else {
-          // Fallback if path extraction fails
-          resumeData = {
-            url: accountData.account_resume,
-            name: 'Resume.pdf',
-            size: 'Unknown size'
-          };
-        }
-      } catch (err) {
-        console.error('Error fetching resume metadata:', err.message);
-        // Fallback on error
-        resumeData = {
-          url: accountData.account_resume,
-          name: 'Resume.pdf',
-          size: 'Unknown size'
-        };
-      }
+      resumeData = {
+        url: accountData.account_resume,
+        name: 'Resume.pdf',
+        size: 'Unknown size'
+      };
     }
 
     console.log('Successfully formatted profile data');
@@ -228,5 +183,217 @@ export async function GET(request) {
       success: false, 
       error: 'Internal server error: ' + error.message 
     }, { status: 500 });
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const body = await request.json();
+    const { accountId, password, firstName, lastName, email, phone, premise, street, barangay, city, nationality, gender, educationLevel, experienceLevel } = body;
+
+    if (!accountId) {
+      return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
+    }
+
+    if (!password) {
+      return NextResponse.json({ success: false, error: 'Password is required to update profile' }, { status: 400 });
+    }
+
+    const supabase = createClient();
+
+    // First, verify the password
+    const { data: accountData, error: accountError } = await supabase
+      .from('account')
+      .select('account_id, account_password')
+      .eq('account_id', accountId)
+      .single();
+
+    if (accountError || !accountData) {
+      return NextResponse.json({ success: false, error: 'Account not found' }, { status: 404 });
+    }
+
+    // Compare provided password with stored hash
+    const passwordValid = await bcrypt.compare(password, accountData.account_password);
+    if (!passwordValid) {
+      return NextResponse.json({ success: false, error: 'Invalid password. Please enter your correct password to update your profile.' }, { status: 401 });
+    }
+
+    // Get job seeker data
+    const { data: jobSeekerData, error: jobSeekerError } = await supabase
+      .from('job_seeker')
+      .select('job_seeker_id, person_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (jobSeekerError || !jobSeekerData) {
+      return NextResponse.json({ success: false, error: 'Job seeker data not found' }, { status: 404 });
+    }
+
+    // Update person data
+    const addressParts = [];
+    if (premise) addressParts.push(premise);
+    if (street) addressParts.push(street);
+    if (barangay) addressParts.push(barangay);
+    if (city) addressParts.push(city);
+    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : '';
+
+    // First get the nationality ID from the name
+    let nationalityId = null;
+    if (nationality && nationality !== 'Not specified') {
+      const { data: nationalityData, error: nationalityError } = await supabase
+        .from('nationality')
+        .select('nationality_id')
+        .eq('nationality_name', nationality)
+        .single();
+
+      if (nationalityError) {
+        console.error('Nationality query error:', nationalityError);
+      } else if (nationalityData) {
+        nationalityId = nationalityData.nationality_id;
+      }
+    }
+
+    // Get gender ID from name
+    let genderId = null;
+    if (gender && gender !== 'Not specified') {
+      const { data: genderData, error: genderError } = await supabase
+        .from('gender')
+        .select('gender_id')
+        .eq('gender_name', gender)
+        .single();
+
+      if (genderError) {
+        console.error('Gender query error:', genderError);
+      } else if (genderData) {
+        genderId = genderData.gender_id;
+      }
+    }
+
+    // Get education level ID from name
+    let educationLevelId = null;
+    if (educationLevel) {
+      const { data: educationData, error: educationError } = await supabase
+        .from('job_seeker_education_level')
+        .select('job_seeker_education_level_id')
+        .eq('education_level_name', educationLevel)
+        .single();
+
+      if (educationError) {
+        console.error('Education level query error:', educationError);
+      } else if (educationData) {
+        educationLevelId = educationData.job_seeker_education_level_id;
+      }
+    }
+
+    // Get experience level ID from name
+    let experienceLevelId = null;
+    if (experienceLevel) {
+      const { data: experienceData, error: experienceError } = await supabase
+        .from('job_seeker_experience_level')
+        .select('job_seeker_experience_level_id')
+        .eq('experience_level_name', experienceLevel)
+        .single();
+
+      if (experienceError) {
+        console.error('Experience level query error:', experienceError);
+      } else if (experienceData) {
+        experienceLevelId = experienceData.job_seeker_experience_level_id;
+      }
+    }
+
+    // Update person data
+    const { data: updatedPerson, error: personError } = await supabase
+      .from('person')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        nationality_id: nationalityId,
+        gender_id: genderId,
+        address_id: fullAddress ? await getOrCreateAddressId(supabase, premise, street, barangay, city) : null
+      })
+      .eq('person_id', jobSeekerData.person_id)
+      .select()
+      .single();
+
+    if (personError) {
+      console.error('Error updating person data:', personError);
+      return NextResponse.json({ success: false, error: 'Failed to update personal information' }, { status: 500 });
+    }
+
+    // Update account data (email and phone)
+    const { data: updatedAccount, error: accountUpdateError } = await supabase
+      .from('account')
+      .update({
+        account_email: email,
+        account_phone: phone
+      })
+      .eq('account_id', accountId)
+      .select()
+      .single();
+
+    if (accountUpdateError) {
+      console.error('Error updating account data:', accountUpdateError);
+      return NextResponse.json({ success: false, error: 'Failed to update contact information' }, { status: 500 });
+    }
+
+    // Update job seeker education and experience levels
+    const { data: updatedJobSeeker, error: jobSeekerUpdateError } = await supabase
+      .from('job_seeker')
+      .update({
+        job_seeker_education_level_id: educationLevelId,
+        job_seeker_experience_level_id: experienceLevelId
+      })
+      .eq('job_seeker_id', jobSeekerData.job_seeker_id)
+      .select()
+      .single();
+
+    if (jobSeekerUpdateError) {
+      console.error('Error updating job seeker data:', jobSeekerUpdateError);
+      return NextResponse.json({ success: false, error: 'Failed to update job seeker information' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Unexpected error updating jobseeker profile:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal server error: ' + error.message 
+    }, { status: 500 });
+  }
+}
+
+// Helper function to get or create address ID
+async function getOrCreateAddressId(supabase, premise, street, barangay, city) {
+  try {
+    // First check if address already exists
+    const addressParts = [];
+    if (premise) addressParts.push(premise);
+    if (street) addressParts.push(street);
+    if (barangay) addressParts.push(barangay);
+    if (city) addressParts.push(city);
+    const fullAddress = addressParts.join(', ');
+
+    // Since we don't have a unique identifier for address based on content,
+    // we'll create a new one each time to avoid conflicts
+    const { data: newAddress, error: newAddressError } = await supabase
+      .from('address')
+      .insert({
+        premise_name: premise || '',
+        street_name: street || '',
+        barangay_name: barangay || '',
+        city_name: city || ''
+      })
+      .select('address_id')
+      .single();
+
+    if (newAddressError) {
+      console.error('Error creating new address:', newAddressError);
+      return null;
+    }
+
+    return newAddress.address_id;
+  } catch (error) {
+    console.error('Error in getOrCreateAddressId:', error);
+    return null;
   }
 }
