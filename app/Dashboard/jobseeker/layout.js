@@ -219,7 +219,7 @@ case 'saved':
     <div className="min-h-screen bg-[var(--background)] transition-all duration-300">
       {/* Header */}
       <header className="bg-[var(--card-background)] shadow-sm border-b border-[var(--border-color)] sticky top-0 z-30">
-        <div className="flex items-center justify-between px-6 h-18">
+        <div className="flex items-center justify-between px-4 sm:px-6 h-16">
           {/* Left side - Logo */}
           <div className="flex items-center">
             <div
@@ -238,7 +238,7 @@ case 'saved':
           </div>
 
           {/* Right side - User info, search and sidebar toggle */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="hidden md:flex items-center space-x-3">
               <span className="text-[var(--foreground)]">
                 Hello, <span className="font-semibold">{jobseeker?.firstName} {jobseeker?.lastName}</span>
@@ -277,7 +277,7 @@ case 'saved':
               }}
               className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             </button>
@@ -285,7 +285,7 @@ case 'saved':
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 rounded-md text-[var(--foreground)] hover:text-[var(--primary-color)] hover:bg-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] transition-all duration-200"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {sidebarOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -302,7 +302,7 @@ case 'saved':
         <aside className={`fixed inset-y-0 right-0 z-30 w-64 bg-[var(--card-background)] border-l border-[var(--border-color)] transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out`}>
           <div className="flex h-full flex-col">
             {/* Logo */}
-            <div className="flex items-center justify-between h-18 px-6 border-b border-[var(--border-color)]">
+            <div className="flex items-center justify-between h-16 px-4 sm:px-6 border-b border-[var(--border-color)]">
               <div className="flex items-center justify-center w-full">
                 <img src="/Assets/Title.png" alt="GoJob Logo" className="h-10 w-auto" />
               </div>
@@ -316,7 +316,7 @@ case 'saved':
               </button>
             </div>
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto p-4">
+            <nav className="flex-1 overflow-y-auto p-2 sm:p-4">
               <ul className="space-y-1">
                 {sidebarItems.map((item) => (
                   <li key={item.name}>
@@ -325,14 +325,14 @@ case 'saved':
                         router.push(item.href);
                         setSidebarOpen(false);
                       }}
-                      className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-color)] hover:text-[var(--primary-color)]`}
+                      className={`flex items-center w-full px-2 sm:px-3 py-1 sm:py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--hover-color)] hover:text-[var(--primary-color)]`}
                     >
-                      <div className="flex-shrink-0 w-8 text-[var(--text-light)]">
+                      <div className="flex-shrink-0 w-6 sm:w-8 text-[var(--text-light)]">
                         {getIcon(item.icon)}
                       </div>
-                      <span className="ml-3">{item.name}</span>
+                      <span className="ml-2 sm:ml-3">{item.name}</span>
                       {item.badge > 0 && (
-                        <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
+                        <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 animate-pulse">
                           {item.badge}
                         </span>
                       )}
@@ -342,7 +342,7 @@ case 'saved':
               </ul>
             </nav>
             {/* Footer */}
-            <div className="p-4 border-t border-[var(--border-color)]">
+            <div className="p-2 sm:p-4 border-t border-[var(--border-color)]">
               <button
                 onClick={() => {
                   // Clear all stored user data
@@ -355,9 +355,9 @@ case 'saved':
                   // Redirect to login page
                   router.push('/Login');
                 }}
-                className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--error-color)] hover:bg-opacity-10 hover:text-[var(--error-color)]"
+                className="w-full flex items-center px-2 sm:px-3 py-1 sm:py-2 rounded-md text-sm font-medium text-[var(--foreground)] hover:bg-[var(--error-color)] hover:bg-opacity-10 hover:text-[var(--error-color)]"
               >
-                <svg className="h-5 w-5 mr-3 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 mr-2 sm:mr-3 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 Logout
@@ -375,8 +375,8 @@ case 'saved':
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="py-6 w-full">
-            <div className="px-4 sm:px-6 lg:px-8 w-full">
+          <div className="py-4 sm:py-6 w-full">
+            <div className="px-4 sm:px-6 w-full">
               {children}
             </div>
           </div>

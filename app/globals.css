@@ -332,10 +332,16 @@ body {
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0;
   box-shadow: 0 2px 8px rgba(85, 133, 181, 0.1);
 }
 
+.card.analytics {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 .job-card {
   background-color: var(--card-background);
   border: 1px solid var(--border-color);
