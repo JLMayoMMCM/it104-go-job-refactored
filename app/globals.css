@@ -1,46 +1,54 @@
 @import "tailwindcss";
 
+/* ============================================
+   ROOT VARIABLES
+   ============================================ */
+
+/* Base System Colors */
 :root {
-  /* New Color Palette */
-  --first-color: #5585b5;
-  --second-color: #53a8b6;
-  --third-color: #79c2d0;
-  --fourth-color: #bbe4e9;
-  
-  /* Semantic Color Variables */
-  --primary-color: var(--first-color);
-  --secondary-color: var(--second-color);
-  --accent-color: var(--third-color);
-  --light-color: var(--fourth-color);
-  
-  /* Background and Text */
   --background: #ffffff;
   --foreground: #2c3e50;
   --text-light: #6c757d;
   --text-dark: #343a40;
-  
-  /* Component Colors */
-  --card-background: #ffffff;
-  --border-color: var(--fourth-color);
-  --hover-color: var(--third-color);
-  --success-color: var(--second-color);
   --error-color: #e74c3c;
   --warning-color: #f39c12;
+  --success-color: #53a8b6;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Jobseeker Color Palette (Light Blue Theme) */
+:root {
+  --jobseeker-primary: #4A90B8;
+  --jobseeker-secondary: #6BB2D6;
+  --jobseeker-accent: #8CCEE4;
+  --jobseeker-light: #E1F4F9;
 }
 
+/* Employee Color Palette (Light Green Theme) */
+:root {
+  --employee-primary: #52A068;
+  --employee-secondary: #7BB88A;
+  --employee-accent: #A4D4AE;
+  --employee-light: #E8F5EA;
+}
+
+/* Shared Component Colors */
+:root {
+  --card-background: #ffffff;
+  --border-color: #E1E4E8;
+  --hover-color: #79c2d0;
+}
+
+/* ============================================
+   THEME CONFIGURATIONS
+   ============================================ */
+
+/* Dark Mode Base Overrides */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #1a2332;
     --foreground: #e8f4f8;
     --card-background: #243447;
-    --border-color: var(--first-color);
+    --border-color: #3d6d8c;
     --text-light: #adb5bd;
     --text-dark: #f8f9fa;
   }
@@ -51,12 +59,28 @@
   --background: #1a2332;
   --foreground: #e8f4f8;
   --card-background: #243447;
-  --border-color: var(--first-color);
+  --border-color: #3d6d8c;
   --text-light: #adb5bd;
   --text-dark: #f8f9fa;
 }
 
-/* Theme-specific dark mode overrides */
+/* Jobseeker Theme */
+[data-theme="jobseeker"] {
+  --primary-color: var(--jobseeker-primary);
+  --secondary-color: var(--jobseeker-secondary);
+  --accent-color: var(--jobseeker-accent);
+  --light-color: var(--jobseeker-light);
+  --background: #f0f8ff;
+  --foreground: #2c3e50;
+}
+
+[data-theme="jobseeker"][data-mode="light"] {
+  --primary-color: var(--jobseeker-primary);
+  --secondary-color: var(--jobseeker-secondary);
+  --accent-color: var(--jobseeker-accent);
+  --light-color: var(--jobseeker-light);
+}
+
 [data-theme="jobseeker"][data-mode="dark"] {
   --primary-color: #5ca9b8;
   --secondary-color: #9bd1d9;
@@ -64,6 +88,23 @@
   --background: #19212e;
   --foreground: #e8f4f8;
   --light-color: #ffffff;
+}
+
+/* Employee Theme */
+[data-theme="employee"] {
+  --primary-color: var(--employee-primary);
+  --secondary-color: var(--employee-secondary);
+  --accent-color: var(--employee-accent);
+  --light-color: var(--employee-light);
+  --background: #f5fff5;
+  --foreground: #2c3e50;
+}
+
+[data-theme="employee"][data-mode="light"] {
+  --primary-color: var(--employee-primary);
+  --secondary-color: var(--employee-secondary);
+  --accent-color: var(--employee-accent);
+  --light-color: var(--employee-light);
 }
 
 [data-theme="employee"][data-mode="dark"] {
@@ -75,40 +116,7 @@
   --light-color: #ffffff;
 }
 
-/* Ensure theme colors override base colors for specific components */
-[data-theme="jobseeker"] {
-  --primary-color: #79c2d0;
-  --secondary-color: #bbe4e9;
-  --accent-color: #5585b5;
-  --background: #f0f8ff;
-  --foreground: #2c3e50;
-  --light-color: #bbe4e9;
-}
-
-[data-theme="employee"] {
-  --primary-color: #8fd3a3;
-  --secondary-color: #c8e6c9;
-  --accent-color: #53a8b6;
-  --background: #f5fff5;
-  --foreground: #2c3e50;
-  --light-color: #c8e6c9;
-}
-
-/* Theme-specific light mode overrides for better contrast */
-[data-theme="jobseeker"][data-mode="light"] {
-  --primary-color: #5585b5;
-  --secondary-color: #79c2d0;
-  --accent-color: #53a8b6;
-  --light-color: #bbe4e9;
-}
-
-[data-theme="employee"][data-mode="light"] {
-  --primary-color: #53a8b6;
-  --secondary-color: #8fd3a3;
-  --accent-color: #79c2d0;
-  --light-color: #c8e6c9;
-}
-
+/* Body Base Styles */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -118,7 +126,80 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Global Utility Classes */
+/* ============================================
+   CLASSES GROUPED BY FUNCTIONALITY
+   ============================================ */
+
+/* Layout & Grid */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.page-fill {
+  height: calc(100vh - 125px);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .page-fill {
+    overflow-y: auto;
+  }
+}
+
+/* Content container for scrolling on mobile */
+.content-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .content-container {
+    overflow-y: visible;
+  }
+}
+
+/* Hide scrollbar for job card lists */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Typography */
+.text-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.text-subheading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+}
+
+.text-description {
+  font-size: 1rem;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
@@ -137,70 +218,27 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: var(--second-color);
+  background-color: var(--secondary-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(85, 133, 181, 0.3);
 }
 
 .btn-secondary {
-  background-color: var(--third-color);
+  background-color: var(--accent-color);
   color: white;
 }
 
 .btn-secondary:hover {
-  background-color: var(--second-color);
+  background-color: var(--secondary-color);
   color: white;
   transform: translateY(-2px);
 }
 
-.card {
-  background: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(85, 133, 181, 0.1);
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-.error-message {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: var(--error-color);
-  padding: 0.75rem;
-  border-radius: 6px;
-  border-left: 4px solid var(--error-color);
-  margin: 1rem 0;
-}
-
-.success-message {
-  background-color: rgba(83, 168, 182, 0.1);
-  color: var(--success-color);
-  padding: 0.75rem;
-  border-radius: 6px;
-  border-left: 4px solid var(--success-color);
-  margin: 1rem 0;
-}
-
-
-/* Theme-specific gradients for login pages */
-.jobseeker-gradient {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
-}
-
-.employee-gradient {
-  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 50%, #a5d6a7 100%);
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
 }
 
 /* Theme-specific button styles */
@@ -228,106 +266,21 @@ body {
   border-color: var(--accent-color);
 }
 
-/* Theme-specific focus colors */
-[data-theme="jobseeker"] .form-input:focus,
-.jobseeker-theme .form-input:focus {
+/* Forms */
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
 }
 
-[data-theme="employee"] .form-input:focus,
-.employee-theme .form-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
-}
-
-/* Profile Header Utilities */
-.profile-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-  color: white;
-  position: relative;
-  overflow: hidden;
-}
-
-.profile-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-/* Panel Header Utilities */
-.panel-header {
-  padding: 1.5rem;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-  border-radius: 0.75rem 0.75rem 0 0;
-}
-
-
-/* Dark mode enhancements */
-[data-mode="dark"] .profile-header {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-}
-
-[data-mode="dark"] .panel-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-}
-
-
-/* Loading spinner theme support */
-.loading-spinner {
-  border-color: var(--border-color);
-  border-top-color: var(--primary-color);
-}
-
-/* Error message theme support */
-.error-container {
-  background-color: rgba(231, 76, 60, 0.1);
-  border-color: rgba(231, 76, 60, 0.2);
-  color: var(--error-color);
-}
-
-[data-mode="dark"] .error-container {
-  background-color: rgba(231, 76, 60, 0.15);
-  border-color: rgba(231, 76, 60, 0.3);
-}
-
-/* Modal Styling */
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-[data-mode="dark"] .modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.modal-content {
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 90%;
-  width: 500px;
-  margin: auto;
-  padding: 1.5rem;
-}
-
-[data-mode="dark"] .modal-content {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Form Elements */
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
@@ -353,6 +306,19 @@ body {
   box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
 }
 
+/* Theme-specific focus colors */
+[data-theme="jobseeker"] .form-input:focus,
+.jobseeker-theme .form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
+}
+
+[data-theme="employee"] .form-input:focus,
+.employee-theme .form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
+}
+
 [data-theme="jobseeker"] .form-textarea:focus {
   box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.1);
 }
@@ -361,45 +327,15 @@ body {
   box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
 }
 
-/* Grid and Layout */
-.grid-responsive {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+/* Cards */
+.card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(85, 133, 181, 0.1);
 }
 
-/* Full Page Utility Class */
-.page-fill {
-  height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* Typography */
-.text-heading {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-black);
-  margin-bottom: 1rem;
-}
-
-.text-subheading {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin-bottom: 0.75rem;
-}
-
-.text-description {
-  font-size: 1rem;
-  color: var(--text-black);
-  line-height: 1.6;
-}
-
-/* Job Card */
 .job-card {
   background-color: var(--card-background);
   border: 1px solid var(--border-color);
@@ -430,7 +366,6 @@ body {
   margin-bottom: 0.75rem;
 }
 
-/* Company Card */
 .company-card {
   background-color: var(--card-background);
   border: 1px solid var(--border-color);
@@ -447,13 +382,118 @@ body {
   box-shadow: 0 4px 12px rgba(85, 133, 181, 0.3);
 }
 
-/* Button Group */
-.button-group {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
+/* Messages & Notifications */
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--error-color);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--error-color);
+  margin: 1rem 0;
 }
+
+.success-message {
+  background-color: rgba(83, 168, 182, 0.1);
+  color: var(--success-color);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--success-color);
+  margin: 1rem 0;
+}
+
+.error-container {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-color: rgba(231, 76, 60, 0.2);
+  color: var(--error-color);
+}
+
+[data-mode="dark"] .error-container {
+  background-color: rgba(231, 76, 60, 0.15);
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.loading-spinner {
+  border-color: var(--border-color);
+  border-top-color: var(--primary-color);
+}
+
+/* Modals */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+[data-mode="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 90%;
+  width: 500px;
+  margin: auto;
+  padding: 1.5rem;
+}
+
+[data-mode="dark"] .modal-content {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Headers */
+.profile-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.panel-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* Dark mode enhancements */
+[data-mode="dark"] .profile-header {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+[data-mode="dark"] .panel-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+/* Theme-specific gradients for login pages */
+.jobseeker-gradient {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+}
+
+.employee-gradient {
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 50%, #a5d6a7 100%);
+}
+
+/* ============================================
+   MISCELLANEOUS & RESPONSIVE STYLES
+   ============================================ */
 
 /* Responsive Typography */
 @media (max-width: 640px) {

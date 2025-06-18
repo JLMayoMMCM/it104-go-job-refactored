@@ -374,9 +374,9 @@ case 'saved':
         )}
 
         {/* Main content */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-y-auto">
           <div className="py-6 w-full">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="px-4 sm:px-6 lg:px-8 w-full">
               {children}
             </div>
           </div>

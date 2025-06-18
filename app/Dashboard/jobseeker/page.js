@@ -189,9 +189,9 @@ export default function JobseekerDashboard() {
   return (
     <div className="page-fill bg-[var(--background)] space-y-8">
       {/* Welcome Header */}
-      <div className="profile-header">
-        <h1 className="text-3xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
-        <p className="text-white text-opacity-90 text-lg">Discover new opportunities and manage your applications.</p>
+      <div className="profile-header p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
+        <p className="text-white text-opacity-90 text-base sm:text-lg">Discover new opportunities and manage your applications.</p>
       </div>
 
       {/* Success/Error Messages */}
@@ -245,7 +245,7 @@ export default function JobseekerDashboard() {
           <div className="mt-3">
             <button 
               onClick={() => router.push('/Dashboard/jobseeker/applications')}
-              className="text-xs text-[var(--primary-color)] hover:underline"
+              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
             >
               View Applications →
             </button>
@@ -292,7 +292,7 @@ export default function JobseekerDashboard() {
           <div className="mt-3">
             <button 
               onClick={() => router.push('/Dashboard/jobseeker/saved-jobs')}
-              className="text-xs text-[var(--primary-color)] hover:underline"
+              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
             >
               View Saved Jobs →
             </button>
@@ -313,7 +313,7 @@ export default function JobseekerDashboard() {
           <div className="mt-3">
             <button 
               onClick={() => router.push('/Dashboard/jobseeker/company/followed')}
-              className="text-xs text-[var(--primary-color)] hover:underline"
+              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
             >
               View Companies →
             </button>
@@ -335,7 +335,7 @@ export default function JobseekerDashboard() {
           <div className="mt-3">
             <button 
               onClick={() => router.push('/Dashboard/jobseeker/notifications')}
-              className="text-xs text-[var(--primary-color)] hover:underline"
+              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
             >
               View Notifications →
             </button>
@@ -375,7 +375,7 @@ export default function JobseekerDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-96 overflow-y-auto scrollbar-hide">
                 {recommendedJobs.map((job, index) => (
                   <div
                     key={job.id}
@@ -410,26 +410,20 @@ export default function JobseekerDashboard() {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 justify-end">
                       <button
-                        onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
-                        className="btn btn-secondary text-sm min-w-[100px]"
-                      >
-                        View Company
-                      </button>
-                      <button
                         onClick={() => handleSaveJob(job.id)}
-                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all min-w-[80px]"
+                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-24"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all min-w-[80px]"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all w-24"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => handleViewJob(job.id)}
-                        className="btn btn-primary text-sm min-w-[100px]"
+                        className="btn btn-primary text-sm w-24"
                       >
                         View Job
                       </button>
@@ -470,7 +464,7 @@ export default function JobseekerDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-96 overflow-y-auto scrollbar-hide">
                 {recentJobs.map((job, index) => (
                   <div
                     key={job.id}
@@ -499,26 +493,20 @@ export default function JobseekerDashboard() {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 justify-end">
                       <button
-                        onClick={() => router.push(`/Dashboard/jobseeker/company/view/${job.companyId}`)}
-                        className="btn btn-secondary text-sm min-w-[100px]"
-                      >
-                        View Company
-                      </button>
-                      <button
                         onClick={() => handleSaveJob(job.id)}
-                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all min-w-[80px]"
+                        className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-24"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all min-w-[80px]"
+                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all w-24"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => handleViewJob(job.id)}
-                        className="btn btn-primary text-sm min-w-[100px]"
+                        className="btn btn-primary text-sm w-24"
                       >
                         View Job
                       </button>
