@@ -1,6 +1,7 @@
 // app/lib/jobApplicationService.js
 
-import { createClient } from './supabase'; // Import the createClient function instead of direct instance
+import { createClient } from './supabase';
+import { createNotification, NotificationTypes } from './notificationService';
 
 const REJECTED_STATUS_ID = 3; // ID 3 is for "Rejected" status in application_progress table
 
@@ -17,7 +18,6 @@ const REJECTED_STATUS_ID = 3; // ID 3 is for "Rejected" status in application_pr
  */
 export async function applyForJob(jobId, jobSeekerId, coverLetter = null) {
   try {
-    // Create supabase client
     const supabase = createClient();
     
     const parsedJobId = parseInt(jobId, 10);
@@ -27,6 +27,40 @@ export async function applyForJob(jobId, jobSeekerId, coverLetter = null) {
       return { success: false, error: "Invalid jobId or jobSeekerId" };
     }
     
+    // First, get the job and company details for notifications
+    const { data: jobData, error: jobError } = await supabase
+      .from('job')
+      .select(`
+        job_id,
+        job_name,
+        company:company_id (
+          company_id,
+          company_name,
+          employee:employee (
+            account_id
+          )
+        )
+      `)
+      .eq('job_id', parsedJobId)
+      .single();
+
+    if (jobError || !jobData) {
+      console.error('Error fetching job details:', jobError);
+      return { success: false, error: 'Error fetching job details' };
+    }
+
+    // Get jobseeker's account_id for notifications
+    const { data: seekerData, error: seekerError } = await supabase
+      .from('job_seeker')
+      .select('account_id, first_name, last_name')
+      .eq('job_seeker_id', parsedJobSeekerId)
+      .single();
+
+    if (seekerError || !seekerData) {
+      console.error('Error fetching job seeker details:', seekerError);
+      return { success: false, error: 'Error fetching job seeker details' };
+    }
+
     // Fetch previous applications for the specified job and job seeker, ordered by attempt_number descending
     const { data: previousApps, error: queryError } = await supabase
       .from('job_requests')
@@ -97,5 +131,103 @@ export async function applyForJob(jobId, jobSeekerId, coverLetter = null) {
       success: false,
       error: `Unexpected error: ${error.message}`
     };
+  }
+}
+
+/**
+ * Updates the status of a job application and sends appropriate notifications
+ */
+export async function updateApplicationStatus(applicationId, newStatusId, message = '') {
+  try {
+    const supabase = createClient();
+
+    // First get the application details with related information
+    const { data: application, error: appError } = await supabase
+      .from('job_requests')
+      .select(`
+        request_id,
+        job_seeker:job_seeker_id (
+          account_id,
+          first_name,
+          last_name
+        ),
+        job:job_id (
+          job_name,
+          company:company_id (
+            company_name,
+            employee:employee (
+              account_id
+            )
+          )
+        )
+      `)
+      .eq('request_id', applicationId)
+      .single();
+
+    if (appError) {
+      console.error('Error fetching application details:', appError);
+      return { success: false, error: 'Error fetching application details' };
+    }
+
+    // Update the application status
+    const { error: updateError } = await supabase
+      .from('job_requests')
+      .update({ 
+        request_status_id: newStatusId,
+        response_message: message,
+        response_date: new Date().toISOString()
+      })
+      .eq('request_id', applicationId);
+
+    if (updateError) {
+      console.error('Error updating application status:', updateError);
+      return { success: false, error: 'Error updating application status' };
+    }
+
+    // Determine status text for notifications
+    let statusText = '';
+    switch (newStatusId) {
+      case 1:
+        statusText = 'accepted';
+        break;
+      case 3:
+        statusText = 'rejected';
+        break;
+      default:
+        statusText = 'updated';
+    }
+
+    // Create notifications
+    try {
+      // Notification for job seeker
+      await createNotification(
+        application.job_seeker.account_id,
+        NotificationTypes.APPLICATION_STATUS,
+        `Your application for ${application.job.job_name} at ${application.job.company.company_name} has been ${statusText}`,
+        applicationId
+      );
+
+      // Notification for employee/company
+      const employeeAccountId = application.job.company?.employee?.account_id;
+      if (employeeAccountId) {
+        await createNotification(
+          employeeAccountId,
+          NotificationTypes.APPLICANT_UPDATED,
+          `Application status for ${application.job.job_name} has been updated to ${statusText}`,
+          applicationId
+        );
+      }
+    } catch (notifError) {
+      console.error('Error creating notifications:', notifError);
+      // Don't fail the status update if notifications fail
+    }
+
+    return {
+      success: true,
+      message: `Application status successfully updated to ${statusText}`
+    };
+  } catch (error) {
+    console.error('Error in updateApplicationStatus:', error);
+    return { success: false, error: 'Failed to update application status' };
   }
 }
