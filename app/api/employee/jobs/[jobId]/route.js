@@ -109,6 +109,7 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const {
       accountId,
+      employee_password,
       job_name,
       job_description,
       job_location,
@@ -126,6 +127,27 @@ export async function PUT(request, { params }) {
 
     if (!accountId) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+    }
+
+    if (!employee_password) {
+      return NextResponse.json({ error: 'Password is required to update job posting' }, { status: 400 });
+    }
+
+    // Verify employee password
+    const { data: accountData, error: accountError } = await supabase
+      .from('account')
+      .select('account_password')
+      .eq('account_id', accountId)
+      .single();
+
+    if (accountError || !accountData) {
+      return NextResponse.json({ error: 'Employee account not found' }, { status: 404 });
+    }
+
+    // Verify password using bcryptjs
+    const isPasswordValid = await bcrypt.compare(employee_password, accountData.account_password);
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
     }
 
     // Get employee's company_id

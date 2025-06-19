@@ -6,16 +6,13 @@ export async function PUT(request, { params }) {
   try {
     const { requestId } = params;
     const body = await request.json();
-    const {
-      accountId,
-      request_status,
-      employee_password
-    } = body;
-
-    if (!accountId || !requestId || !request_status) {
+    const { accountId, request_status_id, employee_password } = body;
+    const requestStatusId = parseInt(request_status_id, 10);
+    
+    if (!accountId || !requestId || isNaN(requestStatusId)) {
       return NextResponse.json({ error: 'Account ID, request ID, and status are required' }, { status: 400 });
-    }    if (!['accepted', 'rejected'].includes(request_status)) {
-      return NextResponse.json({ error: 'Invalid status. Must be "accepted" or "rejected"' }, { status: 400 });
+    }    if (![1, 3].includes(requestStatusId)) {
+      return NextResponse.json({ error: 'Invalid status. Must be "1" or "3"' }, { status: 400 });
     }
 
     if (!employee_password) {
@@ -56,7 +53,7 @@ export async function PUT(request, { params }) {
       .select(`
         request_id,
         job_id,
-        request_status,
+        request_status_id,
         job:job_id (
           company_id,
           job_is_active,
@@ -75,18 +72,19 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized access to job request' }, { status: 403 });
     }
 
-    // Check if request is still pending
-    if (jobRequest.request_status !== 'pending') {
+    // Check if request is still pending (status ID 2 = pending)
+    if (jobRequest.request_status_id !== 2) {
       return NextResponse.json({ error: 'Job request has already been processed' }, { status: 400 });
-    }    // Auto-deny if job is inactive and action is accept
-    let finalStatus = request_status;
+    }
+    // Auto-deny if job is inactive and action is accept
+    let finalStatusId = requestStatusId;
     let finalMessage = '';
     
-    if (request_status === 'accepted' && !jobRequest.job.job_is_active) {
-      finalStatus = 'rejected';
+    if (requestStatusId === 1 && !jobRequest.job.job_is_active) {
+      finalStatusId = 3;
       finalMessage = 'This position is no longer available.';
     } else {
-      if (request_status === 'accepted') {
+      if (requestStatusId === 1) {
         finalMessage = 'Congratulations! Your application has been accepted. We will contact you soon with next steps.';
       } else {
         finalMessage = 'Thank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates.';
@@ -97,7 +95,7 @@ export async function PUT(request, { params }) {
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
-        request_status: finalStatus,
+        request_status_id: finalStatusId,
         employee_response: finalMessage,
         response_date: new Date().toISOString()
       })
@@ -134,11 +132,9 @@ export async function PUT(request, { params }) {
       const companyName = jobSeekerData.job.company.company_name;
       let notificationText = '';
       
-      if (finalStatus === 'accepted') {
-        notificationText = `Application Accepted for ${jobName} at ${companyName}\n${finalMessage}`;
-      } else {
-        notificationText = `Application Update for ${jobName} at ${companyName}\n${finalMessage}`;
-      }
+      notificationText = requestStatusId === 1 
+        ? `Application Accepted for ${jobName} at ${companyName}\n${finalMessage}`
+        : `Application Update for ${jobName} at ${companyName}\n${finalMessage}`;
       
       // Create a notification for the jobseeker
       const { error: notificationError } = await supabase
@@ -159,8 +155,8 @@ export async function PUT(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: `Job request ${finalStatus} successfully`,
-      status: finalStatus
+      message: `Job request ${finalStatusId === 1 ? 'accepted' : 'rejected'} successfully`,
+      status: finalStatusId === 1 ? 'accepted' : 'rejected'
     });
 
   } catch (error) {

@@ -199,18 +199,27 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
     fetchDashboardData(accountId);
     fetchApplicationStatus(accountId);
   }, [router]);
-
   const fetchApplicationStatus = async (accountId) => {
     try {
+      console.log('Fetching application status for accountId:', accountId);
       const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      
+      if (!response.ok) {
+        console.error('Error response from API:', response.status, response.statusText);
+        return;
+      }
+      
       const data = await response.json();
       
-      if (response.ok && data.success && data.data) {
+      if (data.success && data.data) {
+        console.log(`Found ${data.data.length} applications for status mapping`);
         const statusMap = {};
         data.data.forEach(app => {
           statusMap[app.jobId] = app.status;
         });
         setApplicationStatus(statusMap);
+      } else {
+        console.warn('No application data found or API returned unsuccessful response:', data);
       }
     } catch (error) {
       console.error('Error fetching application status:', error);
@@ -225,43 +234,75 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
   const handleViewJobDetails = (jobId) => {
     router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
   };
-
   const handleSubmitApplication = async () => {
     if (!selectedJob) return;
     
     try {
       console.log("Submitting application for job ID:", selectedJob.id);
       const accountId = localStorage.getItem('accountId');
+      
+      // Prepare application data
+      const applicationData = { 
+        jobId: selectedJob.id, 
+        accountId, 
+        coverLetter: coverLetter || 'I am interested in this position and would like to apply.'
+      };
+      
+      console.log("Application data:", applicationData);
+      
       const response = await fetch(`/api/jobseeker/applications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          jobId: selectedJob.id, 
-          accountId, 
-          coverLetter: coverLetter || 'I am interested in this position and would like to apply.'
-        }),
+        body: JSON.stringify(applicationData),
       });
       
-      const data = await response.json();
+      // Handle network errors
+      if (!response) {
+        throw new Error('Network error - no response received');
+      }
       
-      if (response.ok && data.success) {
+      // Try to parse the response as JSON
+      let data = null;
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Failed to parse response JSON:', jsonError);
+        console.error('Response text:', responseText);
+        throw new Error('Server returned invalid JSON response');
+      }
+      
+      // Check for API success
+      if (response.ok && data && data.success) {
         // Update application status immediately before closing modal
         setApplicationStatus(prev => ({ ...prev, [selectedJob.id]: 'pending' }));
         
+        // Update the UI
         setShowApplyModal(false);
         setCoverLetter('');
         setSelectedJob(null);
         setSuccessMessage('Your application has been submitted successfully!');
         setTimeout(() => setSuccessMessage(''), 3000);
+        
+        // Update analytics count if available
+        setAnalytics(prev => ({
+          ...prev,
+          totalApplications: prev.totalApplications + 1
+        }));
       } else {
-        throw new Error(data.error || 'Failed to submit application');
+        // Handle API errors with a specific error message
+        const errorMessage = (data && data.error) 
+          ? data.error 
+          : (!response.ok ? `Server error: ${response.status}` : 'Failed to submit application');
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error submitting application:', error);
-      setError('Failed to submit application. Please try again.');
-      setTimeout(() => setError(''), 3000);
+      setError(`Failed to submit application: ${error.message}. Please try again.`);
+      setTimeout(() => setError(''), 5000);
     }
   };
 

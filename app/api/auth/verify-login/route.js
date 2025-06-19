@@ -55,10 +55,8 @@ export async function POST(request) {
 
       if (jobSeekerError) {
         console.error('Error fetching job seeker data:', jobSeekerError);
-        // Continue with partial data if job seeker record is missing
       } else {
         jobSeeker = jobSeekerData;
-        // Fetch person data using person_id from job_seeker
         if (jobSeekerData.person_id) {
           const { data: personData, error: personError } = await supabase
             .from('person')
@@ -68,7 +66,6 @@ export async function POST(request) {
 
           if (personError) {
             console.error('Error fetching person data:', personError);
-            // Continue with partial data if person record is missing
           } else {
             person = personData;
           }
@@ -76,10 +73,8 @@ export async function POST(request) {
       }
     }
 
-    // Delete the verification code (single use)
     await supabase.from('verification_codes').delete().eq('id', verificationCode.id);
 
-    // Generate JWT token
     const tokenPayload = {
       account_id: account.account_id,
       username: account.account_username,
@@ -91,11 +86,10 @@ export async function POST(request) {
 
     const token = generateToken(tokenPayload);
 
-    // Return comprehensive user data with JWT token
-    return NextResponse.json({
+    // Create secure HTTP-only cookie
+    const response = NextResponse.json({
       message: 'Login verification successful',
       success: true,
-      token: token,
       user: {
         account_id: account.account_id,
         username: account.account_username,
@@ -108,6 +102,16 @@ export async function POST(request) {
         job_seeker_id: jobSeeker ? jobSeeker.job_seeker_id : null
       }
     });
+
+    response.cookies.set('session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 // 1 hour
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Login verification error:', error);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
+
 export default function EditJobPage() {
   const router = useRouter();
   const params = useParams();
@@ -43,6 +44,10 @@ export default function EditJobPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [verifyingPassword, setVerifyingPassword] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -89,8 +94,21 @@ export default function EditJobPage() {
 
   const fetchJobDetails = async () => {
     try {
-      const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`);
+      // Validate session and get account ID
+      const sessionRes = await fetch('/api/auth/session');
+      if (!sessionRes.ok) {
+        throw new Error('Session validation failed. Please log in again.');
+      }
+      const sessionData = await sessionRes.json();
+      const accountId = sessionData.accountId;
+      if (!accountId) {
+        throw new Error('Invalid session. Please log in again.');
+      }
+
+      // Fetch job details with session cookie and accountId
+      const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -139,13 +157,11 @@ export default function EditJobPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError('');
 
     // Validate closing date
     if (!formData.job_closing_date) {
       setError('Closing date is required');
-      setSubmitting(false);
       return;
     }
 
@@ -155,43 +171,80 @@ export default function EditJobPage() {
 
     if (closingDate < today) {
       setError('Closing date cannot be in the past');
-      setSubmitting(false);
       return;
     }
 
     if (closingDate > maxDate) {
       setError('Closing date cannot be more than 6 months from today');
-      setSubmitting(false);
       return;
     }
 
+    setShowPasswordModal(true);
+    setPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      return;
+    }
+
+    setVerifyingPassword(true);
+    setPasswordError('');
+
     try {
-      const accountId = localStorage.getItem('accountId') || '1';
+      // Get session and account ID
+      const sessionRes = await fetch('/api/auth/session');
+      if (!sessionRes.ok) {
+        throw new Error('Session validation failed. Please log in again.');
+      }
+      const sessionData = await sessionRes.json();
+      const accountId = sessionData.accountId;
+      if (!accountId) {
+        throw new Error('Invalid session. Please log in again.');
+      }
+
       // Create a new object without any potential job_hiring_date field
       const { job_hiring_date, ...payloadData } = formData;
-      const response = await fetch(`/api/employee/jobs/${jobId}?accountId=${accountId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/employee/jobs/${jobId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
-          ...payloadData
+          ...payloadData,
+          accountId,
+          employee_password: password
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setPasswordError('Invalid password');
+          setVerifyingPassword(false);
+          return;
+        }
         throw new Error(data.error || 'Failed to update job posting');
       }
 
       if (data.success) {
+        setShowPasswordModal(false);
+        setPassword('');
+        setPasswordError('');
         router.push('/Dashboard/employee/all-postings');
       }
     } catch (error) {
       console.error('Error updating job posting:', error);
       setError(error.message);
+      setShowPasswordModal(false);
+      setPassword('');
+      setPasswordError('');
     } finally {
+      setVerifyingPassword(false);
       setSubmitting(false);
     }
   };
@@ -218,6 +271,80 @@ export default function EditJobPage() {
           <h3 className="text-lg font-medium text-gray-900">Job Details</h3>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Password Confirmation Modal */}
+          {showPasswordModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Confirm Password</h3>
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPassword('');
+                      setPasswordError('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                    disabled={verifyingPassword}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <p className="text-gray-600 mb-4">
+                  Please enter your password to confirm updating this job posting.
+                </p>
+                
+                <div className="mb-4">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setPasswordError('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    placeholder="Enter your password"
+                    disabled={verifyingPassword}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handlePasswordSubmit();
+                      }
+                    }}
+                  />
+                  {passwordError && (
+                    <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPassword('');
+                      setPasswordError('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={verifyingPassword}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePasswordSubmit}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={verifyingPassword || !password}
+                  >
+                    {verifyingPassword ? 'Updating...' : 'Update Job'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <div className="flex">
@@ -450,7 +577,7 @@ export default function EditJobPage() {
               disabled={submitting || formData.selected_categories.length === 0}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Saving...' : 'Save Changes'}
+              {submitting ? 'Updating...' : 'Save Changes'}
             </button>
           </div>
         </form>

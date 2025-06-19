@@ -30,7 +30,7 @@ export async function GET(request) {
         request_id,
         job_id,
         request_date,
-        request_status,
+        request_status_id,
         cover_letter,
         employee_response,
         response_date,
@@ -63,7 +63,7 @@ export async function GET(request) {
 
     // Filter by status if specified
     if (status && status !== 'all') {
-      query = query.eq('request_status', status);
+      query = query.eq('request_status_id', status);
     }
 
     const { data: allRequests, error } = await query;
@@ -78,10 +78,21 @@ export async function GET(request) {
       request.job && request.job.company_id === employee.company_id
     );
 
+    // Helper function to convert status ID to string
+    const getStatusString = (statusId) => {
+      switch (statusId) {
+        case 1: return 'accepted';
+        case 2: return 'pending';
+        case 3: return 'rejected';
+        default: return 'pending';
+      }
+    };
+
     // Format the response data to match frontend expectations
     const formattedRequests = companyRequests.map(request => ({
       request_id: request.request_id,
       job_id: request.job_id,
+      request_status_id: request.request_status_id,
       job: {
         job_name: request.job?.job_name || 'Unknown Job',
         job_is_active: request.job?.job_is_active || false
@@ -101,7 +112,7 @@ export async function GET(request) {
         }
       },
       request_date: request.request_date,
-      request_status: request.request_status,
+      request_status: getStatusString(request.request_status_id),
       cover_letter: request.cover_letter,
       employee_response: request.employee_response,
       response_date: request.response_date
@@ -153,7 +164,7 @@ export async function PUT(request) {
       .select(`
         request_id,
         job_id,
-        request_status,
+        request_status_id,
         job:job_id (
           company_id,
           job_is_active
@@ -172,7 +183,8 @@ export async function PUT(request) {
     }
 
     // Check if request is still pending
-    if (jobRequest.request_status !== 'pending') {
+    // Check if request is still pending (status ID 2 = In-progress)
+    if (jobRequest.request_status_id !== 2) {
       return NextResponse.json({ error: 'Job request has already been processed' }, { status: 400 });
     }
 
@@ -186,7 +198,8 @@ export async function PUT(request) {
     }
 
     // Determine the new status
-    const newStatus = finalAction === 'accept' ? 'accepted' : 'rejected';
+    // Status IDs: 1 = Accepted, 2 = In-progress, 3 = Rejected
+    const newStatusId = finalAction === 'accept' ? 1 : 3;
 
     // Default message if none provided
     if (!finalMessage) {
@@ -201,7 +214,7 @@ export async function PUT(request) {
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
-        request_status: newStatus,
+        request_status_id: newStatusId,
         employee_response: finalMessage,
         response_date: new Date().toISOString()
       })
@@ -214,8 +227,8 @@ export async function PUT(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Job request ${newStatus} successfully`,
-      status: newStatus
+      message: `Job request ${finalAction}ed successfully`,
+      status: newStatusId
     });
 
   } catch (error) {

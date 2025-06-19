@@ -230,36 +230,39 @@ export default function Applications() {
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {applications.map((app, index) => (
+          ) : (            <div className="space-y-4">              {applications.map((app, index) => (
                 <div
-                  key={app.id}
+                  key={app.request_id || index}
                   className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
                     index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
                   } hover:shadow-md transition-shadow`}
                 >
                   <div className="mb-3 md:mb-0 md:w-1/3">
-                    <h4 className="text-lg font-semibold text-[var(--foreground)]">{app.jobTitle}</h4>
-                    <p className="text-sm text-[var(--text-light)]">{app.company} • {app.location}</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">Applied: {app.appliedDate}</p>
-                  </div>
-                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
+                    <h4 className="text-lg font-semibold text-[var(--foreground)]">
+                      {app.jobTitle || 'Untitled Position'}
+                    </h4>
+                    <p className="text-sm text-[var(--text-light)]">
+                      {app.company || 'Unknown Company'} • {app.location || 'Location not specified'}
+                    </p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">
+                      Applied: {app.appliedDate || 'Date not available'}
+                    </p>
+                  </div>                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
                     <div className="flex items-center text-[var(--text-light)] text-sm">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      {app.jobType}
+                      {app.jobType || 'Not specified'}
                     </div>
                     <div className="flex items-center text-[var(--text-light)] text-sm">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {app.salary}
+                      {app.salary || 'Salary not specified'}
                     </div>
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(app.status)}`}>
-                      <span className="mr-1">{getStatusIcon(app.status)}</span>
-                      {app.status}
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(app.status || 'pending')}`}>
+                      <span className="mr-1">{getStatusIcon(app.status || 'pending')}</span>
+                      {app.status || 'Pending'}
                     </div>
                   </div>
                   <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
@@ -286,11 +289,14 @@ export default function Applications() {
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto mx-4">
-            <div className="flex justify-between items-start mb-4">
+          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto mx-4">            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-xl font-bold text-[var(--foreground)]">{selectedApplication.jobTitle}</h2>
-                <p className="text-[var(--text-light)]">{selectedApplication.company} • {selectedApplication.location}</p>
+                <h2 className="text-xl font-bold text-[var(--foreground)]">
+                  {selectedApplication.jobTitle || 'Untitled Position'}
+                </h2>
+                <p className="text-[var(--text-light)]">
+                  {selectedApplication.company || 'Unknown Company'} • {selectedApplication.location || 'Location not specified'}
+                </p>
               </div>
               <button
                 onClick={() => setShowDetailsModal(false)}
@@ -310,10 +316,13 @@ export default function Applications() {
                     <span className="mr-1">{getStatusIcon(selectedApplication.status)}</span>
                     {selectedApplication.status}
                   </div>
-                </div>
-                <p className="text-sm text-[var(--text-light)]">Applied on: {selectedApplication.appliedDate}</p>
+                </div>                <p className="text-sm text-[var(--text-light)]">
+                  Applied on: {selectedApplication.appliedDate || 'Date not available'}
+                </p>
                 {selectedApplication.responseDate && (
-                  <p className="text-sm text-[var(--text-light)]">Response received: {selectedApplication.responseDate}</p>
+                  <p className="text-sm text-[var(--text-light)]">
+                    Response received: {selectedApplication.responseDate}
+                  </p>
                 )}
               </div>
 

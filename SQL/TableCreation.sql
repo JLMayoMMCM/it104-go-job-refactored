@@ -34,6 +34,20 @@ DROP TABLE IF EXISTS jobseeker_field_preference CASCADE;
 
 DROP TABLE IF EXISTS gender CASCADE;
 
+DROP TABLE IF EXISTS application_progress CASCADE;
+
+
+
+CREATE TABLE IF NOT EXISTS application_progress (
+  id SERIAL PRIMARY KEY,
+  application_progress VARCHAR(50) NOT NULL UNIQUE 
+);
+
+-- Insert initial application progress states
+INSERT INTO application_progress (application_progress) VALUES
+  ('Accepted'),
+  ('In-progress'),
+  ('Rejected');
 
 
 -- Job Portal System Database Schema
@@ -220,11 +234,12 @@ CREATE TABLE job_requests (
   job_id           INTEGER     NOT NULL REFERENCES job(job_id) ON DELETE CASCADE,
   job_seeker_id    INTEGER     NOT NULL REFERENCES job_seeker(job_seeker_id) ON DELETE CASCADE,
   request_date     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-  request_status   INTEGER     DEFAULT 1 REFERENCES application_progress(id) ON DELETE SET NULL,
+  request_status_id INTEGER    NOT NULL REFERENCES application_progress(id) ON DELETE SET NULL,
   cover_letter     TEXT,
   employee_response TEXT,
   response_date    TIMESTAMP,
-  UNIQUE(job_id, job_seeker_id)
+  attempt_number INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(job_id, job_seeker_id, attempt_number)
 );
 
 -- Saved Jobs table - to store jobs saved by job seekers
@@ -232,8 +247,7 @@ CREATE TABLE saved_jobs (
   saved_job_id SERIAL PRIMARY KEY,
   job_id INTEGER NOT NULL REFERENCES job(job_id) ON DELETE CASCADE,
   job_seeker_id INTEGER NOT NULL REFERENCES job_seeker(job_seeker_id) ON DELETE CASCADE,
-  saved_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(job_id, job_seeker_id)
+  saved_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Company Ratings table - to store ratings given by job seekers to companies
@@ -573,13 +587,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TABLE IF NOT EXISTS application_progress (
-  id SERIAL PRIMARY KEY,
-  application_progress VARCHAR(50) NOT NULL UNIQUE
-);
-
--- Insert initial application progress states
-INSERT INTO application_progress (application_progress) VALUES
-  ('Accepted'),
-  ('In-progress'),
-  ('Rejected');
+-- Sample Jobs

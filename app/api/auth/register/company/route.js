@@ -62,15 +62,13 @@ export async function POST(request) {
 
     // Create company record (temporarily without verification)
     const { data: companyData, error: companyError } = await supabase
-      .from('company')
-      .insert({
+      .from('company')      .insert({
         company_name: companyName,
         company_email: companyEmail,
         company_phone: companyPhone,
         company_website: companyWebsite || null,
         company_description: companyDescription || null,
-        address_id: addressData.address_id,
-        company_rating: 0.00
+        address_id: addressData.address_id
       })
       .select()
       .single();

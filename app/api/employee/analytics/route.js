@@ -70,18 +70,20 @@ export async function GET(request) {
 
       totalApplicants = totalApps;
 
-      // Get accepted applicants
-      const { count: acceptedApps, error: acceptedAppsError } = await supabase
-        .from('job_requests')
-        .select('*', { count: 'exact' })
-        .in('job_id', jobIds)
-        .eq('request_status', 'accepted');
+      // Get accepted applicants (request_status = 1 for 'Accepted')
+      try {
+        const { count: acceptedApps, error: acceptedAppsError } = await supabase
+          .from('job_requests')
+          .select('*', { count: 'exact' })
+          .in('job_id', jobIds)
+          .eq('request_status', 1);
 
-      if (acceptedAppsError) {
-        throw new Error('Failed to fetch accepted applicants');
+        if (acceptedAppsError) throw acceptedAppsError;
+        acceptedApplicants = acceptedApps || 0;
+      } catch (error) {
+        console.error('Error fetching accepted applicants:', error);
+        acceptedApplicants = 0;
       }
-
-      acceptedApplicants = acceptedApps;
     }
 
     // Get recent active jobs with applicant counts

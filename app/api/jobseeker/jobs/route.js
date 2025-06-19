@@ -17,10 +17,8 @@ async function handleSearchJobs(supabase, filters, accountId) {
       job_posted_date,
       job_closing_date,
       job_is_active,
-      job_experience_level_id,
-      company:company_id (
-        company_name,
-        company_rating
+      job_experience_level_id,      company:company_id (
+        company_name
       ),
       job_type:job_type_id (
         job_type_name
@@ -118,6 +116,26 @@ async function handleSearchJobs(supabase, filters, accountId) {
     } catch (error) {
       console.error('Error preparing job seeker matching data:', error);
     }
+  }      // Get company ratings
+  const companyIds = filteredJobs.map(job => job.company_id).filter(id => id);
+  let companyRatings = {};
+
+  if (companyIds.length > 0) {
+    const { data: ratingsData, error: ratingsError } = await supabase
+      .from('company_ratings')
+      .select('company_id, rating')
+      .in('company_id', companyIds);
+
+    if (!ratingsError && ratingsData) {
+      // Calculate average rating for each company
+      ratingsData.forEach(rating => {
+        if (!companyRatings[rating.company_id]) {
+          companyRatings[rating.company_id] = { sum: 0, count: 0 };
+        }
+        companyRatings[rating.company_id].sum += rating.rating;
+        companyRatings[rating.company_id].count += 1;
+      });
+    }
   }
 
   // Format jobs data with match percentages
@@ -144,6 +162,13 @@ async function handleSearchJobs(supabase, filters, accountId) {
       matchPercentage = calculateJobMatch(jobSeekerMatchingData, job);
     }
 
+    // Calculate company rating
+    let rating = 0.0;
+    if (job.company_id && companyRatings[job.company_id]) {
+      const { sum, count } = companyRatings[job.company_id];
+      rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
+    }
+
     return {
       id: job.job_id,
       jobId: job.job_id, // For compatibility
@@ -153,7 +178,7 @@ async function handleSearchJobs(supabase, filters, accountId) {
       jobType: job.job_type?.job_type_name || 'Full-time',
       type: job.job_type?.job_type_name || 'Full-time', // For compatibility
       salary: job.job_salary || 'Salary not specified',
-      rating: job.company?.company_rating || 0.0,
+      rating: rating,
       postedDate: postedAgo,
       posted: postedAgo, // For compatibility
       description: job.job_description?.substring(0, 150) + '...' || 'No description available',
@@ -317,6 +342,26 @@ export async function GET(request) {
       if (jobsError) {
         console.error('Jobs fetch error:', jobsError);
         return NextResponse.json({ success: false, error: 'Failed to fetch jobs' }, { status: 500 });
+      }      // Get company ratings
+      const companyIds = jobs.map(job => job.company_id).filter(id => id);
+      let companyRatings = {};
+
+      if (companyIds.length > 0) {
+        const { data: ratingsData, error: ratingsError } = await supabase
+          .from('company_ratings')
+          .select('company_id, rating')
+          .in('company_id', companyIds);
+
+        if (!ratingsError && ratingsData) {
+          // Calculate average rating for each company
+          ratingsData.forEach(rating => {
+            if (!companyRatings[rating.company_id]) {
+              companyRatings[rating.company_id] = { sum: 0, count: 0 };
+            }
+            companyRatings[rating.company_id].sum += rating.rating;
+            companyRatings[rating.company_id].count += 1;
+          });
+        }
       }
 
       // Calculate match percentage and format data using enhanced algorithm
@@ -339,6 +384,13 @@ export async function GET(request) {
           postedAgo = weeksDiff === 1 ? '1 week ago' : `${weeksDiff} weeks ago`;
         }
 
+        // Calculate company rating
+        let rating = 0.0;
+        if (job.company_id && companyRatings[job.company_id]) {
+          const { sum, count } = companyRatings[job.company_id];
+          rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
+        }
+
         return {
           id: job.job_id,
           title: job.job_name,
@@ -346,6 +398,7 @@ export async function GET(request) {
           location: job.job_location,
           type: job.job_type?.job_type_name || 'Full-time',
           salary: job.job_salary || 'Salary not specified',
+          rating: rating,
           match: matchPercentage,
           posted: postedAgo,
           description: job.job_description?.substring(0, 150) + '...'
@@ -391,6 +444,26 @@ export async function GET(request) {
       if (jobsError) {
         console.error('Recent jobs fetch error:', jobsError);
         return NextResponse.json({ success: false, error: 'Failed to fetch recent jobs' }, { status: 500 });
+      }      // Get company ratings
+      const companyIds = jobs.map(job => job.company_id).filter(id => id);
+      let companyRatings = {};
+
+      if (companyIds.length > 0) {
+        const { data: ratingsData, error: ratingsError } = await supabase
+          .from('company_ratings')
+          .select('company_id, rating')
+          .in('company_id', companyIds);
+
+        if (!ratingsError && ratingsData) {
+          // Calculate average rating for each company
+          ratingsData.forEach(rating => {
+            if (!companyRatings[rating.company_id]) {
+              companyRatings[rating.company_id] = { sum: 0, count: 0 };
+            }
+            companyRatings[rating.company_id].sum += rating.rating;
+            companyRatings[rating.company_id].count += 1;
+          });
+        }
       }
 
       // Format recent jobs data
@@ -411,6 +484,13 @@ export async function GET(request) {
           postedAgo = weeksDiff === 1 ? '1 week ago' : `${weeksDiff} weeks ago`;
         }
 
+        // Calculate company rating
+        let rating = 0.0;
+        if (job.company_id && companyRatings[job.company_id]) {
+          const { sum, count } = companyRatings[job.company_id];
+          rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
+        }
+
         return {
           id: job.job_id,
           title: job.job_name,
@@ -418,7 +498,7 @@ export async function GET(request) {
           location: job.job_location,
           type: job.job_type?.job_type_name || 'Full-time',
           salary: job.job_salary || 'Salary not specified',
-          rating: job.company?.company_rating || 0.0,
+          rating: rating,
           posted: postedAgo,
           description: job.job_description?.substring(0, 150) + '...'
         };

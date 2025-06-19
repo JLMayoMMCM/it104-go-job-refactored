@@ -23,10 +23,25 @@ export default function JobRequestsPage() {
     fetchJobRequests();
   }, []);
 
-  const fetchJobRequests = async () => {
+  const fetchJobRequests = async (statusFilter) => {
     try {
-      const accountId = localStorage.getItem('accountId') || '1';
-      const response = await fetch(`/api/employee/job-requests?accountId=${accountId}`);
+      const accountId = localStorage.getItem('accountId');
+      if (!accountId) {
+        throw new Error('Account ID not found. Please log in again.');
+      }
+
+      const statusMap = {
+        'all': null,
+        'pending': 2,
+        'accepted': 1,
+        'rejected': 3
+      };
+      const statusParam = statusMap[statusFilter] || null;
+      const url = `/api/employee/job-requests?accountId=${accountId}${
+        statusParam ? `&status=${statusParam}` : ''
+      }`;
+      
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
 
       if (!response.ok) {
@@ -120,7 +135,7 @@ export default function JobRequestsPage() {
         },
         body: JSON.stringify({
           accountId,
-          request_status: passwordAction.action,
+          request_status_id: passwordAction.action === 'accepted' ? 1 : 3,
           employee_password: password
         }),
       });
@@ -136,14 +151,17 @@ export default function JobRequestsPage() {
         return;
       }
 
-      if (data.success) {
-        setJobRequests(jobRequests.map(req => 
-          req.request_id === passwordAction.requestId ? { ...req, request_status: data.status } : req
-        ));
-        setShowPasswordModal(false);
-        setPasswordAction(null);
-        setPassword('');
-      }
+        if (data.success) {
+          // Convert the returned numeric status to frontend format
+          const newStatus = data.status === 1 ? 'accepted' : data.status === 3 ? 'rejected' : 'pending';
+        
+          setJobRequests(jobRequests.map(req => 
+            req.request_id === passwordAction.requestId ? { ...req, request_status: newStatus, request_status_id: data.status } : req
+          ));
+          setShowPasswordModal(false);
+          setPasswordAction(null);
+          setPassword('');
+        }
     } catch (error) {
       console.error(`Error ${passwordAction.action} job request:`, error);
       setError(error.message);
@@ -193,9 +211,9 @@ export default function JobRequestsPage() {
     );
   }
 
-  const pendingRequests = jobRequests.filter(req => req.request_status === 'pending');
-  const acceptedRequests = jobRequests.filter(req => req.request_status === 'accepted');
-  const rejectedRequests = jobRequests.filter(req => req.request_status === 'rejected');
+  const pendingRequests = jobRequests.filter(req => req.request_status_id === 2);
+  const acceptedRequests = jobRequests.filter(req => req.request_status_id === 1);
+  const rejectedRequests = jobRequests.filter(req => req.request_status_id === 3);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

@@ -40,12 +40,10 @@ export async function GET(request) {
         job_salary,
         job_posted_date,
         job_closing_date,
-        job_is_active,
-        company:company_id (
+        job_is_active,        company:company_id (
           company_id,
           company_name,
-          company_logo,
-          company_rating
+          company_logo
         ),
         job_type:job_type_id (
           job_type_name
@@ -148,14 +146,28 @@ export async function GET(request) {
       postedAgo = weeksDiff === 1 ? '1 week ago' : `${weeksDiff} weeks ago`;
     }
 
-    // Format job data for frontend
+    // Format job data for frontend    // Get company rating
+    let companyRating = 0;
+    if (jobData.company?.company_id) {
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from('company_ratings')
+        .select('rating')
+        .eq('company_id', jobData.company.company_id);
+        
+      if (!ratingsError && ratingsData && ratingsData.length > 0) {
+        // Calculate average rating
+        const sum = ratingsData.reduce((acc, item) => acc + item.rating, 0);
+        companyRating = parseFloat((sum / ratingsData.length).toFixed(1));
+      }
+    }
+
     const formattedJob = {
       id: jobData.job_id,
       title: jobData.job_name,
       company: jobData.company?.company_name || 'Unknown Company',
       companyId: jobData.company?.company_id || null,
       companyLogo: jobData.company?.company_logo || '/Assets/Logo.png',
-      companyRating: jobData.company?.company_rating || 0,
+      companyRating: companyRating,
       location: jobData.job_location || 'Not specified',
       type: jobData.job_type?.job_type_name || 'Not specified',
       salary: jobData.job_salary || 'Not specified',

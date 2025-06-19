@@ -46,12 +46,10 @@ export async function GET(request) {
           account_profile_photo,
           account_phone,
           account_number
-        ),
-        company:company_id (
+        ),        company:company_id (
           company_id,
           company_name,
           company_email,
-          company_rating,
           company_phone,
           company_website,
           company_description,
