@@ -100,7 +100,7 @@ export default function RecommendedJobs() {
           return parseInt(a.salary?.replace(/[^\d]/g, '') || '0') - parseInt(b.salary?.replace(/[^\d]/g, '') || '0');
         case 'relevance':
         default:
-          return (b.match || 0) - (a.match || 0);
+          return (b.matchPercentage || b.match || 0) - (a.matchPercentage || a.match || 0);
       }
     });
 

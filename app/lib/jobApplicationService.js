@@ -49,10 +49,16 @@ export async function applyForJob(jobId, jobSeekerId, coverLetter = null) {
       return { success: false, error: 'Error fetching job details' };
     }
 
-    // Get jobseeker's account_id for notifications
+    // Get jobseeker's account_id and name for notifications
     const { data: seekerData, error: seekerError } = await supabase
       .from('job_seeker')
-      .select('account_id, first_name, last_name')
+      .select(`
+        account_id,
+        person:person_id (
+          first_name,
+          last_name
+        )
+      `)
       .eq('job_seeker_id', parsedJobSeekerId)
       .single();
 
@@ -120,6 +126,33 @@ export async function applyForJob(jobId, jobSeekerId, coverLetter = null) {
       };
     }
 
+    // Create notifications for both jobseeker and employee
+    try {
+      // Notification for job seeker (confirmation)
+      await createNotification(
+        seekerData.account_id,
+        NotificationTypes.JOB_APPLICATION,
+        `You have applied for ${jobData.job_name} at ${jobData.company.company_name}`,
+        newApplication.request_id
+      );
+
+      // Notification for employee (new applicant)
+      const employeeAccountIds = jobData.company?.employee?.map(emp => emp.account_id) || [];
+      for (const employeeAccountId of employeeAccountIds) {
+        if (employeeAccountId) {
+          await createNotification(
+            employeeAccountId,
+            NotificationTypes.NEW_APPLICANT,
+            `New application received for ${jobData.job_name} from ${seekerData.person.first_name} ${seekerData.person.last_name}`,
+            newApplication.request_id
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error('Error creating notifications:', notifError);
+      // Don't fail the application if notifications fail
+    }
+
     return { 
       success: true, 
       application: newApplication,
@@ -148,8 +181,10 @@ export async function updateApplicationStatus(applicationId, newStatusId, messag
         request_id,
         job_seeker:job_seeker_id (
           account_id,
-          first_name,
-          last_name
+          person:person_id (
+            first_name,
+            last_name
+          )
         ),
         job:job_id (
           job_name,

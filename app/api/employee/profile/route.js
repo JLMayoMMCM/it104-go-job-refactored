@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
+import { createNotification, NotificationTypes } from '../../../lib/notificationService';
 import bcrypt from 'bcryptjs';
 
 export async function GET(request) {
@@ -216,6 +217,18 @@ export async function PUT(request) {
     if (employeeUpdateError) {
       console.error('Employee update error:', employeeUpdateError);
       return NextResponse.json({ error: 'Failed to update employee information' }, { status: 500 });
+    }
+
+    // Create notification for successful profile update
+    try {
+      await createNotification(
+        accountId,
+        NotificationTypes.PROFILE_UPDATE,
+        'Your profile has been successfully updated'
+      );
+    } catch (notifError) {
+      console.error('Error creating profile update notification:', notifError);
+      // Don't fail the profile update if notification fails
     }
 
     return NextResponse.json({

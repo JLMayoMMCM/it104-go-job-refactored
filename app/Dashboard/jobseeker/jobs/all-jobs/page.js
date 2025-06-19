@@ -539,7 +539,7 @@ export default function AllJobs() {
                       </svg>
                       {job.salary}
                     </div>
-                    {job.match > 0 && (
+                    {(job.matchPercentage || job.match) > 0 && (
                       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         job.match >= 80 ? 'bg-green-100 text-green-800' : 
                         job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 

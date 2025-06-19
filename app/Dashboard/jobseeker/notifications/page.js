@@ -105,8 +105,8 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (type, isRead) => {
     const baseClass = "w-5 h-5";
-    const bgClass = isRead ? "bg-gray-400" : "bg-blue-500";
-    const textClass = isRead ? "text-white" : "text-white";
+    const bgClass = isRead ? "bg-[var(--text-light)]" : "bg-[var(--primary-color)]";
+    const textClass = "text-white";
     
     switch (type) {
       case 'application':
@@ -140,7 +140,7 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
       </div>
     );
   }
@@ -148,14 +148,14 @@ export default function NotificationsPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Error loading notifications</h3>
-        <p className="text-gray-600">{error}</p>
+        <h3 className="text-lg font-medium text-[var(--foreground)]">Error loading notifications</h3>
+        <p className="text-[var(--text-light)]">{error}</p>
         <button
           onClick={() => {
             setLoading(true);
             fetchNotifications(localStorage.getItem('accountId'));
           }}
-          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="btn btn-primary mt-4"
         >
           Try Again
         </button>
@@ -186,14 +186,14 @@ export default function NotificationsPage() {
 
       {/* Unread Notifications */}
       <div className="card overflow-hidden">
-        <div className="panel-header">
-          <h3 className="text-subheading">Unread Notifications ({unreadNotifications.length})</h3>
+        <div className="panel-header text-white">
+          <h3 className="text-heading">Unread Notifications ({unreadNotifications.length})</h3>
         </div>
         <div className="p-6">
           {unreadNotifications.length > 0 ? (
             <div className="space-y-4">
               {unreadNotifications.map(notification => (
-                <div key={notification.id} className="border border-[var(--primary-color)] rounded-xl p-6 bg-[var(--light-color)] hover:shadow-lg transition-all duration-200">
+                <div key={notification.id} className="border border-[var(--primary-color)] rounded-xl p-6 bg-[var(--card-background)] text-[var(--foreground)] hover:shadow-lg transition-all duration-200 dark:bg-[var(--background)] dark:text-[var(--text-light)]">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
@@ -244,14 +244,14 @@ export default function NotificationsPage() {
 
       {/* Read Notifications */}
       <div className="card overflow-hidden">
-        <div className="panel-header">
-          <h3 className="text-subheading">Read Notifications ({readNotifications.length})</h3>
+        <div className="panel-header text-white">
+          <h3 className="text-heading">Read Notifications ({readNotifications.length})</h3>
         </div>
         <div className="p-6">
           {readNotifications.length > 0 ? (
             <div className="space-y-4">
               {readNotifications.map(notification => (
-                <div key={notification.id} className="border border-[var(--border-color)] rounded-xl p-6 bg-[var(--card-background)] hover:shadow-lg transition-all duration-200">
+                <div key={notification.id} className="border border-[var(--primary-color)] rounded-xl p-6 bg-[var(--card-background)] text-[var(--foreground)] hover:shadow-lg transition-all duration-200 dark:bg-[var(--background)] dark:text-[var(--text-light)]">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">

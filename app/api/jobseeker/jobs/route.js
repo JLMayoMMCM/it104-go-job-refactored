@@ -169,24 +169,25 @@ async function handleSearchJobs(supabase, filters, accountId) {
       rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
     }
 
-    return {
-      id: job.job_id,
-      jobId: job.job_id, // For compatibility
-      title: job.job_name,
-      company: job.company?.company_name || 'Unknown Company',
-      location: job.job_location || 'Not specified',
-      jobType: job.job_type?.job_type_name || 'Full-time',
-      type: job.job_type?.job_type_name || 'Full-time', // For compatibility
-      salary: job.job_salary || 'Salary not specified',
-      rating: rating,
-      postedDate: postedAgo,
-      posted: postedAgo, // For compatibility
-      description: job.job_description?.substring(0, 150) + '...' || 'No description available',
-      experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
-      category: job.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
-      field: job.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',
-      match: matchPercentage
-    };
+      return {
+        id: job.job_id,
+        jobId: job.job_id, // For compatibility
+        title: job.job_name,
+        company: job.company?.company_name || 'Unknown Company',
+        location: job.job_location || 'Not specified',
+        jobType: job.job_type?.job_type_name || 'Full-time',
+        type: job.job_type?.job_type_name || 'Full-time', // For compatibility
+        salary: job.job_salary || 'Salary not specified',
+        rating: rating,
+        postedDate: postedAgo,
+        posted: postedAgo, // For compatibility
+        description: job.job_description?.substring(0, 150) + '...' || 'No description available',
+        experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
+        category: job.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
+        field: job.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',
+        match: matchPercentage,
+        matchPercentage: matchPercentage
+      };
   }) || [];
 
   return NextResponse.json({
@@ -400,6 +401,7 @@ export async function GET(request) {
           salary: job.job_salary || 'Salary not specified',
           rating: rating,
           match: matchPercentage,
+          matchPercentage: matchPercentage,
           posted: postedAgo,
           description: job.job_description?.substring(0, 150) + '...'
         };
