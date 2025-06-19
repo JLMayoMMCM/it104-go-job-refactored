@@ -43,6 +43,19 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    // Calculate average rating from company_ratings table
+    const { data: ratingsData } = await supabase
+      .from('company_ratings')
+      .select('rating')
+      .eq('company_id', companyId);
+
+    let averageRating = 0;
+    if (ratingsData && ratingsData.length > 0) {
+      const totalRatings = ratingsData.length;
+      const sumRatings = ratingsData.reduce((sum, r) => sum + r.rating, 0);
+      averageRating = sumRatings / totalRatings;
+    }
+
     // Get follow status
     const { data: followData } = await supabase
       .from('followed_companies')
@@ -94,7 +107,7 @@ export async function GET(request, { params }) {
       phone: companyData.company_phone,
       website: companyData.company_website,
       description: companyData.company_description,
-      rating: parseFloat(companyData.company_rating) || 0,
+      rating: averageRating,
       location: location,
       address: companyData.address,
       logo: companyData.company_logo

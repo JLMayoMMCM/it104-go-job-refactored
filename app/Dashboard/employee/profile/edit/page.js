@@ -220,314 +220,320 @@ export default function EditProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
-        <p className="text-gray-600">Update your personal information</p>
-      </div>
+    <div className="page-fill">
+      <div className="content-container">
+        <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 py-4 sm:py-6 px-4 sm:px-6">
+          {/* Header */}
+          <div className="profile-header">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Edit Profile</h1>
+            <p className="text-white text-opacity-90 text-sm sm:text-base lg:text-lg">Update your personal information</p>
+          </div>
 
-      {/* Form */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{error}</p>
-                  </div>
-                </div>
-              </div>
+          {/* Form */}
+          <div className="card">
+            <div className="panel-header flex justify-between items-center">
+              <h3 className="text-lg font-medium">Personal Information</h3>
             </div>
-          )}
-
-          {/* Profile Photo */}
-          <div className="bg-gray-50 p-4 rounded-md">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Profile Photo</h4>
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0 h-20 w-20 rounded-full overflow-hidden border-2 border-gray-200">
-                {photoPreview ? (
-                  <img
-                    src={photoPreview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : formData.profile_photo && typeof formData.profile_photo === 'string' ? (
-                  <img
-                    src={formData.profile_photo}
-                    alt="Current Profile"
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
-                    }}
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                    <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              {error && (
+                <div className="error-message p-3 sm:p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-2 sm:ml-3">
+                      <h3 className="text-sm font-medium text-[var(--error-color)]">Error</h3>
+                      <div className="mt-1 sm:mt-2 text-sm text-[var(--error-color)]">
+                        <p>{error}</p>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Profile Photo */}
+              <div className="bg-[var(--background)] p-3 sm:p-4 rounded-md border border-[var(--border-color)]">
+                <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Profile Photo</h4>
+                <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                  <div className="flex-shrink-0 h-20 w-20 rounded-full overflow-hidden border-2 border-[var(--border-color)]">
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : formData.profile_photo && typeof formData.profile_photo === 'string' ? (
+                      <img
+                        src={formData.profile_photo}
+                        alt="Current Profile"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/Assets/Logo.png'; // Fallback image if loading fails
+                        }}
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-[var(--border-color)] flex items-center justify-center">
+                        <svg className="h-8 w-8 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="photo"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <div className="flex justify-start space-x-2 sm:space-x-3">
+                      <label
+                        htmlFor="photo"
+                        className="cursor-pointer btn btn-primary text-sm px-4 py-2 min-w-[100px] text-center"
+                      >
+                        {photoUploading ? 'Uploading...' : formData.profile_photo ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                      {formData.profile_photo && (
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          className="btn text-sm px-4 py-2 min-w-[100px] bg-[var(--error-color)] text-white"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--text-light)]">Accepted formats: JPG, PNG, WebP. Max size: 5MB</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <input
-                  type="file"
-                  id="photo"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="photo"
-                  className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  {photoUploading ? 'Uploading...' : formData.profile_photo ? 'Change Photo' : 'Upload Photo'}
-                </label>
-                {formData.profile_photo && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="mt-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+
+              {/* Personal Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                <div>
+                  <label htmlFor="first_name" className="form-label">First Name</label>
+                  <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="last_name" className="form-label">Last Name</label>
+                  <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="middle_name" className="form-label">Middle Name (Optional)</label>
+                  <input
+                    type="text"
+                    id="middle_name"
+                    name="middle_name"
+                    value={formData.middle_name}
+                    onChange={handleInputChange}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="date_of_birth" className="form-label">Date of Birth</label>
+                  <input
+                    type="date"
+                    id="date_of_birth"
+                    name="date_of_birth"
+                    value={formData.date_of_birth}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="gender_id" className="form-label">Gender</label>
+                  <select
+                    id="gender_id"
+                    name="gender_id"
+                    value={formData.gender_id}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
                   >
-                    Remove Photo
-                  </button>
-                )}
-                <p className="mt-2 text-xs text-gray-500">Accepted formats: JPG, PNG, WebP. Max size: 5MB</p>
+                    <option value="">Select Gender</option>
+                    {genders.map(gender => (
+                      <option key={gender.gender_id} value={gender.gender_id}>{gender.gender_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="nationality_id" className="form-label">Nationality</label>
+                  <select
+                    id="nationality_id"
+                    name="nationality_id"
+                    value={formData.nationality_id}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  >
+                    <option value="">Select Nationality</option>
+                    {nationalities.map(nat => (
+                      <option key={nat.nationality_id} value={nat.nationality_id}>{nat.nationality_name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Personal Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-              <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="middle_name" className="block text-sm font-medium text-gray-700 mb-1">Middle Name (Optional)</label>
-              <input
-                type="text"
-                id="middle_name"
-                name="middle_name"
-                value={formData.middle_name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-              <input
-                type="date"
-                id="date_of_birth"
-                name="date_of_birth"
-                value={formData.date_of_birth}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="gender_id" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-              <select
-                id="gender_id"
-                name="gender_id"
-                value={formData.gender_id}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Gender</option>
-                {genders.map(gender => (
-                  <option key={gender.gender_id} value={gender.gender_id}>{gender.gender_name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="nationality_id" className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-              <select
-                id="nationality_id"
-                name="nationality_id"
-                value={formData.nationality_id}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Nationality</option>
-                {nationalities.map(nat => (
-                  <option key={nat.nationality_id} value={nat.nationality_id}>{nat.nationality_name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+              {/* Contact Information */}
+              <div className="border-t border-[var(--border-color)] pt-3 sm:pt-4">
+                <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div>
+                    <label htmlFor="phone" className="form-label">Phone Number (Optional)</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., +63 912 345 6789"
+                    />
+                  </div>
+                </div>
+              </div>
 
-          {/* Contact Information */}
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Contact Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number (Optional)</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., +63 912 345 6789"
-                />
+              {/* Address Information */}
+              <div className="border-t border-[var(--border-color)] pt-3 sm:pt-4">
+                <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div>
+                    <label htmlFor="premise_name" className="form-label">Premise Name (Optional)</label>
+                    <input
+                      type="text"
+                      id="premise_name"
+                      name="premise_name"
+                      value={formData.premise_name}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., Apartment 123"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="street_name" className="form-label">Street Name (Optional)</label>
+                    <input
+                      type="text"
+                      id="street_name"
+                      name="street_name"
+                      value={formData.street_name}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., Rizal Street"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="barangay_name" className="form-label">Barangay (Optional)</label>
+                    <input
+                      type="text"
+                      id="barangay_name"
+                      name="barangay_name"
+                      value={formData.barangay_name}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., Barangay Poblacion"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="city_name" className="form-label">City (Optional)</label>
+                    <input
+                      type="text"
+                      id="city_name"
+                      name="city_name"
+                      value={formData.city_name}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., Davao City"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Address Information */}
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Address</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="premise_name" className="block text-sm font-medium text-gray-700 mb-1">Premise Name (Optional)</label>
-                <input
-                  type="text"
-                  id="premise_name"
-                  name="premise_name"
-                  value={formData.premise_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Apartment 123"
-                />
+              {/* Employment Information */}
+              <div className="border-t border-[var(--border-color)] pt-3 sm:pt-4">
+                <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Employment Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div>
+                    <label htmlFor="position_name" className="form-label">Position (Optional)</label>
+                    <input
+                      type="text"
+                      id="position_name"
+                      name="position_name"
+                      value={formData.position_name}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="e.g., HR Manager"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label htmlFor="street_name" className="block text-sm font-medium text-gray-700 mb-1">Street Name (Optional)</label>
-                <input
-                  type="text"
-                  id="street_name"
-                  name="street_name"
-                  value={formData.street_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Rizal Street"
-                />
-              </div>
-              <div>
-                <label htmlFor="barangay_name" className="block text-sm font-medium text-gray-700 mb-1">Barangay (Optional)</label>
-                <input
-                  type="text"
-                  id="barangay_name"
-                  name="barangay_name"
-                  value={formData.barangay_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Barangay Poblacion"
-                />
-              </div>
-              <div>
-                <label htmlFor="city_name" className="block text-sm font-medium text-gray-700 mb-1">City (Optional)</label>
-                <input
-                  type="text"
-                  id="city_name"
-                  name="city_name"
-                  value={formData.city_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Davao City"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Employment Information */}
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Employment Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="position_name" className="block text-sm font-medium text-gray-700 mb-1">Position (Optional)</label>
-                <input
-                  type="text"
-                  id="position_name"
-                  name="position_name"
-                  value={formData.position_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., HR Manager"
-                />
+              {/* Password Verification */}
+              <div className="border-t border-[var(--border-color)] pt-3 sm:pt-4">
+                <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Verify Identity</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                  <div>
+                    <label htmlFor="password" className="form-label">Password (Required to update profile)</label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      className="form-input"
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Password Verification */}
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Verify Identity</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password (Required to update profile)</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your password"
-                />
+              {/* Submit Button */}
+              <div className="button-group justify-end">
+                <button
+                  type="button"
+                  onClick={() => router.push('/Dashboard/employee/profile')}
+                  className="btn btn-secondary text-sm px-4 py-2 min-w-[100px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn btn-primary text-sm px-4 py-2 min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
-            </div>
+            </form>
           </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => router.push('/Dashboard/employee/profile')}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

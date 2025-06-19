@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase';
 import { calculateJobMatch, prepareJobSeekerDataForMatching } from '../../../lib/matchingAlgorithm';
 
-async function handleSearchJobs(supabase, filters) {
+async function handleSearchJobs(supabase, filters, accountId) {
   const { page, limit, search, sort, category, jobType, experienceLevel, salaryMin, salaryMax, location, jobSeekerData } = filters;
   
   // Build the query
@@ -17,8 +17,10 @@ async function handleSearchJobs(supabase, filters) {
       job_posted_date,
       job_closing_date,
       job_is_active,
+      job_experience_level_id,
       company:company_id (
-        company_name
+        company_name,
+        company_rating
       ),
       job_type:job_type_id (
         job_type_name
@@ -28,8 +30,10 @@ async function handleSearchJobs(supabase, filters) {
       ),
       job_category_list (
         job_category:job_category_id (
+          job_category_id,
           job_category_name,
           category_field:category_field_id (
+            category_field_id,
             category_field_name
           )
         )
@@ -106,7 +110,17 @@ async function handleSearchJobs(supabase, filters) {
     }
   }
 
-  // Format jobs data
+  // Prepare job seeker data for matching (if available)
+  let jobSeekerMatchingData = null;
+  if (jobSeekerData && jobSeekerData.job_seeker_id) {
+    try {
+      jobSeekerMatchingData = await prepareJobSeekerDataForMatching(supabase, accountId, jobSeekerData.job_seeker_id);
+    } catch (error) {
+      console.error('Error preparing job seeker matching data:', error);
+    }
+  }
+
+  // Format jobs data with match percentages
   const formattedJobs = filteredJobs?.map(job => {
     // Calculate days since posted
     const postedDate = new Date(job.job_posted_date);
@@ -124,6 +138,12 @@ async function handleSearchJobs(supabase, filters) {
       postedAgo = weeksDiff === 1 ? '1 week ago' : `${weeksDiff} weeks ago`;
     }
 
+    // Calculate match percentage if job seeker data is available
+    let matchPercentage = 0;
+    if (jobSeekerMatchingData) {
+      matchPercentage = calculateJobMatch(jobSeekerMatchingData, job);
+    }
+
     return {
       id: job.job_id,
       jobId: job.job_id, // For compatibility
@@ -133,12 +153,14 @@ async function handleSearchJobs(supabase, filters) {
       jobType: job.job_type?.job_type_name || 'Full-time',
       type: job.job_type?.job_type_name || 'Full-time', // For compatibility
       salary: job.job_salary || 'Salary not specified',
+      rating: job.company?.company_rating || 0.0,
       postedDate: postedAgo,
       posted: postedAgo, // For compatibility
       description: job.job_description?.substring(0, 150) + '...' || 'No description available',
       experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
       category: job.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
-      field: job.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified'
+      field: job.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',
+      match: matchPercentage
     };
   }) || [];
 
@@ -198,7 +220,7 @@ export async function GET(request) {
         salaryMax,
         location,
         jobSeekerData
-      });
+      }, accountId);
     }
 
     if (type === 'recommended') {
@@ -330,11 +352,11 @@ export async function GET(request) {
         };
       }) || [];
 
-      // Filter to only include jobs with meaningful match percentages (>= 30%) and sort by match
+      // Filter to include jobs with match percentages >= 25% (allowing field matches) and sort by match
       const formattedJobs = jobsWithMatches
-        .filter(job => job.match >= 30)
+        .filter(job => job.match >= 25)
         .sort((a, b) => b.match - a.match)
-        .slice(0, 6); // Limit to top 6 matches
+        .slice(0, limit || 6); // Use provided limit or default to 6
 
       return NextResponse.json({
         success: true,
@@ -396,6 +418,7 @@ export async function GET(request) {
           location: job.job_location,
           type: job.job_type?.job_type_name || 'Full-time',
           salary: job.job_salary || 'Salary not specified',
+          rating: job.company?.company_rating || 0.0,
           posted: postedAgo,
           description: job.job_description?.substring(0, 150) + '...'
         };

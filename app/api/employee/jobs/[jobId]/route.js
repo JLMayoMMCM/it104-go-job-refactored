@@ -76,7 +76,7 @@ export async function GET(request, { params }) {
     let applicantData = {
       applicant_count: 0,
       accepted_count: 0,
-      denied_count: 0,
+      rejected_count: 0,
       pending_count: 0
     };
 
@@ -84,7 +84,7 @@ export async function GET(request, { params }) {
       applicantData = {
         applicant_count: requests.length,
         accepted_count: requests.filter(req => req.request_status === 'accepted').length,
-        denied_count: requests.filter(req => req.request_status === 'denied').length,
+        rejected_count: requests.filter(req => req.request_status === 'rejected').length,
         pending_count: requests.filter(req => req.request_status === 'pending').length
       };
     }

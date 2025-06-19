@@ -195,7 +195,7 @@ export default function JobRequestsPage() {
 
   const pendingRequests = jobRequests.filter(req => req.request_status === 'pending');
   const acceptedRequests = jobRequests.filter(req => req.request_status === 'accepted');
-  const deniedRequests = jobRequests.filter(req => req.request_status === 'denied');
+  const rejectedRequests = jobRequests.filter(req => req.request_status === 'rejected');
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -259,7 +259,7 @@ export default function JobRequestsPage() {
                           Accept
                         </button>
                         <button
-                          onClick={() => handleRequestAction(request.request_id, 'denied')}
+                          onClick={() => handleRequestAction(request.request_id, 'rejected')}
                           className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
                         >
                           Deny
@@ -341,23 +341,21 @@ export default function JobRequestsPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Denied Requests */}
+      </div>      {/* Rejected Requests */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Denied Applications ({deniedRequests.length})</h3>
+          <h3 className="text-lg font-medium text-gray-900">Rejected Applications ({rejectedRequests.length})</h3>
         </div>
         <div className="p-6">
-          {deniedRequests.length > 0 ? (
+          {rejectedRequests.length > 0 ? (
             <div className="space-y-4">
-              {deniedRequests.map(request => (
+              {rejectedRequests.map(request => (
                 <div key={request.request_id} className="border border-red-200 rounded-xl p-6 bg-red-50 hover:shadow-lg transition-all duration-200">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h4 className="text-lg font-semibold text-gray-900">{request.job_seeker.person.first_name} {request.job_seeker.person.last_name}</h4>
-                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">Denied</span>
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">Rejected</span>
                       </div>
                       <div className="flex items-center space-x-6 text-sm text-gray-500 mb-3">
                         <div className="flex items-center space-x-1">
@@ -396,9 +394,8 @@ export default function JobRequestsPage() {
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" />
-              </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No denied applications</h3>
-              <p className="mt-1 text-gray-500">You haven't denied any job applications yet.</p>
+              </svg>              <h3 className="mt-2 text-lg font-medium text-gray-900">No rejected applications</h3>
+              <p className="mt-1 text-gray-500">You haven't rejected any job applications yet.</p>
             </div>
           )}
         </div>

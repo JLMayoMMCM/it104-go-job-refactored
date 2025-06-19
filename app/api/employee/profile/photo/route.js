@@ -23,9 +23,36 @@ export async function POST(request) {
       return NextResponse.json({ error: 'File size too large. Maximum 5MB allowed.' }, { status: 400 });
     }
 
-    // Generate a unique filename
+    // Fetch last_name from the database
+    let lastName = '';
+    const { data: employeeData, error: employeeError } = await supabase
+      .from('employee')
+      .select('person_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (!employeeError && employeeData) {
+      const { data: personData, error: personError } = await supabase
+        .from('person')
+        .select('last_name')
+        .eq('person_id', employeeData.person_id)
+        .single();
+      
+      if (!personError && personData) {
+        lastName = personData.last_name || '';
+      }
+    }
+
+    // Sanitize last_name for filename (replace spaces with underscores, remove special characters)
+    const sanitizedLastName = lastName
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase() || 'user';
+
+    // Generate filename with account_id, sanitized last_name, and 'picture'
     const fileExtension = file.name.split('.').pop();
-    const fileName = `${accountId}-${Date.now()}.${fileExtension}`;
+    const fileName = `${accountId}_${sanitizedLastName}_picture.${fileExtension}`;
     const filePath = `photos/${fileName}`;
 
     // Create storage client for file operations

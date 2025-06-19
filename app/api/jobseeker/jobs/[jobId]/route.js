@@ -171,11 +171,9 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        job: formattedJob,
-        isSaved: isSaved,
-        hasApplied: hasApplied
-      }
+      data: formattedJob,
+      isSaved: isSaved,
+      hasApplied: hasApplied
     });
 
   } catch (error) {

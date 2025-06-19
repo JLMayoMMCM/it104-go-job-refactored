@@ -66,7 +66,7 @@ export async function GET(request) {
         notificationType = 'job_request';
       } else if (textLower.includes('job posting') && textLower.includes('updated')) {
         notificationType = 'job_edited';
-      } else if (textLower.includes('accepted') || textLower.includes('denied')) {
+      } else if (textLower.includes('accepted') || textLower.includes('rejected')) {
         notificationType = 'job_request_response';
       }
       

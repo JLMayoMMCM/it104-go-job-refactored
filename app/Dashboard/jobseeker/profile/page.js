@@ -97,6 +97,7 @@ export default function JobseekerProfile() {
           profilePhoto: data.data.account.profile_photo,
           resume: data.data.account.resume || null
         });
+        // Ensure job preferences are always an array, even if empty
         setJobPreferences(data.data.job_preferences || []);
         console.log('Profile data set successfully');
       } else {
@@ -212,19 +213,11 @@ export default function JobseekerProfile() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="profile-header">
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={handleEditProfile}
-            className="btn-primary flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-          >
-            Edit Profile
-          </button>
-        </div>
+      <div className="profile-header p-4 sm:p-6">
         <div className="flex flex-col md:flex-row items-center md:items-start">
-          <div className="w-24 h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-3 sm:mb-4 md:mb-0 md:mr-4 sm:md:mr-6">
             {profile.profilePhoto ? (
               <img
                 src={profile.profilePhoto}
@@ -236,154 +229,173 @@ export default function JobseekerProfile() {
                 }}
               />
             ) : (
-              <svg className="w-12 h-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             )}
           </div>
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-bold mb-2">{profile.firstName} {profile.lastName}</h1>
-            <p className="text-[var(--light-color)] text-lg mb-4">{profile.educationLevel} • {profile.experienceLevel}</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">{profile.firstName} {profile.lastName}</h1>
+            <p className="text-white text-opacity-90 text-sm sm:text-base mb-2 sm:mb-3">{profile.educationLevel} • {profile.experienceLevel}</p>
+            <button
+              onClick={handleEditProfile}
+              className="btn btn-primary text-sm px-4 py-2 min-w-[100px] mx-auto md:mx-0"
+            >
+              Edit Profile
+            </button>
           </div>
         </div>
       </div>
 
       {/* Profile Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mx-2 sm:mx-0 landscape:max-h-[66vh] h-auto">
+        {/* Column 1: Personal Information and Job Preferences */}
+        <div className="flex flex-col space-y-4 sm:space-y-6 h-full">
           {/* Personal Information */}
           <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-            <div className="panel-header">
-              <h3 className="text-lg font-semibold text-white">Personal Information</h3>
+            <div className="panel-header p-3 sm:p-4 h-16 sm:h-20 flex items-center">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Personal Information</h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-3 sm:p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-[var(--text-light)]">Email Address</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.email}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Email Address</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--text-light)]">Phone Number</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.phone}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Phone Number</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.phone}</p>
                 </div>
-                <div className="md:col-span-2">
-                  <p className="text-sm text-[var(--text-light)]">Address</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.address}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-[var(--text-light)]">Nationality</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.nationality}</p>
+                <div className="sm:col-span-2">
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Address</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.address}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--text-light)]">Gender</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.gender}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Nationality</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.nationality}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--text-light)]">Education Level</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.educationLevel}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Gender</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.gender}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--text-light)]">Experience Level</p>
-                  <p className="font-medium text-[var(--foreground)]">{profile.experienceLevel}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Education Level</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.educationLevel}</p>
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-[var(--text-light)]">Experience Level</p>
+                  <p className="font-medium text-sm sm:text-base text-[var(--foreground)]">{profile.experienceLevel}</p>
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Resume */}
-          <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden">
-            <div className="panel-header">
-              <h3 className="text-lg font-semibold text-white">Resume</h3>
-              <p className="text-sm text-white text-opacity-80 mt-1">Your professional document</p>
+          {/* Job Preferences */}
+          <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden flex-1">
+            <div className="panel-header p-3 sm:p-4 h-16 sm:h-20 flex items-center">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Job Preferences</h3>
             </div>
-            <div className="p-6">
-              {profile ? (
-                <div className="space-y-4">
-                  {profile.resume ? (
-                    <div className="space-y-4">
-                      <div className="border border-[var(--border-color)] rounded-lg p-4 bg-[var(--background)]">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <svg className="w-6 h-6 text-[var(--primary-color)] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <div>
-                              <p className="text-sm font-medium text-[var(--foreground)]">{profile.resume.name}</p>
-                              <p className="text-xs text-[var(--text-light)]">{profile.resume.size}</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <a
-                              href={`${profile.resume.url}?cb=${Date.now()}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center px-3 py-1 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-                            >
-                              View Resume
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center p-8 border border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)]">
-                      <svg className="mx-auto h-16 w-16 text-[var(--text-light)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-[var(--foreground)] text-lg">Resume Not Available</p>
-                      <p className="text-sm text-[var(--text-light)] mt-2">Upload your resume to showcase your professional experience and skills.</p>
-                      <button
-                        onClick={handleEditProfile}
-                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
-                      >
-                        Upload Resume
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center p-8 border-2 border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)]">
-                  <svg className="mx-auto h-16 w-16 text-[var(--text-light)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">No resume uploaded</h3>
-                  <p className="text-sm text-[var(--text-light)] mb-6">Upload your resume to showcase your professional experience and skills</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Right Column - Job Preferences */}
-        <div className="lg:col-span-1">
-          <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden sticky top-6">
-            <div className="panel-header">
-              <h3 className="text-lg font-semibold text-white">Job Preferences</h3>
-              <p className="text-sm text-white text-opacity-80 mt-1">Your selected job fields</p>
-            </div>
-            <div className="p-6">
+            <div className="p-3 sm:p-4 h-auto min-h-0 flex-1 overflow-y-auto">
               {jobPreferences.length > 0 ? (
-                <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 max-h-full overflow-y-auto scrollbar-hide p-1">
                   {jobPreferences.map((pref, index) => (
-                    <div key={index} className="border border-[var(--border-color)] rounded-lg p-3">
-                      <h4 className="text-sm font-semibold text-[var(--foreground)]">{pref.category_name}</h4>
-                      <p className="text-xs text-[var(--text-light)]">{pref.field_name}</p>
+                    <div key={index} className="inline-flex items-center px-3 py-1.5 rounded-full border border-[var(--border-color)] bg-[var(--background)] min-w-fit">
+                      <h4 className="text-sm font-medium text-[var(--foreground)] mr-1">{pref.category_name || `Category ${pref.category_id}`}</h4>
+                      <p className="text-xs text-[var(--text-light)]">({pref.field_name || 'N/A'})</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg">
+                <div className="text-center p-3 sm:p-4 border border-dashed border-[var(--border-color)] rounded-lg">
                   <p className="text-sm text-[var(--text-light)]">No job preferences set</p>
                   <button
                     onClick={() => router.push('/Dashboard/jobseeker/preferences')}
-                    className="mt-2 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]"
+                    className="mt-2 btn btn-primary text-sm px-4 py-2 min-w-[100px]"
                   >
                     Set Preferences
                   </button>
                 </div>
               )}
             </div>
+          </div>
+        </div>
+        
+        {/* Column 2: Resume */}
+        <div className="bg-[var(--card-background)] shadow-lg rounded-xl overflow-hidden h-full max-h-[66vh]">
+          <div className="panel-header p-3 sm:p-4 h-16 sm:h-20 flex items-center">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Resume</h3>
+          </div>
+          <div className="p-3 sm:p-4 h-auto min-h-0 flex-1 overflow-y-auto">
+            {profile ? (
+              <div className="space-y-3 sm:space-y-4 h-full">
+                {profile.resume ? (
+                  <div className="space-y-3 sm:space-y-4 flex flex-col h-full">
+                    <div className="border border-[var(--border-color)] rounded-lg p-3 sm:p-4 bg-[var(--background)] h-auto">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 sm:w-6 sm:h-auto text-[var(--primary-color)] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-medium text-[var(--foreground)]">
+                              {profile.resume.name || profile.resume.url.split('/').pop() || 'Resume File'}
+                            </p>
+                            <p className="text-xs text-[var(--text-light)]">
+                              {profile.resume.size || 'Size not available'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <a
+                            href={`${profile.resume.url}?cb=${Date.now()}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary text-sm px-4 py-2 min-w-[100px] text-center"
+                          >
+                            View Full Resume
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border border-[var(--border-color)] rounded-lg p-3 sm:p-4 bg-[var(--background)] flex-1 overflow-y-auto max-h-[400px]">
+                      <p className="text-sm text-[var(--text-light)] mb-1">Resume Preview:</p>
+                      <div className="h-auto sm:h-90 overflow-hidden relative">
+                        <iframe
+                          src={`${profile.resume.url}?cb=${Date.now()}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                          title="Resume Preview"
+                          className="w-full h-full border-none"
+                          allow="autoplay"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--background)] to-transparent h-8"></div>
+                      </div>
+                      <p className="text-xs text-[var(--text-light)] mt-2">Preview may not show full document. Click "View Full Resume" to see complete file.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-6 sm:p-8 border border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)] h-auto">
+                    <svg className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-[var(--text-light)] mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-[var(--foreground)] text-base sm:text-lg">Resume Not Available</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1 sm:mt-2">Upload your resume to showcase your professional experience and skills.</p>
+                    <button
+                      onClick={handleEditProfile}
+                      className="mt-3 sm:mt-4 btn btn-primary text-sm px-4 py-2 min-w-[100px]"
+                    >
+                      Upload Resume
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-6 sm:p-8 border-2 border-dashed border-[var(--border-color)] rounded-lg bg-[var(--background)] h-auto">
+                <svg className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-[var(--text-light)] mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <h3 className="text-base sm:text-lg font-medium text-[var(--foreground)] mb-1 sm:mb-2">No resume uploaded</h3>
+                <p className="text-sm text-[var(--text-light)] mb-4 sm:mb-6">Upload your resume to showcase your professional experience and skills</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -49,32 +49,42 @@ export default function JobseekerLayout({ children }) {
     }
     
     fetchJobseekerData(accountId);
+    
+    // Listen for profile updates
+    const handleProfileUpdate = () => {
+      fetchJobseekerData(accountId);
+    };
+    
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
   }, [router]);
 
   const fetchJobseekerData = async (accountId) => {
     try {
-      // Fetch jobseeker profile data if session data is incomplete or for updates
-      if (!localStorage.getItem('firstName') || !localStorage.getItem('lastName')) {
-        const profileResponse = await fetch(`/api/jobseeker/profile?accountId=${accountId}`);
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          if (profileData.success) {
-            const newFirstName = profileData.data.person.first_name;
-            const newLastName = profileData.data.person.last_name;
-            const newProfilePhoto = profileData.data.account.account_profile_photo || '';
-            
-            setJobseeker({
-              firstName: newFirstName,
-              lastName: newLastName,
-              profilePhoto: newProfilePhoto || null
-            });
-            
-            // Update localStorage with fetched data
-            localStorage.setItem('firstName', newFirstName);
-            localStorage.setItem('lastName', newLastName);
-            if (newProfilePhoto) {
-              localStorage.setItem('profilePhoto', newProfilePhoto);
-            }
+      // Always fetch jobseeker profile data to ensure it's up to date
+      const profileResponse = await fetch(`/api/jobseeker/profile?accountId=${accountId}`);
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        if (profileData.success) {
+          const newFirstName = profileData.data.person.first_name;
+          const newLastName = profileData.data.person.last_name;
+          const newProfilePhoto = profileData.data.account.profile_photo || '';
+          
+          setJobseeker({
+            firstName: newFirstName,
+            lastName: newLastName,
+            profilePhoto: newProfilePhoto || null
+          });
+          
+          // Update localStorage with fetched data
+          localStorage.setItem('firstName', newFirstName);
+          localStorage.setItem('lastName', newLastName);
+          if (newProfilePhoto) {
+            localStorage.setItem('profilePhoto', newProfilePhoto);
+          } else {
+            localStorage.removeItem('profilePhoto');
           }
         }
       }
@@ -246,7 +256,7 @@ case 'saved':
               <div className="relative w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                 {jobseeker?.profilePhoto ? (
                   <img
-                    src={jobseeker.profilePhoto}
+                    src={`${jobseeker.profilePhoto}?t=${Date.now()}`}
                     alt="Profile"
                     className="w-full h-full rounded-full object-cover group-hover:opacity-75 transition-opacity"
                     onError={(e) => {
@@ -374,7 +384,7 @@ case 'saved':
         )}
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           <div className="py-4 sm:py-6 w-full">
             <div className="px-4 sm:px-6 w-full">
               {children}

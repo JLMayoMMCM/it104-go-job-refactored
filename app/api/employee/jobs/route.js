@@ -91,7 +91,7 @@ export async function GET(request) {
             job_id: jobId,
             total_applicants: jobRequests.length,
             accepted_count: jobRequests.filter(req => req.request_status === 'accepted').length,
-            denied_count: jobRequests.filter(req => req.request_status === 'denied').length,
+            rejected_count: jobRequests.filter(req => req.request_status === 'rejected').length,
             pending_count: jobRequests.filter(req => req.request_status === 'pending').length
           };
         });
@@ -105,7 +105,7 @@ export async function GET(request) {
         ...job,
         applicant_count: counts?.total_applicants || 0,
         accepted_count: counts?.accepted_count || 0,
-        denied_count: counts?.denied_count || 0,
+        rejected_count: counts?.rejected_count || 0,
         pending_count: counts?.pending_count || 0
       };
     });

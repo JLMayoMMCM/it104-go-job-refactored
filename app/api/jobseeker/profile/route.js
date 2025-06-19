@@ -102,11 +102,65 @@ export async function GET(request) {
       // Don't fail the whole request for this error, just return empty preferences
     }
 
-    // Combine category and field preferences
-    const jobPreferences = jobPreferencesData?.map(pref => ({
-      category_id: pref.preferred_job_category_id,
-      field_id: fieldPreferencesData?.find(f => f.preferred_job_field_id)?.preferred_job_field_id || 0
-    })) || [];
+    // Combine category and field preferences with actual names
+    const jobPreferences = [];
+    if (jobPreferencesData && jobPreferencesData.length > 0) {
+      for (const pref of jobPreferencesData) {
+        // Fetch category name
+        let categoryName = '';
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('job_category')
+          .select('job_category_name, category_field_id')
+          .eq('job_category_id', pref.preferred_job_category_id)
+          .single();
+        
+        if (categoryError) {
+          console.error(`Category name query error for ID ${pref.preferred_job_category_id}:`, categoryError);
+        } else if (categoryData) {
+          categoryName = categoryData.job_category_name;
+        }
+        
+        // Fetch field name if available in category data or from field preferences
+        let fieldName = '';
+        let fieldId = 0;
+        if (categoryData && categoryData.category_field_id) {
+          fieldId = categoryData.category_field_id;
+          const { data: fieldData, error: fieldError } = await supabase
+            .from('category_field')
+            .select('category_field_name')
+            .eq('category_field_id', categoryData.category_field_id)
+            .single();
+          
+          if (fieldError) {
+            console.error(`Field name query error for ID ${categoryData.category_field_id}:`, fieldError);
+          } else if (fieldData) {
+            fieldName = fieldData.category_field_name;
+          }
+        } else if (fieldPreferencesData && fieldPreferencesData.length > 0) {
+          // Fallback to field preferences if category doesn't have field ID
+          const fieldPref = fieldPreferencesData[0]; // Use first available field preference
+          fieldId = fieldPref.preferred_job_field_id;
+          const { data: fieldData, error: fieldError } = await supabase
+            .from('category_field')
+            .select('category_field_name')
+            .eq('category_field_id', fieldPref.preferred_job_field_id)
+            .single();
+          
+          if (fieldError) {
+            console.error(`Field name query error for ID ${fieldPref.preferred_job_field_id}:`, fieldError);
+          } else if (fieldData) {
+            fieldName = fieldData.category_field_name;
+          }
+        }
+        
+        jobPreferences.push({
+          category_id: pref.preferred_job_category_id,
+          category_name: categoryName || `Category ${pref.preferred_job_category_id}`,
+          field_id: fieldId,
+          field_name: fieldName || 'Not specified'
+        });
+      }
+    }
 
     console.log('Job preferences found:', jobPreferences);
 
@@ -156,10 +210,42 @@ export async function GET(request) {
     // Format resume data if it exists
     let resumeData = null;
     if (accountData.account_resume) {
+      // Extract filename from URL if possible
+      let filename = 'Resume.pdf';
+      try {
+        const urlParts = accountData.account_resume.split('/');
+        filename = urlParts[urlParts.length - 1].split('?')[0] || 'Resume.pdf';
+      } catch (e) {
+        console.error('Error extracting filename from URL:', e);
+      }
+      
+      // Default size text
+      let sizeText = 'Size not available';
+      
+      // Attempt to get file size via HEAD request if it's a direct file URL
+      try {
+        const response = await fetch(accountData.account_resume, { method: 'HEAD' });
+        if (response.ok) {
+          const contentLength = response.headers.get('content-length');
+          if (contentLength) {
+            const sizeBytes = parseInt(contentLength, 10);
+            if (sizeBytes < 1024) {
+              sizeText = `${sizeBytes} B`;
+            } else if (sizeBytes < 1048576) {
+              sizeText = `${Math.round(sizeBytes / 1024)} KB`;
+            } else {
+              sizeText = `${(sizeBytes / 1048576).toFixed(1)} MB`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching file size:', e);
+      }
+      
       resumeData = {
         url: accountData.account_resume,
-        name: 'Resume.pdf',
-        size: 'Unknown size'
+        name: filename,
+        size: sizeText
       };
     }
 

@@ -29,13 +29,12 @@ export async function GET(request) {
       );
     }
 
-    const jobseekerId = jobseekerData.job_seeker_id;
-
-    // Fetch counts for analytics with detailed error handling
+    const jobseekerId = jobseekerData.job_seeker_id;    // Fetch counts for analytics with detailed error handling
     let appliedJobsCount = 0;
     let acceptedCount = 0;
     let rejectedCount = 0;
     let savedJobsCount = 0;
+    let savedJobsData = [];
     let followedCompaniesCount = 0;
     let notificationsData = [];
     let errorMessages = [];
@@ -59,7 +58,7 @@ export async function GET(request) {
         .from('job_requests')
         .select('*', { count: 'exact' })
         .eq('job_seeker_id', jobseekerId)
-        .eq('request_status', 'accepted');
+        .eq('request_status_id', 1);
       if (acceptedResult.error) {
         errorMessages.push(`Failed to fetch accepted requests: ${acceptedResult.error.message}`);
       } else {
@@ -74,7 +73,7 @@ export async function GET(request) {
         .from('job_requests')
         .select('*', { count: 'exact' })
         .eq('job_seeker_id', jobseekerId)
-        .eq('request_status', 'rejected');
+        .eq('request_status_id', 3);
       if (rejectedResult.error) {
         errorMessages.push(`Failed to fetch rejected requests: ${rejectedResult.error.message}`);
       } else {
@@ -87,12 +86,13 @@ export async function GET(request) {
     try {
       const savedJobsResult = await supabase
         .from('saved_jobs')
-        .select('*', { count: 'exact' })
+        .select('job_id')
         .eq('job_seeker_id', jobseekerId);
       if (savedJobsResult.error) {
         errorMessages.push(`Failed to fetch saved jobs: ${savedJobsResult.error.message}`);
       } else {
-        savedJobsCount = savedJobsResult.count || 0;
+        savedJobsData = savedJobsResult.data || [];
+        savedJobsCount = savedJobsData.length;
       }
     } catch (err) {
       errorMessages.push(`Exception fetching saved jobs: ${err.message}`);
@@ -110,21 +110,6 @@ export async function GET(request) {
       }
     } catch (err) {
       errorMessages.push(`Exception fetching followed companies: ${err.message}`);
-    }
-
-    try {
-      const notificationsResult = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('account_id', accountId)
-        .eq('is_read', false);
-      if (notificationsResult.error) {
-        errorMessages.push(`Failed to fetch notifications: ${notificationsResult.error.message}`);
-      } else {
-        notificationsData = notificationsResult.data || [];
-      }
-    } catch (err) {
-      errorMessages.push(`Exception fetching notifications: ${err.message}`);
     }
 
     if (errorMessages.length > 0) {
@@ -241,14 +226,13 @@ export async function GET(request) {
       salary: job.job_salary,
       jobType: jobTypesMap[job.job_type_id] || 'Unknown Type',
       postedDate: job.job_posted_date
-    })) || [];
-
-    return NextResponse.json({
+    })) || [];    return NextResponse.json({
       success: true,
       data: {
         analytics,
         recommendedJobs,
-        recentJobs
+        recentJobs,
+        savedJobs: savedJobsData?.map(item => ({ jobId: item.job_id })) || []
       }
     });
   } catch (error) {

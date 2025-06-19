@@ -186,7 +186,7 @@ export async function PUT(request) {
     }
 
     // Determine the new status
-    const newStatus = finalAction === 'accept' ? 'accepted' : 'denied';
+    const newStatus = finalAction === 'accept' ? 'accepted' : 'rejected';
 
     // Default message if none provided
     if (!finalMessage) {

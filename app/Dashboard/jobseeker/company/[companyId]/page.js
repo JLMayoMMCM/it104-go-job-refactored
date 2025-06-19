@@ -6,6 +6,8 @@ import { useRouter, useParams } from 'next/navigation';
 export default function ViewCompany() {
   const [company, setCompany] = useState(null);
   const [recentJobs, setRecentJobs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -28,6 +30,20 @@ export default function ViewCompany() {
     
     fetchCompanyData(companyId, accountId);
   }, [router, companyId]);
+
+  // Filter jobs by search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredJobs(recentJobs);
+    } else {
+      const lower = searchTerm.toLowerCase();
+      setFilteredJobs(
+        recentJobs.filter(job =>
+          job.title?.toLowerCase().includes(lower)
+        )
+      );
+    }
+  }, [searchTerm, recentJobs]);
 
   const fetchCompanyData = async (companyId, accountId) => {
     try {
@@ -131,16 +147,20 @@ export default function ViewCompany() {
       }
       
       setRating(newRating);
-      setSuccessMessage(data.message);
+      setSuccessMessage(data.message + ' - Rating updated! Refreshing company rating...');
       
-      // Update company rating in the state
-      if (company) {
-        // Note: The backend updates the company's average rating, but we don't fetch it again here
-        // In a production app, you might want to refetch the company data or return the new average
-        setCompany(prev => ({ ...prev }));
-      }
-      
-      setTimeout(() => setSuccessMessage(''), 3000);
+      // Refresh the company data to get the updated average rating
+      setTimeout(async () => {
+        try {
+          await fetchCompanyData(companyId, accountId);
+          setSuccessMessage('Rating updated successfully! Company rating has been refreshed.');
+          setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (error) {
+          console.error('Error refreshing company data:', error);
+          setSuccessMessage('Rating updated, but failed to refresh company rating. Please refresh the page.');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error rating company:', error);
       setError(error.message);
@@ -197,7 +217,7 @@ export default function ViewCompany() {
       {/* Header */}
       <div className="profile-header">
         <div className="flex flex-col md:flex-row items-center md:items-start">
-          <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
+          <div className="w-24 h-24 bg-[var(--border-color)] rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-6">
             {company.logo ? (
               <img
                 src={`data:image/jpeg;base64,${company.logo}`}
@@ -217,25 +237,30 @@ export default function ViewCompany() {
             )}
           </div>
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-heading">{company.name}</h1>
-            <div className="flex justify-center md:justify-start items-center mb-4 text-yellow-400">
+            <h1 className="text-heading" style={{ color: 'white' }}>{company.name}</h1>
+            <div className="flex justify-center md:justify-start items-center mb-4">
               {[...Array(5)].map((_, i) => (
-                <svg key={i} className={`w-5 h-5 ${i < Math.floor(company.rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  key={i}
+                  className={`w-5 h-5 ${
+                    i < Math.floor(company.rating)
+                      ? 'text-[var(--warning-color)]'
+                      : 'text-[var(--border-color)]'
+                  }`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               ))}
-              <span className="text-gray-300 ml-2">({company.rating.toFixed(1)})</span>
+              <span style={{ color: 'white' }} className="ml-2">({company.rating.toFixed(1)})</span>
             </div>
-            <p className="text-description mb-4">{company.location}</p>
+            <p className="mb-4" style={{ color: 'white' }}>{company.location}</p>
             <div className="button-group flex-wrap justify-center md:justify-start">
               <button
                 onClick={handleFollowCompany}
                 disabled={followLoading}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  isFollowing 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`btn btn-primary ${isFollowing ? 'bg-green-600 hover:bg-green-700' : ''} ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {followLoading ? 'Loading...' : (isFollowing ? 'Following' : 'Follow Company')}
               </button>
@@ -244,7 +269,7 @@ export default function ViewCompany() {
                   href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-sm font-medium text-white"
+                  className="btn btn-secondary"
                 >
                   Visit Website
                 </a>
@@ -291,63 +316,117 @@ export default function ViewCompany() {
       )}
 
       {/* Company Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* About Section */}
-          <div className="card overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Column 1: About Company & Rate */}
+        <div className="flex flex-col h-[560px] max-h-[560px] gap-4">
+          {/* About Section - 2/3 of space */}
+          <div className="card overflow-hidden" style={{ height: 'calc(66.67% - 8px)' }}>
             <div className="panel-header">
-              <h3 className="text-subheading">About {company.name}</h3>
+              <h3 className="text-subheading" style={{ color: 'white' }}>About {company.name}</h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                <div>
-                  <p className="text-sm text-[var(--text-light)]">Location</p>
-                  <p className="font-medium text-[var(--foreground)]">{company.location}</p>
+            <div className="h-full flex flex-col">
+              <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                  <div>
+                    <p className="text-sm text-[var(--text-light)]">Location</p>
+                    <p className="font-medium text-[var(--foreground)]">{company.location}</p>
+                  </div>
+                  {company.email && (
+                    <div>
+                      <p className="text-sm text-[var(--text-light)]">Email</p>
+                      <p className="font-medium text-[var(--foreground)]">{company.email}</p>
+                    </div>
+                  )}
+                  {company.phone && (
+                    <div>
+                      <p className="text-sm text-[var(--text-light)]">Phone</p>
+                      <p className="font-medium text-[var(--foreground)]">{company.phone}</p>
+                    </div>
+                  )}
+                  {company.website && (
+                    <div>
+                      <p className="text-sm text-[var(--text-light)]">Website</p>
+                      <p className="font-medium">
+                        <a 
+                          href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[var(--primary-color)] hover:text-[var(--secondary-color)]"
+                        >
+                          {company.website}
+                        </a>
+                      </p>
+                    </div>
+                  )}
                 </div>
-                {company.email && (
-                  <div>
-                    <p className="text-sm text-[var(--text-light)]">Email</p>
-                    <p className="font-medium text-[var(--foreground)]">{company.email}</p>
-                  </div>
-                )}
-                {company.phone && (
-                  <div>
-                    <p className="text-sm text-[var(--text-light)]">Phone</p>
-                    <p className="font-medium text-[var(--foreground)]">{company.phone}</p>
-                  </div>
-                )}
-                {company.website && (
-                  <div>
-                    <p className="text-sm text-[var(--text-light)]">Website</p>
-                    <p className="font-medium">
-                      <a 
-                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {company.website}
-                      </a>
-                    </p>
-                  </div>
+                {company.description && (
+                  <p className="text-description leading-relaxed">{company.description}</p>
                 )}
               </div>
-              {company.description && (
-                <p className="text-description leading-relaxed">{company.description}</p>
-              )}
             </div>
           </div>
-          
-          {/* Recent Jobs */}
-          <div className="card overflow-hidden">
+          {/* Rate Company - 1/3 of space */}
+          <div className="card overflow-hidden" style={{ height: 'calc(33.33% - 8px)' }}>
             <div className="panel-header">
-              <h3 className="text-subheading">Recent Job Postings at {company.name}</h3>
+              <h3 className="text-subheading" style={{ color: 'white' }}>Rate {company.name}</h3>
+              <p style={{ color: 'white', opacity: 0.8 }}>Share your experience with this company</p>
             </div>
-            <div className="p-6">
-              {recentJobs.length > 0 ? (
+            <div className="h-full flex flex-col">
+              <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
+                <div className="mb-4">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => {
+                      const ratingValue = i + 1;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleRateCompany(ratingValue)}
+                          disabled={ratingLoading}
+                          className={`text-2xl mr-1 focus:outline-none ${
+                            ratingValue <= rating ? 'text-yellow-400' : 'text-gray-300'
+                          } ${ratingLoading ? 'opacity-50 cursor-not-allowed' : 'hover:text-yellow-400'}`}
+                        >
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {rating > 0 && (
+                  <p className="text-description">You've rated {company.name} {rating}/5 stars</p>
+                )}
+                {ratingLoading && (
+                  <p className="text-description text-[var(--primary-color)]">Saving your rating...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Column 2: Recent Job Postings */}
+        <div>
+          <div className="card overflow-hidden h-[560px] max-h-[560px] flex flex-col">
+            <div className="panel-header flex items-center justify-between">
+              <h3 className="text-subheading" style={{ color: 'white' }}>Recent Job Postings at {company.name}</h3>
+              {/* Search bar beside title */}
+              <div className="relative w-64">
+                <input
+                  type="text"
+                  placeholder="Search job title..."
+                  className="form-input pr-10"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                <svg className="absolute right-3 top-3.5 w-5 h-5 text-[var(--text-light)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto scrollbar-hide">
+              {filteredJobs.length > 0 ? (
                 <div className="space-y-6">
-                  {recentJobs.map(job => (
+                  {filteredJobs.map(job => (
                     <div key={job.id} className="job-card">
                       <div className="flex justify-between items-start mb-3">
                         <div>
@@ -398,46 +477,6 @@ export default function ViewCompany() {
                 </div>
               ) : (
                 <p className="text-[var(--text-light)] text-center py-8">No recent job postings available.</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Right Column - Rate Company */}
-        <div className="lg:col-span-1">
-          <div className="card overflow-hidden sticky top-6">
-            <div className="panel-header">
-              <h3 className="text-subheading">Rate {company.name}</h3>
-              <p className="text-description">Share your experience with this company</p>
-            </div>
-            <div className="p-6">
-              <div className="mb-4">
-                <p className="text-description mb-3">How would you rate your experience with {company.name}?</p>
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => {
-                    const ratingValue = i + 1;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleRateCompany(ratingValue)}
-                        disabled={ratingLoading}
-                        className={`text-2xl mr-1 focus:outline-none ${
-                          ratingValue <= rating ? 'text-yellow-400' : 'text-gray-300'
-                        } ${ratingLoading ? 'opacity-50 cursor-not-allowed' : 'hover:text-yellow-400'}`}
-                      >
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {rating > 0 && (
-                <p className="text-description">You've rated {company.name} {rating}/5 stars</p>
-              )}
-              {ratingLoading && (
-                <p className="text-description text-blue-600">Saving your rating...</p>
               )}
             </div>
           </div>

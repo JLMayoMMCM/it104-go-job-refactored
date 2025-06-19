@@ -98,23 +98,6 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Failed to save rating' }, { status: 500 });
     }
 
-    // Calculate new average rating for the company
-    const { data: allRatings, error: ratingsError } = await supabase
-      .from('company_ratings')
-      .select('rating')
-      .eq('company_id', companyId);
-
-    if (!ratingsError && allRatings) {
-      const totalRatings = allRatings.length;
-      const sumRatings = allRatings.reduce((sum, r) => sum + r.rating, 0);
-      const averageRating = totalRatings > 0 ? (sumRatings / totalRatings) : 0;
-
-      // Update company's average rating
-      await supabase
-        .from('company')
-        .update({ company_rating: averageRating.toFixed(2) })
-        .eq('company_id', companyId);
-    }
 
     return NextResponse.json({ 
       message: `Thank you for rating ${companyData.company_name}`,

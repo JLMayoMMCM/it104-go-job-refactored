@@ -118,7 +118,6 @@ CREATE TABLE company (
   company_id   SERIAL      PRIMARY KEY,
   company_name VARCHAR(100) NOT NULL,
   company_email VARCHAR(100) NOT NULL UNIQUE,
-  company_rating NUMERIC(3, 2) DEFAULT 0.00,
   company_phone VARCHAR(25),
   company_website VARCHAR(100),
   company_description TEXT,
@@ -221,7 +220,7 @@ CREATE TABLE job_requests (
   job_id           INTEGER     NOT NULL REFERENCES job(job_id) ON DELETE CASCADE,
   job_seeker_id    INTEGER     NOT NULL REFERENCES job_seeker(job_seeker_id) ON DELETE CASCADE,
   request_date     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-  request_status   VARCHAR(20) DEFAULT 'pending',
+  request_status   INTEGER     DEFAULT 1 REFERENCES application_progress(id) ON DELETE SET NULL,
   cover_letter     TEXT,
   employee_response TEXT,
   response_date    TIMESTAMP,
@@ -372,6 +371,19 @@ VALUES
   ('Yemeni'),
   ('Zambian'),
   ('Zimbabwean')
+ON CONFLICT (nationality_name) DO NOTHING;
+
+--Insert Balkan nationalities
+INSERT INTO nationality (nationality_name) VALUES
+  ('Albanian'),
+  ('Bosnian'),
+  ('Bulgarian'),
+  ('Croatian'),
+  ('Kosovar'),
+  ('Montenegrin'),
+  ('Romanian'),
+  ('Serbian'),
+  ('Slovene')
 ON CONFLICT (nationality_name) DO NOTHING;
 
 -- Insert category fields
@@ -560,3 +572,14 @@ BEGIN
   DELETE FROM verification_codes WHERE expires_at < NOW();
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE TABLE IF NOT EXISTS application_progress (
+  id SERIAL PRIMARY KEY,
+  application_progress VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insert initial application progress states
+INSERT INTO application_progress (application_progress) VALUES
+  ('Accepted'),
+  ('In-progress'),
+  ('Rejected');

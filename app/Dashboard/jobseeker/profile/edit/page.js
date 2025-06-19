@@ -603,6 +603,9 @@ export default function EditProfile() {
       
       setSuccessMessage('Your profile has been updated successfully!');
       
+      // Trigger profile update event
+      window.dispatchEvent(new Event('profileUpdated'));
+      
       setTimeout(() => {
         router.push('/Dashboard/jobseeker/profile');
       }, 2000);
@@ -725,21 +728,23 @@ export default function EditProfile() {
                   onChange={handlePhotoChange}
                   className="hidden"
                 />
-                <label
-                  htmlFor="photo-upload"
-                  className="btn-primary cursor-pointer px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {photoUploading ? 'Uploading...' : profile.profilePhoto || photoPreview ? 'Change Photo' : 'Upload Photo'}
-                </label>
-                {(profile.profilePhoto || photoPreview) && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="btn-secondary px-4 py-2 rounded-md text-sm font-medium"
+                <div className="flex justify-start space-x-3">
+                  <label
+                    htmlFor="photo-upload"
+                    className="btn-primary cursor-pointer px-4 py-2 rounded-md text-sm font-medium min-w-[120px] text-center"
                   >
-                    Remove Photo
-                  </button>
-                )}
+                    {photoUploading ? 'Uploading...' : profile.profilePhoto || photoPreview ? 'Change Photo' : 'Upload Photo'}
+                  </label>
+                  {(profile.profilePhoto || photoPreview) && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="btn-secondary px-4 py-2 rounded-md text-sm font-medium min-w-[120px] text-center"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-[var(--text-light)]">Accepted formats: JPG, PNG, WebP, GIF. Max size: 5MB</p>
               </div>
             </div>
@@ -1030,10 +1035,10 @@ export default function EditProfile() {
                     <p className="text-xs text-[var(--text-light)]">{profile.resume.size}</p>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex justify-end space-x-2">
                   <button
                     onClick={handleRemoveResume}
-                    className="btn-secondary text-[var(--error-color)] border-[var(--error-color)] hover:bg-[var(--error-color)] hover:bg-opacity-10 px-3 py-1 rounded-md text-sm font-medium mr-2"
+                    className="btn-secondary text-[var(--error-color)] border-[var(--error-color)] hover:bg-[var(--error-color)] hover:bg-opacity-10 px-4 py-2 rounded-md text-sm font-medium min-w-[100px] text-center"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4v1H8a1 1 0 00-1 1v3h10V4a1 1 0 00-1-1h-2a1 1 0 00-1 1zm-5 4V5a1 1 0 011-1h2a1 1 0 011 1v4M5 7h14" />
@@ -1042,7 +1047,7 @@ export default function EditProfile() {
                   </button>
                   <button
                     onClick={handleUpdateResume}
-                    className="btn-primary px-3 py-1 rounded-md text-sm font-medium"
+                    className="btn-primary px-4 py-2 rounded-md text-sm font-medium min-w-[100px] text-center"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1119,7 +1124,7 @@ export default function EditProfile() {
                         <div className="bg-[var(--background)] px-3 py-2 text-sm font-medium text-[var(--foreground)]">
                           PDF Preview
                         </div>
-                        <div className="relative" style={{ height: '400px' }}>
+                        <div className="relative" style={{ height: '200px' }}>
                           <iframe
                             src={resumePreview}
                             className="w-full h-full"
@@ -1170,13 +1175,13 @@ export default function EditProfile() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={handleCancelRemoveResume}
-                className="btn-secondary"
+                className="btn btn-secondary px-4 py-2 text-sm font-medium min-w-[100px] text-center"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmRemoveResume}
-                className="btn-primary bg-[var(--error-color)] hover:bg-[var(--error-color)] hover:bg-opacity-80"
+                className="btn btn-primary bg-[var(--error-color)] hover:bg-[var(--error-color)] hover:bg-opacity-80 px-4 py-2 text-sm font-medium min-w-[100px] text-center"
               >
                 Yes, Remove
               </button>
@@ -1330,13 +1335,13 @@ export default function EditProfile() {
       <div className="flex justify-end space-x-3">
         <button
           onClick={() => router.push('/Dashboard/jobseeker/profile')}
-          className="btn-secondary"
+          className="btn btn-secondary px-4 py-2 text-sm font-medium min-w-[120px] text-center"
         >
           Cancel
         </button>
         <button
           onClick={handleSaveProfile}
-          className="btn-primary"
+          className="btn btn-primary px-4 py-2 text-sm font-medium min-w-[120px] text-center"
         >
           Save Changes
         </button>

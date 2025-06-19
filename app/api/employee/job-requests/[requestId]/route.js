@@ -14,10 +14,8 @@ export async function PUT(request, { params }) {
 
     if (!accountId || !requestId || !request_status) {
       return NextResponse.json({ error: 'Account ID, request ID, and status are required' }, { status: 400 });
-    }
-
-    if (!['accepted', 'denied'].includes(request_status)) {
-      return NextResponse.json({ error: 'Invalid status. Must be "accepted" or "denied"' }, { status: 400 });
+    }    if (!['accepted', 'rejected'].includes(request_status)) {
+      return NextResponse.json({ error: 'Invalid status. Must be "accepted" or "rejected"' }, { status: 400 });
     }
 
     if (!employee_password) {
@@ -80,14 +78,12 @@ export async function PUT(request, { params }) {
     // Check if request is still pending
     if (jobRequest.request_status !== 'pending') {
       return NextResponse.json({ error: 'Job request has already been processed' }, { status: 400 });
-    }
-
-    // Auto-deny if job is inactive and action is accept
+    }    // Auto-deny if job is inactive and action is accept
     let finalStatus = request_status;
     let finalMessage = '';
     
     if (request_status === 'accepted' && !jobRequest.job.job_is_active) {
-      finalStatus = 'denied';
+      finalStatus = 'rejected';
       finalMessage = 'This position is no longer available.';
     } else {
       if (request_status === 'accepted') {

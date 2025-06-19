@@ -11,6 +11,7 @@ export default function SavedJobs() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
+  const [applicationStatus, setApplicationStatus] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function SavedJobs() {
     }
     
     fetchSavedJobs(accountId);
+    fetchApplicationStatus(accountId);
   }, [router]);
 
   const fetchSavedJobs = async (accountId) => {
@@ -80,6 +82,23 @@ export default function SavedJobs() {
     setShowApplyModal(true);
   };
 
+  const fetchApplicationStatus = async (accountId) => {
+    try {
+      const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success && data.data) {
+        const statusMap = {};
+        data.data.forEach(app => {
+          statusMap[app.jobId] = app.status;
+        });
+        setApplicationStatus(statusMap);
+      }
+    } catch (error) {
+      console.error('Error fetching application status:', error);
+    }
+  };
+
   const handleSubmitApplication = async () => {
     if (!selectedJob) return;
     
@@ -100,6 +119,9 @@ export default function SavedJobs() {
       const data = await response.json();
       
       if (response.ok && data.success) {
+        // Update application status immediately before closing modal
+        setApplicationStatus(prev => ({ ...prev, [selectedJob.jobId]: 'pending' }));
+        
         setShowApplyModal(false);
         setCoverLetter('');
         setSelectedJob(null);
@@ -166,8 +188,8 @@ export default function SavedJobs() {
     <div className="space-y-8">
       {/* Header */}
       <div className="profile-header">
-        <h1 className="text-3xl font-bold mb-2">Saved Jobs</h1>
-        <p className="text-white text-opacity-90 text-lg">Manage your bookmarked jobs and apply when you're ready.</p>
+        <h1 className="text-heading">Saved Jobs</h1>
+        <p className="text-description">Jobs you've saved for future reference.</p>
       </div>
 
       {/* Success/Error Messages */}
@@ -235,7 +257,7 @@ export default function SavedJobs() {
                 >
                   <div className="mb-3 md:mb-0 md:w-1/3">
                     <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
-                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
+                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
                     <p className="text-sm text-[var(--text-light)] mt-1">{job.savedDate}</p>
                   </div>
                   <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
@@ -251,6 +273,18 @@ export default function SavedJobs() {
                       </svg>
                       {job.salary}
                     </div>
+                    {job.match > 0 && (
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        job.match >= 80 ? 'bg-green-100 text-green-800' : 
+                        job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {job.match}% Match
+                      </div>
+                    )}
                     <div className="flex items-center text-[var(--text-light)] text-sm">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -273,12 +307,26 @@ export default function SavedJobs() {
                     </button>
                     <button
                       onClick={() => handleQuickApply(job)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-all"
+                      disabled={applicationStatus[job.jobId] === 'pending' || applicationStatus[job.jobId] === 'accepted'}
+                      className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
+                        applicationStatus[job.jobId] === 'pending'
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : applicationStatus[job.jobId] === 'accepted'
+                          ? 'bg-green-500 cursor-not-allowed'
+                          : applicationStatus[job.jobId] === 'rejected'
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
                     >
-                      Quick Apply
+                      {applicationStatus[job.jobId] === 'pending'
+                        ? 'Pending'
+                        : applicationStatus[job.jobId] === 'accepted'
+                        ? 'Accepted'
+                        : applicationStatus[job.jobId] === 'rejected'
+                        ? 'Apply Again'
+                        : 'Quick Apply'}
                     </button>
-                    <button
-                      onClick={() => handleViewJob(job.jobId)}
+                    <button                      onClick={() => handleViewJob(job.jobId)}
                       className="btn btn-primary text-sm"
                     >
                       View Job

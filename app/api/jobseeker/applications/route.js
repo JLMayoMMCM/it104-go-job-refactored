@@ -33,7 +33,7 @@ export async function GET(request) {
         request_id,
         job_id,
         request_date,
-        request_status,
+        request_status_id,
         cover_letter,
         employee_response,
         response_date,
@@ -53,16 +53,24 @@ export async function GET(request) {
         )
       `)
       .eq('job_seeker_id', jobSeekerId)
-      .order('request_date', { ascending: false });
-
-    // Apply status filter if provided
+      .order('request_date', { ascending: false });    // Apply status filter if provided
     if (status && ['pending', 'accepted', 'rejected'].includes(status.toLowerCase())) {
-      query = query.eq('request_status', status.toLowerCase());
+      console.log(`Filtering applications by status: ${status.toLowerCase()}`);
+      
+      if (status.toLowerCase() === 'rejected') {
+        query = query.eq('request_status_id', 3); // Rejected = 3
+      } else if (status.toLowerCase() === 'accepted') {
+        query = query.eq('request_status_id', 1); // Accepted = 1
+      } else if (status.toLowerCase() === 'pending') {
+        query = query.eq('request_status_id', 2); // Pending/In-progress = 2
+      }
     }
 
     // Execute the query
     const { data: applications, error: applicationsError } = await query;
 
+    console.log(`Found ${applications?.length || 0} applications for status: ${status || 'all'}`);
+    
     if (applicationsError) {
       console.error('Applications fetch error:', applicationsError);
       return NextResponse.json({ success: false, error: 'Failed to fetch applications' }, { status: 500 });
@@ -101,9 +109,7 @@ export async function GET(request) {
           const weeksDiff = Math.floor(respDaysDiff / 7);
           responseAgo = weeksDiff === 1 ? '1 week ago' : `${weeksDiff} weeks ago`;
         }
-      }
-
-      return {
+      }      return {
         id: app.request_id,
         jobId: app.job_id,
         jobTitle: app.job?.job_name || 'Unknown Job',
@@ -113,7 +119,7 @@ export async function GET(request) {
         jobType: app.job?.job_type?.job_type_name || 'Not specified',
         salary: app.job?.job_salary || 'Not specified',
         appliedDate: appliedAgo,
-        status: app.request_status || 'pending',
+        status: app.request_status_id === 1 ? 'accepted' : app.request_status_id === 3 ? 'rejected' : 'pending',
         coverLetter: app.cover_letter || '',
         response: app.employee_response || '',
         responseDate: responseAgo,
@@ -159,10 +165,10 @@ export async function POST(request) {
 
     const jobSeekerId = jobSeekerData.job_seeker_id;
 
-    // Check if application already exists
+    // Check if application already exists and get its status
     const { data: existingApplication, error: existingError } = await supabase
       .from('job_requests')
-      .select('request_id')
+      .select('request_id, request_status_id')
       .eq('job_id', jobId)
       .eq('job_seeker_id', jobSeekerId)
       .single();
@@ -172,11 +178,15 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Failed to check existing application' }, { status: 500 });
     }
 
-    if (existingApplication) {
-      return NextResponse.json({ success: false, error: 'You have already applied for this job' }, { status: 409 });
+    // Block application only if there's an existing application that is pending (2) or accepted (1)
+    if (existingApplication && (existingApplication.request_status_id === 2 || existingApplication.request_status_id === 1)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `You have already applied for this job and your application is ${existingApplication.request_status_id === 1 ? 'accepted' : 'in-progress'}`
+      }, { status: 409 });
     }
 
-    // Insert new application
+    // Always insert new application - don't update existing ones
     const { data: newApplication, error: insertError } = await supabase
       .from('job_requests')
       .insert([
@@ -184,12 +194,12 @@ export async function POST(request) {
           job_id: jobId,
           job_seeker_id: jobSeekerId,
           cover_letter: coverLetter || 'I am interested in this position and would like to apply.',
-          request_status: 'pending'
+          request_status_id: 2 // Set to in-progress/pending
         }
       ])
       .select('request_id')
       .single();
-
+    
     if (insertError) {
       console.error('Application insert error:', insertError);
       return NextResponse.json({ success: false, error: 'Failed to submit application' }, { status: 500 });

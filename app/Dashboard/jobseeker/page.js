@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function JobseekerDashboard() {
-  const [recentJobs, setRecentJobs] = useState([]);
+export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [savedJobIds, setSavedJobIds] = useState(new Set()); // Track saved job IDs
   const [analytics, setAnalytics] = useState({
     totalApplications: 0,
     acceptedApplications: 0,
@@ -34,13 +34,12 @@ export default function JobseekerDashboard() {
     
     fetchDashboardData(accountId);
   }, [router]);
-
   const fetchDashboardData = async (accountId) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch analytics and job data
+      // Fetch analytics data
       const analyticsResponse = await fetch(`/api/jobseeker/analytics?accountId=${accountId}`);
       if (!analyticsResponse.ok) {
         const errorText = await analyticsResponse.text();
@@ -52,9 +51,37 @@ export default function JobseekerDashboard() {
       if (analyticsData.success && analyticsData.data) {
         setAnalytics(analyticsData.data.analytics);
         setRecentJobs(analyticsData.data.recentJobs);
-        setRecommendedJobs(analyticsData.data.recommendedJobs);
+        
+        // Create a Set of saved job IDs for efficient lookup
+        const savedIds = new Set();
+        if (analyticsData.data.savedJobs && Array.isArray(analyticsData.data.savedJobs)) {
+          analyticsData.data.savedJobs.forEach(job => {
+            if (job && job.jobId) {
+              savedIds.add(job.jobId);
+            }
+          });
+        }
+        setSavedJobIds(savedIds);
       } else {
         throw new Error(analyticsData.error || 'Failed to fetch dashboard data: API returned unsuccessful response');
+      }
+      
+      // Fetch recommended jobs separately using the proper endpoint
+      const queryParams = new URLSearchParams({
+        accountId: accountId,
+        type: 'recommended',
+        limit: '5' // Limit to 5 for dashboard display
+      });
+      
+      const recommendedResponse = await fetch(`/api/jobseeker/jobs?${queryParams}`);
+      const recommendedData = await recommendedResponse.json();
+      
+      if (recommendedResponse.ok && recommendedData.success && recommendedData.data) {
+        setRecommendedJobs(recommendedData.data);
+      } else {
+        console.error('Error fetching recommended jobs:', recommendedData.error);
+        // Fallback to empty array if recommended jobs fail
+        setRecommendedJobs([]);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -75,7 +102,6 @@ export default function JobseekerDashboard() {
   const handleViewJob = (jobId) => {
     router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
   };
-
   const handleSaveJob = async (jobId) => {
     try {
       const accountId = localStorage.getItem('accountId');
@@ -90,10 +116,28 @@ export default function JobseekerDashboard() {
       const data = await response.json();
       
       if (response.ok && data.success) {
+        // Update local state to mark this job as saved
+        setSavedJobIds(prevSavedIds => {
+          const newSavedIds = new Set(prevSavedIds);
+          newSavedIds.add(jobId);
+          return newSavedIds;
+        });
+        
+        // Update analytics count
+        setAnalytics(prev => ({
+          ...prev,
+          savedJobs: prev.savedJobs + 1
+        }));
+        
         setSuccessMessage('Job saved successfully!');
         setTimeout(() => setSuccessMessage(''), 2000);
       } else {
-        throw new Error(data.error || 'Failed to save job');
+        // If it's already saved, don't show an error
+        if (data.error && data.error.includes('already saved')) {
+          console.log('Job was already saved');
+        } else {
+          throw new Error(data.error || 'Failed to save job');
+        }
       }
     } catch (error) {
       console.error('Error saving job:', error);
@@ -101,10 +145,85 @@ export default function JobseekerDashboard() {
       setTimeout(() => setError(''), 3000);
     }
   };
+  
+  const handleUnsaveJob = async (jobId) => {
+    try {
+      const accountId = localStorage.getItem('accountId');
+      const response = await fetch(`/api/jobseeker/saved-jobs`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobId, accountId }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Update local state to mark this job as unsaved
+        setSavedJobIds(prevSavedIds => {
+          const newSavedIds = new Set(prevSavedIds);
+          newSavedIds.delete(jobId);
+          return newSavedIds;
+        });
+        
+        // Update analytics count (ensure it doesn't go below 0)
+        setAnalytics(prev => ({
+          ...prev,
+          savedJobs: Math.max(0, prev.savedJobs - 1)
+        }));
+        
+        setSuccessMessage('Job removed from saved list.');
+        setTimeout(() => setSuccessMessage(''), 2000);
+      } else {
+        throw new Error(data.error || 'Failed to remove job from saved list');
+      }
+    } catch (error) {
+      console.error('Error unsaving job:', error);
+      setError('Failed to remove job from saved list. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const [applicationStatus, setApplicationStatus] = useState({});
+
+  useEffect(() => {
+    const accountId = localStorage.getItem('accountId');
+    const accountType = localStorage.getItem('accountType');
+    
+    if (!accountId || accountType !== '2') {
+      router.push('/Login');
+      return;
+    }
+    
+    fetchDashboardData(accountId);
+    fetchApplicationStatus(accountId);
+  }, [router]);
+
+  const fetchApplicationStatus = async (accountId) => {
+    try {
+      const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.success && data.data) {
+        const statusMap = {};
+        data.data.forEach(app => {
+          statusMap[app.jobId] = app.status;
+        });
+        setApplicationStatus(statusMap);
+      }
+    } catch (error) {
+      console.error('Error fetching application status:', error);
+    }
+  };
 
   const handleQuickApply = (job) => {
     setSelectedJob(job);
     setShowApplyModal(true);
+  };
+
+  const handleViewJobDetails = (jobId) => {
+    router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
   };
 
   const handleSubmitApplication = async () => {
@@ -128,6 +247,9 @@ export default function JobseekerDashboard() {
       const data = await response.json();
       
       if (response.ok && data.success) {
+        // Update application status immediately before closing modal
+        setApplicationStatus(prev => ({ ...prev, [selectedJob.id]: 'pending' }));
+        
         setShowApplyModal(false);
         setCoverLetter('');
         setSelectedJob(null);
@@ -385,38 +507,71 @@ export default function JobseekerDashboard() {
                   >
                     <div className="mb-2 sm:mb-3">
                       <h4 className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)] mt-0.5 sm:mt-1">Posted date: {job.postedDate}</p>
+                      <p className="text-xs sm:text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
+                      <p className="text-xs sm:text-sm text-[var(--text-light)] mt-0.5 sm:mt-1">Posted date: {job.posted}</p>
                     </div>
                     <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
                       <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
                         <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        {job.jobType}
+                        {job.type}
                       </div>
                       <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
                         <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {job.salary}
+                        {job.match > 0 && (
+                          <span className={`ml-1 sm:ml-2 px-1 sm:px-2 py-0.5 rounded-full text-xs ${
+                            job.match >= 80 ? 'bg-green-100 text-green-800' : 
+                            job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {job.match}% Match
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-end">
-                      <button
-                        onClick={() => handleSaveJob(job.id)}
-                        className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
-                      >
-                        Save
-                      </button>
+                      {savedJobIds.has(job.id) ? (
+                        <button
+                          onClick={() => handleUnsaveJob(job.id)}
+                          className="px-2 sm:px-3 py-1 sm:py-2 bg-red-50 border border-red-400 text-red-500 rounded-md text-xs sm:text-sm font-medium hover:bg-red-100 transition-all w-20 sm:w-24"
+                        >
+                          Unsave
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSaveJob(job.id)}
+                          className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
+                        >
+                          Save
+                        </button>
+                      )}
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-2 sm:px-3 py-1 sm:py-2 bg-green-600 text-white rounded-md text-xs sm:text-sm font-medium hover:bg-green-700 transition-all w-20 sm:w-24"
+                        disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
+                        className={`px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 ${
+                          applicationStatus[job.id] === 'pending'
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : applicationStatus[job.id] === 'accepted'
+                            ? 'bg-green-500 cursor-not-allowed'
+                            : applicationStatus[job.id] === 'rejected'
+                            ? 'bg-red-500 hover:bg-red-600'
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
                       >
-                        Apply
+                        {applicationStatus[job.id] === 'pending'
+                          ? 'Pending'
+                          : applicationStatus[job.id] === 'accepted'
+                          ? 'Accepted'
+                          : applicationStatus[job.id] === 'rejected'
+                          ? 'Apply Again'
+                          : 'Apply'}
                       </button>
                       <button
-                        onClick={() => handleViewJob(job.id)}
+                        onClick={() => handleViewJobDetails(job.id)}
                         className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"
                       >
                         View
@@ -486,20 +641,44 @@ export default function JobseekerDashboard() {
                       </div>
                     </div>
                     <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-end">
-                      <button
-                        onClick={() => handleSaveJob(job.id)}
-                        className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
-                      >
-                        Save
-                      </button>
+                      {savedJobIds.has(job.id) ? (
+                        <button
+                          onClick={() => handleUnsaveJob(job.id)}
+                          className="px-2 sm:px-3 py-1 sm:py-2 bg-red-50 border border-red-400 text-red-500 rounded-md text-xs sm:text-sm font-medium hover:bg-red-100 transition-all w-20 sm:w-24"
+                        >
+                          Unsave
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSaveJob(job.id)}
+                          className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
+                        >
+                          Save
+                        </button>
+                      )}
                       <button
                         onClick={() => handleQuickApply(job)}
-                        className="px-2 sm:px-3 py-1 sm:py-2 bg-green-600 text-white rounded-md text-xs sm:text-sm font-medium hover:bg-green-700 transition-all w-20 sm:w-24"
+                        disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
+                        className={`px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 ${
+                          applicationStatus[job.id] === 'pending'
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : applicationStatus[job.id] === 'accepted'
+                            ? 'bg-green-500 cursor-not-allowed'
+                            : applicationStatus[job.id] === 'rejected'
+                            ? 'bg-red-500 hover:bg-red-600'
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
                       >
-                        Apply
+                        {applicationStatus[job.id] === 'pending'
+                          ? 'Pending'
+                          : applicationStatus[job.id] === 'accepted'
+                          ? 'Accepted'
+                          : applicationStatus[job.id] === 'rejected'
+                          ? 'Apply Again'
+                          : 'Apply'}
                       </button>
                       <button
-                        onClick={() => handleViewJob(job.id)}
+                        onClick={() => handleViewJobDetails(job.id)}
                         className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"
                       >
                         View
