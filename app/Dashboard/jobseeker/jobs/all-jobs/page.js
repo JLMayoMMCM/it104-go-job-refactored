@@ -3,6 +3,57 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+function ExperienceLevelBadge({ level }) {
+  const map = {
+    "Entry Level": {
+      className: "bg-blue-100 text-blue-800 border border-blue-300 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "🟦",
+      style: { fontStyle: "italic" }
+    },
+    "Mid Level": {
+      className: "bg-green-50 text-green-800 border border-green-400 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "🟩",
+      style: {}
+    },
+    "Senior Level": {
+      className: "bg-gradient-to-r from-orange-100 to-orange-200 text-orange-900 border border-orange-300 rounded-lg px-3 py-0.5 text-xs font-bold flex items-center gap-1 shadow-sm",
+      icon: "🟧",
+      style: { fontWeight: "bold" }
+    },
+    "Managerial Level": {
+      className: "bg-purple-100 text-purple-800 border border-purple-300 rounded-full px-3 py-0.5 text-xs font-semibold flex items-center gap-1",
+      icon: "👔",
+      style: {}
+    },
+    "Executive Level": {
+      className: "bg-red-100 text-red-800 border-2 border-red-400 rounded-full px-3 py-0.5 text-xs font-extrabold flex items-center gap-1 shadow-lg",
+      icon: "👑",
+      style: { textShadow: "0 1px 2px #fff" }
+    },
+    "Not specified": {
+      className: "bg-gray-100 text-gray-800 border border-gray-300 rounded px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "❔",
+      style: {}
+    }
+  };
+  const { className, icon, style } = map[level] || map["Not specified"];
+  return (
+    <span className={className} style={style}>
+      <span>{icon}</span>
+      <span>{level}</span>
+    </span>
+  );
+}
+
+const experienceLevelColors = {
+  "Entry Level": "bg-blue-100 text-blue-800",
+  "Mid Level": "bg-green-100 text-green-800",
+  "Senior Level": "bg-orange-100 text-orange-800",
+  "Managerial Level": "bg-purple-100 text-purple-800",
+  "Executive Level": "bg-red-100 text-red-800",
+  "Not specified": "bg-gray-100 text-gray-800"
+};
+
 export default function AllJobs() {
   const [allJobs, setAllJobs] = useState([]);
   const [experienceLevels, setExperienceLevels] = useState([]);
@@ -71,12 +122,27 @@ export default function AllJobs() {
 
     // Apply job field filter
     if (filters.category !== 'all') {
-      filtered = filtered.filter(
-        job =>
+      filtered = filtered.filter(job => {
+        // Find the selected field id
+        const selectedFieldId = String(filters.category);
+        // If job has job_category_list (array of categories with field ids)
+        if (Array.isArray(job.job_category_list)) {
+          // Accept if any category's field id matches the selected field id
+          return job.job_category_list.some(jcl =>
+            String(jcl.job_category?.category_field?.category_field_id) === selectedFieldId
+          );
+        }
+        // Fallback: Accept if job.field matches the selected field name
+        const selectedField = jobFields.find(f => String(f.category_field_id) === selectedFieldId);
+        if (selectedField && job.field === selectedField.category_field_name) return true;
+        // Fallback: Accept if job.category_field_id/categoryFieldId/categoryId matches filter (legacy)
+        if (
           job.category_field_id === filters.category ||
           job.categoryFieldId === filters.category ||
-          job.categoryId === filters.category // fallback for legacy data
-      );
+          job.categoryId === filters.category
+        ) return true;
+        return false;
+      });
     }
 
     // Apply salary range filter
@@ -107,27 +173,50 @@ export default function AllJobs() {
     }
 
     // Apply experience level filter
-    if (filters.experienceLevel !== 'all') {
-      filtered = filtered.filter(job =>
-        String(job.job_experience_level_id) === String(filters.experienceLevel)
-      );
+    if (filters.experienceLevel !== 'all' && filters.experienceLevel !== '' && filters.experienceLevel != null) {
+      filtered = filtered.filter(job => {
+        // Only filter if job_experience_level_id is not null/undefined
+        if (job.job_experience_level_id == null) return false;
+        return String(job.job_experience_level_id) === String(filters.experienceLevel);
+      });
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (filters.sort) {
-        case 'newest':
-          return new Date(b.postedDate) - new Date(a.postedDate);
-        case 'oldest':
-          return new Date(a.postedDate) - new Date(b.postedDate);
-        case 'salary_high':
-          return parseInt(b.salary?.replace(/[^\d]/g, '') || '0') - parseInt(a.salary?.replace(/[^\d]/g, '') || '0');
-        case 'salary_low':
-          return parseInt(a.salary?.replace(/[^\d]/g, '') || '0') - parseInt(b.salary?.replace(/[^\d]/g, '') || '0');
-        default:
-          return new Date(b.postedDate) - new Date(a.postedDate);
+  // Apply sorting
+  filtered.sort((a, b) => {
+    // Helper to get numeric salary, -1 if invalid/missing
+    const getSalary = (job) => {
+      if (typeof job.salary === "number") return job.salary;
+      if (typeof job.salary === "string") {
+        const num = parseInt(job.salary.replace(/[^\d]/g, ""));
+        return isNaN(num) ? -1 : num;
       }
-    });
+      return -1;
+    };
+    switch (filters.sort) {
+      case "newest":
+        return new Date(b.postedDate) - new Date(a.postedDate);
+      case "oldest":
+        return new Date(a.postedDate) - new Date(b.postedDate);
+      case "salary_high": {
+        const salaryA = getSalary(a);
+        const salaryB = getSalary(b);
+        if (salaryA === -1 && salaryB === -1) return 0;
+        if (salaryA === -1) return 1; // a missing, b valid: b first
+        if (salaryB === -1) return -1; // b missing, a valid: a first
+        return salaryB - salaryA;
+      }
+      case "salary_low": {
+        const salaryA = getSalary(a);
+        const salaryB = getSalary(b);
+        if (salaryA === -1 && salaryB === -1) return 0;
+        if (salaryA === -1) return 1; // a missing, b valid: b first
+        if (salaryB === -1) return -1; // b missing, a valid: a first
+        return salaryA - salaryB;
+      }
+      default:
+        return new Date(b.postedDate) - new Date(a.postedDate);
+    }
+  });
 
     setFilteredJobs(filtered);
     setCurrentPage(1); // Reset to first page when filters change
@@ -571,7 +660,12 @@ export default function AllJobs() {
                   } hover:shadow-md transition-shadow`}
                 >
                   <div className="mb-3 md:mb-0 md:w-1/3">
-                    <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
+                    <h4 className="text-lg font-semibold text-[var(--foreground)] flex items-center gap-2">
+                      {job.title}
+{job.experienceLevel && (
+  <ExperienceLevelBadge level={job.experienceLevel} />
+)}
+                    </h4>
                     {/* Categories and Field */}
                     <div className="flex flex-wrap gap-2 mb-1">
                       {Array.isArray(job.categories) && job.categories.map((cat, idx) => (
@@ -640,31 +734,44 @@ export default function AllJobs() {
                     >
                       {savedJobs[job.id] ? 'Unsave' : 'Save'}
                     </button>
-                    {(() => {
-                      // Determine button state based on all applications for this job
-                      const apps = applicationStatus[job.id] || [];
-                      let btn = {
-                        label: 'Apply',
-                        disabled: false,
-                        className: 'bg-green-600 hover:bg-green-700'
-                      };
-                      if (apps.some(app => (app.status || '').toLowerCase() === 'accepted')) {
-                        btn = {
-                          label: 'Accepted',
-                          disabled: true,
-                          className: 'bg-green-500 cursor-not-allowed'
-                        };
-                      }
-                      return (
-                        <button
-                          onClick={() => handleQuickApply(job)}
-                          disabled={btn.disabled}
-                          className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
-                        >
-                          {btn.label}
-                        </button>
-                      );
-                    })()}
+{(() => {
+  // Determine button state based on all applications for this job
+  const apps = applicationStatus[job.id] || [];
+  let btn = {
+    label: "Apply",
+    disabled: false,
+    className: "bg-green-600 hover:bg-green-700"
+  };
+  if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "accepted")) {
+    btn = {
+      label: "Accepted",
+      disabled: true,
+      className: "bg-green-500 cursor-not-allowed"
+    };
+  } else if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "in-progress" || (app.status || app.Status || "").toLowerCase() === "pending")) {
+    btn = {
+      label: "Pending",
+      disabled: true,
+      className: "bg-gray-400 cursor-not-allowed"
+    };
+  } else if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "rejected")) {
+    // If all are rejected, allow apply (default)
+    btn = {
+      label: "Apply",
+      disabled: false,
+      className: "bg-green-600 hover:bg-green-700"
+    };
+  }
+  return (
+    <button
+      onClick={() => handleQuickApply(job)}
+      disabled={btn.disabled}
+      className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
+    >
+      {btn.label}
+    </button>
+  );
+})()}
                     <button
                       onClick={() => handleViewJob(job.id)}
                       className="btn btn-primary text-sm"

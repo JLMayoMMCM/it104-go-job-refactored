@@ -194,6 +194,7 @@ async function handleSearchJobs(supabase, filters, accountId) {
       posted: postedAgo, // For compatibility
       description: job.job_description?.substring(0, 150) + '...' || 'No description available',
       experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
+      job_experience_level_id: job.job_experience_level_id || null,
       categories: categories,
       field: field,
       closingDate: job.job_closing_date || null,
