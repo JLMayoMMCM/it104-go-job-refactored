@@ -102,11 +102,13 @@ export default function LoginPage() {
                     setUserType('1');
                     setTheme('employee');
                   }}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                    userType === '1'
-                      ? 'border-[var(--primary-color)] bg-[var(--light-color)] text-[var(--text-dark)]'
-                      : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
-                  }`}
+className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+  userType === '1'
+    ? (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'border-[var(--primary-color)] bg-[var(--primary-color)] text-[#fff]'
+        : 'border-[var(--primary-color)] bg-[var(--light-color)] text-[#222831]')
+    : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
+}`}
                 >
                   Employee
                 </button>
@@ -116,11 +118,13 @@ export default function LoginPage() {
                     setUserType('2');
                     setTheme('jobseeker');
                   }}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                    userType === '2'
-                      ? 'border-[var(--primary-color)] bg-[var(--light-color)] text-[var(--text-dark)]'
-                      : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
-                  }`}
+className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+  userType === '2'
+    ? (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'border-[var(--primary-color)] bg-[var(--primary-color)] text-[#fff]'
+        : 'border-[var(--primary-color)] bg-[var(--light-color)] text-[#222831]')
+    : 'border-[var(--border-color)] bg-[var(--card-background)] text-[var(--foreground)] hover:border-[var(--hover-color)]'
+}`}
                 >
                   Jobseeker
                 </button>

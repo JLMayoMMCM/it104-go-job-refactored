@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function AllJobs() {
   const [allJobs, setAllJobs] = useState([]);
+  const [experienceLevels, setExperienceLevels] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [displayedJobs, setDisplayedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,15 +18,18 @@ export default function AllJobs() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
+  // applicationStatus: { [jobId]: array of applications }
   const [applicationStatus, setApplicationStatus] = useState({});
   const [savedJobs, setSavedJobs] = useState({});
-  const [categories, setCategories] = useState([]);
+  const [jobFields, setJobFields] = useState([]);
+  // const [jobCategories, setJobCategories] = useState([]);
   
   // Filter states
   const [filters, setFilters] = useState({
     sort: 'newest',
     category: 'all',
-    salaryRange: 'all'
+    salaryRange: 'all',
+    experienceLevel: 'all'
   });
   
   const router = useRouter();
@@ -42,7 +46,9 @@ export default function AllJobs() {
       return;
     }
     
-    fetchCategories();
+    fetchJobFields();
+    // fetchJobCategories();
+    fetchExperienceLevels();
     fetchAllJobs(accountId);
     fetchApplicationStatus(accountId);
     fetchSavedJobs(accountId);
@@ -63,30 +69,48 @@ export default function AllJobs() {
       );
     }
 
-    // Apply category filter
+    // Apply job field filter
     if (filters.category !== 'all') {
-      filtered = filtered.filter(job => job.categoryId === filters.category);
+      filtered = filtered.filter(
+        job =>
+          job.category_field_id === filters.category ||
+          job.categoryFieldId === filters.category ||
+          job.categoryId === filters.category // fallback for legacy data
+      );
     }
 
     // Apply salary range filter
     if (filters.salaryRange !== 'all') {
       filtered = filtered.filter(job => {
-        const salary = parseInt(job.salary?.replace(/[^\d]/g, '') || '0');
+        let salaryNum = 0;
+        if (typeof job.salary === 'number') {
+          salaryNum = job.salary;
+        } else if (typeof job.salary === 'string') {
+          // Remove non-digits and parse
+          salaryNum = parseInt(job.salary.replace(/[^\d]/g, '')) || 0;
+        }
         switch (filters.salaryRange) {
           case '0-20000':
-            return salary <= 20000;
+            return salaryNum <= 20000;
           case '20001-40000':
-            return salary >= 20001 && salary <= 40000;
+            return salaryNum >= 20001 && salaryNum <= 40000;
           case '40001-60000':
-            return salary >= 40001 && salary <= 60000;
+            return salaryNum >= 40001 && salaryNum <= 60000;
           case '60001-80000':
-            return salary >= 60001 && salary <= 80000;
+            return salaryNum >= 60001 && salaryNum <= 80000;
           case '80001+':
-            return salary >= 80001;
+            return salaryNum >= 80001;
           default:
             return true;
         }
       });
+    }
+
+    // Apply experience level filter
+    if (filters.experienceLevel !== 'all') {
+      filtered = filtered.filter(job =>
+        String(job.job_experience_level_id) === String(filters.experienceLevel)
+      );
     }
 
     // Apply sorting
@@ -94,6 +118,8 @@ export default function AllJobs() {
       switch (filters.sort) {
         case 'newest':
           return new Date(b.postedDate) - new Date(a.postedDate);
+        case 'oldest':
+          return new Date(a.postedDate) - new Date(b.postedDate);
         case 'salary_high':
           return parseInt(b.salary?.replace(/[^\d]/g, '') || '0') - parseInt(a.salary?.replace(/[^\d]/g, '') || '0');
         case 'salary_low':
@@ -115,16 +141,28 @@ export default function AllJobs() {
     setTotalPages(Math.ceil(filteredJobs.length / jobsPerPage));
   }, [filteredJobs, currentPage]);
 
-  const fetchCategories = async () => {
+  // Fetch all job fields (category_field)
+  const fetchJobFields = async () => {
     try {
       const response = await fetch('/api/data/job-fields');
       const data = await response.json();
-      
       if (response.ok && data.success && data.data) {
-        setCategories(data.data);
+        setJobFields(data.data);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching job fields:', error);
+    }
+  };
+
+  const fetchExperienceLevels = async () => {
+    try {
+      const response = await fetch('/api/data/experience-levels');
+      const data = await response.json();
+      if (response.ok && data.success && data.data) {
+        setExperienceLevels(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching experience levels:', error);
     }
   };
 
@@ -132,17 +170,23 @@ export default function AllJobs() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch all jobs using search functionality with type='search'
       const queryParams = new URLSearchParams({
         accountId: accountId,
         type: 'search',
-        limit: '1000', // Large limit to get all jobs
-        sort: 'newest'
+        limit: '1000'
       });
-      
+
       const response = await fetch(`/api/jobseeker/jobs?${queryParams}`);
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const text = await response.text();
+        console.error('Non-JSON response from /api/jobseeker/jobs:', text);
+        throw new Error('Server returned invalid JSON. See console for details.');
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch jobs');
@@ -168,9 +212,11 @@ export default function AllJobs() {
       const data = await response.json();
       
       if (response.ok && data.success && data.data) {
+        // Group all applications by jobId
         const statusMap = {};
         data.data.forEach(app => {
-          statusMap[app.jobId] = app.status;
+          if (!statusMap[app.jobId]) statusMap[app.jobId] = [];
+          statusMap[app.jobId].push(app);
         });
         setApplicationStatus(statusMap);
       }
@@ -417,12 +463,15 @@ export default function AllJobs() {
               <button
                 type="button"
                 onClick={() => setShowFilterModal(true)}
-                className="btn btn-secondary px-6 py-3 flex items-center gap-2 text-[var(--foreground)]"
+                className="btn btn-secondary flex items-center justify-center gap-2 text-[var(--foreground)] w-full max-w-[140px] mx-auto"
+                style={{ minHeight: "44px" }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                </svg>
-                Filters
+                <span className="flex items-center justify-center gap-2 w-full">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                  </svg>
+                  <span>Filters</span>
+                </span>
               </button>
             </div>
           </div>
@@ -433,7 +482,7 @@ export default function AllJobs() {
               <span className="text-sm text-[var(--text-light)]">Active filters:</span>
               {filters.category !== 'all' && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
-                  Category: {categories.find(c => c.category_field_id === filters.category)?.category_field_name}
+                  Category: {jobFields.find(f => f.category_field_id === filters.category)?.category_field_name}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, category: 'all' }))}
                     className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
@@ -485,7 +534,7 @@ export default function AllJobs() {
       </div>
 
       {/* Jobs List */}
-      <div className="card">
+      <div className="card" style={{ overflowX: 'auto' }}>
         <div className="p-6">
           {displayedJobs.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
@@ -523,8 +572,30 @@ export default function AllJobs() {
                 >
                   <div className="mb-3 md:mb-0 md:w-1/3">
                     <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
+                    {/* Categories and Field */}
+                    <div className="flex flex-wrap gap-2 mb-1">
+                      {Array.isArray(job.categories) && job.categories.map((cat, idx) => (
+                        <span key={job.id + '-' + cat} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{cat}</span>
+                      ))}
+                      {job.field && (
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{job.field}</span>
+                      )}
+                    </div>
                     <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
                     <p className="text-sm text-[var(--text-light)] mt-1">{job.posted}</p>
+                    {/* Closing Date and Job Time */}
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {job.closingDate && (
+                        <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
+                          Deadline: {new Date(job.closingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                      {job.jobTime && (
+                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                          {job.jobTime}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
                     <div className="flex items-center text-[var(--text-light)] text-sm">
@@ -538,6 +609,16 @@ export default function AllJobs() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       {job.salary}
+                    </div>
+                    {/* Job Time Column */}
+                    <div className="flex items-center text-[var(--text-light)] text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {job.jobTime && typeof job.jobTime === 'string' && job.jobTime.trim() !== ''
+                        ? job.jobTime
+                        : <span className="text-xs text-gray-400">No time specified</span>
+                      }
                     </div>
                     {(job.matchPercentage || job.match) > 0 && (
                       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -559,27 +640,31 @@ export default function AllJobs() {
                     >
                       {savedJobs[job.id] ? 'Unsave' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => handleQuickApply(job)}
-                      disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
-                      className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
-                        applicationStatus[job.id] === 'pending'
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : applicationStatus[job.id] === 'accepted'
-                          ? 'bg-green-500 cursor-not-allowed'
-                          : applicationStatus[job.id] === 'rejected'
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {applicationStatus[job.id] === 'pending'
-                        ? 'Pending'
-                        : applicationStatus[job.id] === 'accepted'
-                        ? 'Accepted'
-                        : applicationStatus[job.id] === 'rejected'
-                        ? 'Apply Again'
-                        : 'Apply'}
-                    </button>
+                    {(() => {
+                      // Determine button state based on all applications for this job
+                      const apps = applicationStatus[job.id] || [];
+                      let btn = {
+                        label: 'Apply',
+                        disabled: false,
+                        className: 'bg-green-600 hover:bg-green-700'
+                      };
+                      if (apps.some(app => (app.status || '').toLowerCase() === 'accepted')) {
+                        btn = {
+                          label: 'Accepted',
+                          disabled: true,
+                          className: 'bg-green-500 cursor-not-allowed'
+                        };
+                      }
+                      return (
+                        <button
+                          onClick={() => handleQuickApply(job)}
+                          disabled={btn.disabled}
+                          className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
+                        >
+                          {btn.label}
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={() => handleViewJob(job.id)}
                       className="btn btn-primary text-sm"
@@ -684,21 +769,25 @@ export default function AllJobs() {
                   className="form-input"
                 >
                   <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
                   <option value="salary_high">Highest Salary</option>
                   <option value="salary_low">Lowest Salary</option>
                 </select>
               </div>
               <div>
-                <label className="form-label">Job Category</label>
+                <label className="form-label">Job Field</label>
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
                   className="form-input"
                 >
-                  <option value="all">All Categories</option>
-                  {categories.map(cat => (
-                    <option key={cat.category_field_id} value={cat.category_field_id}>
-                      {cat.category_field_name}
+                  <option value="all">All Fields</option>
+                  {jobFields.map((field) => (
+                    <option
+                      key={field.category_field_id}
+                      value={field.category_field_id}
+                    >
+                      {field.category_field_name}
                     </option>
                   ))}
                 </select>
@@ -710,12 +799,27 @@ export default function AllJobs() {
                   onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
                   className="form-input"
                 >
-                  <option value="all">All Salary Ranges</option>
-                  <option value="0-20000">Below ₱20,000</option>
-                  <option value="20001-40000">₱20,001 - ₱40,000</option>
-                  <option value="40001-60000">₱40,001 - ₱60,000</option>
-                  <option value="60001-80000">₱60,001 - ₱80,000</option>
-                  <option value="80001+">Above ₱80,000</option>
+                  <option key="all" value="all">All Salary Ranges</option>
+                  <option key="0-20000" value="0-20000">Below ₱20,000</option>
+                  <option key="20001-40000" value="20001-40000">₱20,001 - ₱40,000</option>
+                  <option key="40001-60000" value="40001-60000">₱40,001 - ₱60,000</option>
+                  <option key="60001-80000" value="60001-80000">₱60,001 - ₱80,000</option>
+                  <option key="80001+" value="80001+">Above ₱80,000</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Job Experience Level</label>
+                <select
+                  value={filters.experienceLevel}
+                  onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                  className="form-input"
+                >
+                  <option key="all" value="all">All Experience Levels</option>
+                  {experienceLevels.map(level => (
+                    <option key={level.job_seeker_experience_level_id} value={level.job_seeker_experience_level_id}>
+                      {level.experience_level_name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { calculateJobMatch, prepareJobSeekerDataForMatching } from '../../../lib
 async function handleSearchJobs(supabase, filters, accountId) {
   const { page, limit, search, sort, category, jobType, experienceLevel, salaryMin, salaryMax, location, jobSeekerData } = filters;
   
-  // Build the query
+
   let query = supabase
     .from('job')
     .select(`
@@ -16,6 +16,7 @@ async function handleSearchJobs(supabase, filters, accountId) {
       job_salary,
       job_posted_date,
       job_closing_date,
+      job_time,
       job_is_active,
       job_experience_level_id,      company:company_id (
         company_name
@@ -169,25 +170,37 @@ async function handleSearchJobs(supabase, filters, accountId) {
       rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
     }
 
-      return {
-        id: job.job_id,
-        jobId: job.job_id, // For compatibility
-        title: job.job_name,
-        company: job.company?.company_name || 'Unknown Company',
-        location: job.job_location || 'Not specified',
-        jobType: job.job_type?.job_type_name || 'Full-time',
-        type: job.job_type?.job_type_name || 'Full-time', // For compatibility
-        salary: job.job_salary || 'Salary not specified',
-        rating: rating,
-        postedDate: postedAgo,
-        posted: postedAgo, // For compatibility
-        description: job.job_description?.substring(0, 150) + '...' || 'No description available',
-        experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
-        category: job.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
-        field: job.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',
-        match: matchPercentage,
-        matchPercentage: matchPercentage
-      };
+    // Gather all categories and field
+    const categories = (job.job_category_list || [])
+      .map(jcl => jcl.job_category?.job_category_name)
+      .filter(Boolean);
+
+    // Use the first field found (all categories should have the same field)
+    const field = (job.job_category_list && job.job_category_list.length > 0)
+      ? job.job_category_list[0].job_category?.category_field?.category_field_name
+      : 'Not specified';
+
+    return {
+      id: job.job_id,
+      jobId: job.job_id, // For compatibility
+      title: job.job_name,
+      company: job.company?.company_name || 'Unknown Company',
+      location: job.job_location || 'Not specified',
+      jobType: job.job_type?.job_type_name || 'Full-time',
+      type: job.job_type?.job_type_name || 'Full-time', // For compatibility
+      salary: job.job_salary || 'Salary not specified',
+      rating: rating,
+      postedDate: postedAgo,
+      posted: postedAgo, // For compatibility
+      description: job.job_description?.substring(0, 150) + '...' || 'No description available',
+      experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
+      categories: categories,
+      field: field,
+      closingDate: job.job_closing_date || null,
+      jobTime: job.job_time || null,
+      match: matchPercentage,
+      matchPercentage: matchPercentage
+    };
   }) || [];
 
   return NextResponse.json({
@@ -214,6 +227,8 @@ export async function GET(request) {
     const salaryMin = searchParams.get('salaryMin') || '';
     const salaryMax = searchParams.get('salaryMax') || '';
     const location = searchParams.get('location') || '';
+    // For compatibility with frontend filter
+    const salaryRange = searchParams.get('salaryRange') || '';
 
     if (!accountId) {
       return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
@@ -234,6 +249,27 @@ export async function GET(request) {
 
     // Handle search/filter functionality
     if (type === 'search' || search || category || jobType || experienceLevel || salaryMin || salaryMax || location) {
+      // Parse salary range if provided (for compatibility with frontend)
+      let salaryMinValue = salaryMin;
+      let salaryMaxValue = salaryMax;
+      if (salaryRange) {
+        if (salaryRange === '0-20000') {
+          salaryMinValue = 0;
+          salaryMaxValue = 20000;
+        } else if (salaryRange === '20001-40000') {
+          salaryMinValue = 20001;
+          salaryMaxValue = 40000;
+        } else if (salaryRange === '40001-60000') {
+          salaryMinValue = 40001;
+          salaryMaxValue = 60000;
+        } else if (salaryRange === '60001-80000') {
+          salaryMinValue = 60001;
+          salaryMaxValue = 80000;
+        } else if (salaryRange === '80001+') {
+          salaryMinValue = 80001;
+          salaryMaxValue = null;
+        }
+      }
       return await handleSearchJobs(supabase, {
         page,
         limit,
@@ -242,8 +278,8 @@ export async function GET(request) {
         category,
         jobType,
         experienceLevel,
-        salaryMin,
-        salaryMax,
+        salaryMin: salaryMinValue,
+        salaryMax: salaryMaxValue,
         location,
         jobSeekerData
       }, accountId);
@@ -252,7 +288,6 @@ export async function GET(request) {
     if (type === 'recommended') {
       // Prepare job seeker data for enhanced matching
       const jobSeekerMatchingData = await prepareJobSeekerDataForMatching(supabase, accountId, jobSeekerData.job_seeker_id);
-
       if (!jobSeekerMatchingData || jobSeekerMatchingData.preferredFields.length === 0) {
         // If no preferences, return empty recommended jobs
         return NextResponse.json({
@@ -281,11 +316,41 @@ export async function GET(request) {
         });
       }
 
-      // Get jobs that match the categories
-      const { data: jobCategoryList, error: jclError } = await supabase
+      // Get jobs that match the categories and experience level
+      let jobsQuery = supabase
         .from('job_category_list')
         .select('job_id')
         .in('job_category_id', categoryIds);
+
+      // Filter by experience level if present (from filter or user profile)
+      let experienceLevelFilter = experienceLevel;
+      if (experienceLevelFilter && experienceLevelFilter !== 'all') {
+        // Join with job table to filter by experience level
+        const { data: jobIdsByExp, error: expError } = await supabase
+          .from('job')
+          .select('job_id')
+          .eq('job_experience_level_id', experienceLevelFilter);
+        if (expError) {
+          console.error('Experience level filter error:', expError);
+          return NextResponse.json({ success: false, error: 'Failed to filter by experience level' }, { status: 500 });
+        }
+        const expJobIds = jobIdsByExp?.map(j => j.job_id) || [];
+        jobsQuery = jobsQuery.in('job_id', expJobIds);
+      } else if (jobSeekerMatchingData.experienceLevelId) {
+        // Default to user's experience level if no filter is set
+        const { data: jobIdsByExp, error: expError } = await supabase
+          .from('job')
+          .select('job_id')
+          .eq('job_experience_level_id', jobSeekerMatchingData.experienceLevelId);
+        if (expError) {
+          console.error('Experience level filter error:', expError);
+          return NextResponse.json({ success: false, error: 'Failed to filter by experience level' }, { status: 500 });
+        }
+        const expJobIds = jobIdsByExp?.map(j => j.job_id) || [];
+        jobsQuery = jobsQuery.in('job_id', expJobIds);
+      }
+
+      const { data: jobCategoryList, error: jclError } = await jobsQuery;
 
       if (jclError) {
         console.error('Job category list fetch error:', jclError);
@@ -514,7 +579,6 @@ export async function GET(request) {
     } else {
       return NextResponse.json({ success: false, error: 'Invalid type parameter. Use "recommended" or "recent"' }, { status: 400 });
     }
-
   } catch (error) {
     console.error('Unexpected error fetching jobseeker jobs:', error);
     return NextResponse.json({ 

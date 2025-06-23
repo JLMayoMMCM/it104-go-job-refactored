@@ -590,27 +590,27 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
                           Save
                         </button>
                       )}
-                      <button
-                        onClick={() => handleQuickApply(job)}
-                        disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
-                        className={`px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 ${
-                          applicationStatus[job.id] === 'pending'
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : applicationStatus[job.id] === 'accepted'
-                            ? 'bg-green-500 cursor-not-allowed'
-                            : applicationStatus[job.id] === 'rejected'
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        {applicationStatus[job.id] === 'pending'
-                          ? 'Pending'
-                          : applicationStatus[job.id] === 'accepted'
-                          ? 'Accepted'
-                          : applicationStatus[job.id] === 'rejected'
-                          ? 'Apply Again'
-                          : 'Apply'}
-                      </button>
+                      {(() => {
+                        const status = (applicationStatus[job.id] || '').toLowerCase();
+                        if (status === 'accepted') {
+                          return (
+                            <button
+                              disabled
+                              className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-500 cursor-not-allowed"
+                            >
+                              Accepted
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => handleQuickApply(job)}
+                            className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-600 hover:bg-green-700"
+                          >
+                            Apply
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => handleViewJobDetails(job.id)}
                         className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"
@@ -697,27 +697,27 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
                           Save
                         </button>
                       )}
-                      <button
-                        onClick={() => handleQuickApply(job)}
-                        disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
-                        className={`px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 ${
-                          applicationStatus[job.id] === 'pending'
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : applicationStatus[job.id] === 'accepted'
-                            ? 'bg-green-500 cursor-not-allowed'
-                            : applicationStatus[job.id] === 'rejected'
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        {applicationStatus[job.id] === 'pending'
-                          ? 'Pending'
-                          : applicationStatus[job.id] === 'accepted'
-                          ? 'Accepted'
-                          : applicationStatus[job.id] === 'rejected'
-                          ? 'Apply Again'
-                          : 'Apply'}
-                      </button>
+                      {(() => {
+                        const status = (applicationStatus[job.id] || '').toLowerCase();
+                        if (status === 'accepted') {
+                          return (
+                            <button
+                              disabled
+                              className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-500 cursor-not-allowed"
+                            >
+                              Accepted
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => handleQuickApply(job)}
+                            className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-600 hover:bg-green-700"
+                          >
+                            Apply
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => handleViewJobDetails(job.id)}
                         className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"

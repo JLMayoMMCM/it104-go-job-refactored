@@ -161,6 +161,19 @@ export async function GET(request) {
       }
     }
 
+    // Build categories array
+    const categories = (jobData.job_category_list || [])
+      .map(jcl => {
+        const cat = jcl.job_category;
+        return cat
+          ? {
+              name: cat.job_category_name || 'Not specified',
+              field: cat.category_field?.category_field_name || 'Not specified'
+            }
+          : null;
+      })
+      .filter(Boolean);
+
     const formattedJob = {
       id: jobData.job_id,
       title: jobData.job_name,
@@ -178,7 +191,8 @@ export async function GET(request) {
       experienceLevel: jobData.experience_level?.experience_level_name || 'Not specified',
       category: jobData.job_category_list?.[0]?.job_category?.job_category_name || 'Not specified',
       field: jobData.job_category_list?.[0]?.job_category?.category_field?.category_field_name || 'Not specified',
-      matchPercentage: matchPercentage
+      matchPercentage: matchPercentage,
+      categories // <-- new array of all categories/fields
     };
 
     return NextResponse.json({

@@ -7,6 +7,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState('unread'); // 'unread' or 'read'
   const router = useRouter();
 
   useEffect(() => {
@@ -165,130 +166,102 @@ export default function NotificationsPage() {
 
   const unreadNotifications = notifications.filter(notif => !notif.is_read);
   const readNotifications = notifications.filter(notif => notif.is_read);
+  const filteredNotifications = filter === 'unread' ? unreadNotifications : readNotifications;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="profile-header flex flex-col sm:flex-row justify-between items-center mb-4">
-        <div>
-          <h1 className="text-heading">Notifications</h1>
-          <p className="text-description">View updates and alerts</p>
-        </div>
-        {unreadNotifications.length > 0 && (
+    <div className="w-full px-0 py-8">
+      {/* Header & Filter Section */}
+      <div className="bg-white dark:bg-[var(--background)] border-b border-[var(--border-color)] px-6 py-6 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl font-bold text-[var(--foreground)] mb-4 sm:mb-0">Notifications</h1>
+        <div className="flex gap-3">
           <button
-            onClick={handleMarkAllAsRead}
-            className="btn btn-primary"
+            className={`btn btn-secondary px-4 py-2 ${filter === 'unread' ? 'ring-2 ring-[var(--primary-color)]' : ''}`}
+            onClick={() => setFilter('unread')}
           >
-            Mark All as Read
+            Unread
           </button>
-        )}
+          <button
+            className={`btn btn-secondary px-4 py-2 ${filter === 'read' ? 'ring-2 ring-[var(--primary-color)]' : ''}`}
+            onClick={() => setFilter('read')}
+          >
+            Read
+          </button>
+        </div>
       </div>
 
-      {/* Unread Notifications */}
-      <div className="card overflow-hidden">
-        <div className="panel-header text-white">
-          <h3 className="text-heading">Unread Notifications ({unreadNotifications.length})</h3>
+      {/* Table Section */}
+      <div className="card w-full overflow-hidden px-0 py-0">
+        {/* Table Title */}
+        <div className="flex items-center justify-between px-6 pt-6 mb-2">
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">
+            {filter === 'unread'
+              ? `Unread Notifications (${unreadNotifications.length})`
+              : `Read Notifications (${readNotifications.length})`}
+          </h2>
         </div>
-        <div className="p-6">
-          {unreadNotifications.length > 0 ? (
-            <div className="space-y-4">
-              {unreadNotifications.map(notification => (
-                <div key={notification.id} className="border border-[var(--primary-color)] rounded-xl p-6 bg-[var(--card-background)] text-[var(--foreground)] hover:shadow-lg transition-all duration-200 dark:bg-[var(--background)] dark:text-[var(--text-light)]">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        {getNotificationIcon(notification.type, false)}
-                        <h4 className="text-lg font-semibold text-[var(--foreground)]">{notification.title}</h4>
-                      </div>
-                      <div className="flex items-center space-x-6 text-sm text-[var(--text-light)] mb-3">
-                        <div className="flex items-center space-x-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span>{formatDate(notification.created_at)}</span>
-                        </div>
-                        {notification.sender_name && (
-                          <div className="flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span>From: {notification.sender_name}</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-[var(--foreground)]">{notification.message}</p>
-                    </div>
-                    <div className="ml-4">
-                      <button
-                        onClick={() => handleMarkAsRead(notification.id)}
-                        className="btn btn-secondary"
-                      >
-                        Mark as Read
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Notifications Table with fixed height and overflow */}
+        <div className="overflow-x-auto w-full h-[420px] overflow-y-auto px-6">
+          {filteredNotifications.length > 0 ? (
+            <table className="w-full min-w-[900px] divide-y divide-[var(--border-color)]">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Type</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Title</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Message</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Date</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Sender</th>
+                  {filter === 'unread' && <th className="px-4 py-2"></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNotifications.map(notification => (
+                  <tr key={notification.id} className="border-b border-[var(--border-color)] hover:bg-[var(--light-color)] transition">
+                    <td className="px-4 py-3">{getNotificationIcon(notification.type, notification.is_read)}</td>
+                    <td className="px-4 py-3 font-semibold">{notification.title}</td>
+                    <td className="px-4 py-3">{notification.message}</td>
+                    <td className="px-4 py-3">{formatDate(notification.created_at)}</td>
+                    <td className="px-4 py-3">{notification.sender_name || '-'}</td>
+                    {filter === 'unread' ? (
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="btn btn-secondary"
+                        >
+                          Mark as Read
+                        </button>
+                      </td>
+                    ) : (
+                      <td className="px-4 py-3"></td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
-              <h3 className="mt-2 text-lg font-medium text-[var(--foreground)]">No unread notifications</h3>
-              <p className="mt-1 text-[var(--text-light)]">You're all caught up! Check back later for updates.</p>
+              <h3 className="mt-2 text-lg font-medium text-[var(--foreground)]">
+                {filter === 'unread' ? 'No unread notifications' : 'No read notifications'}
+              </h3>
+              <p className="mt-1 text-[var(--text-light)]">
+                {filter === 'unread'
+                  ? "You're all caught up! Check back later for updates."
+                  : "You haven't read any notifications yet."}
+              </p>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Read Notifications */}
-      <div className="card overflow-hidden">
-        <div className="panel-header text-white">
-          <h3 className="text-heading">Read Notifications ({readNotifications.length})</h3>
-        </div>
-        <div className="p-6">
-          {readNotifications.length > 0 ? (
-            <div className="space-y-4">
-              {readNotifications.map(notification => (
-                <div key={notification.id} className="border border-[var(--primary-color)] rounded-xl p-6 bg-[var(--card-background)] text-[var(--foreground)] hover:shadow-lg transition-all duration-200 dark:bg-[var(--background)] dark:text-[var(--text-light)]">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        {getNotificationIcon(notification.type, true)}
-                        <h4 className="text-lg font-medium text-[var(--foreground)]">{notification.title}</h4>
-                      </div>
-                      <div className="flex items-center space-x-6 text-sm text-[var(--text-light)] mb-3">
-                        <div className="flex items-center space-x-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span>{formatDate(notification.created_at)}</span>
-                        </div>
-                        {notification.sender_name && (
-                          <div className="flex items-center space-x-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span>From: {notification.sender_name}</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-[var(--foreground)]">{notification.message}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <h3 className="mt-2 text-lg font-medium text-[var(--foreground)]">No read notifications</h3>
-              <p className="mt-1 text-[var(--text-light)]">You haven't read any notifications yet.</p>
-            </div>
-          )}
+        {/* Mark All as Read Button - bottom right */}
+        <div className="flex justify-end mt-4 pr-8 pb-6">
+          <button
+            onClick={unreadNotifications.length > 0 ? handleMarkAllAsRead : undefined}
+            className={`btn ${unreadNotifications.length > 0 ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`}
+            disabled={unreadNotifications.length === 0}
+          >
+            Mark All as Read
+          </button>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ export default function JobDetails() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
-  const [applicationStatus, setApplicationStatus] = useState(null);
+  const [applicationStatus, setApplicationStatus] = useState(null); // 'apply', 'pending', 'accepted', 'rejected'
   const [isSaved, setIsSaved] = useState(false);
   
   const router = useRouter();
@@ -62,11 +62,32 @@ export default function JobDetails() {
 
   const fetchApplicationStatus = async (accountId, jobId) => {
     try {
+      // Fetch all applications for this job and jobseeker
       const response = await fetch(`/api/jobseeker/applications/status?accountId=${accountId}&jobId=${jobId}`);
       const data = await response.json();
-      
+
+      // data.status can be a string or an array of applications
+      // We'll support both for backward compatibility
       if (response.ok && data.success) {
-        setApplicationStatus(data.status);
+        let status = 'apply';
+        if (Array.isArray(data.applications)) {
+          // New API: array of applications with status fields
+          const apps = data.applications;
+          if (apps.some(app => app.status === 'Accepted' || app.status === 'accepted')) {
+            status = 'accepted';
+          } else if (apps.some(app => app.status === 'In-progress' || app.status === 'pending')) {
+            status = 'pending';
+          } else if (apps.length === 0 || apps.every(app => app.status === 'Rejected' || app.status === 'rejected')) {
+            status = 'apply';
+          }
+        } else if (typeof data.status === 'string') {
+          // Old API: single status string
+          if (data.status === 'accepted') status = 'accepted';
+          else if (data.status === 'pending') status = 'pending';
+          else if (data.status === 'rejected') status = 'apply';
+          else status = 'apply';
+        }
+        setApplicationStatus(status);
       }
     } catch (error) {
       console.error('Error fetching application status:', error);
@@ -264,15 +285,6 @@ export default function JobDetails() {
         <p className="text-description text-[var(--light-color)]">
           {job.company || 'Company'} • {job.location || 'Location'}
           {job.companyRating > 0 && <span> • ⭐ {job.companyRating.toFixed(1)}/5.0</span>}
-          {job.matchPercentage > 0 && (
-            <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-              job.matchPercentage >= 80 ? 'bg-green-100 text-green-800' : 
-              job.matchPercentage >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-              'bg-red-100 text-red-800'
-            }`}>
-              {job.matchPercentage}% Match
-            </span>
-          )}
         </p>
       </div>
 
@@ -315,6 +327,28 @@ export default function JobDetails() {
                   </div>
                 </div>
               </div>
+              {/* Categories and Fields */}
+              {Array.isArray(job.categories) && job.categories.length > 0 && (
+                <div className="mb-2">
+                  <div className="text-sm text-[var(--text-light)] mb-1">Categories</div>
+                  <div className="flex flex-wrap gap-2">
+                    {job.categories.map((cat, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block rounded-full bg-[var(--accent-color)] text-white px-3 py-1 text-xs font-semibold shadow-sm"
+                        style={{ background: "var(--accent-color)", color: "#fff" }}
+                      >
+                        {cat.name}
+                        {cat.field ? (
+                          <span className="ml-1 text-[var(--light-color)] font-normal">
+                            ({cat.field})
+                          </span>
+                        ) : null}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="text-description">
                 <p>Posted: {job.posted}</p>
                 {job.closingDate && <p>Application Deadline: {job.closingDate}</p>}
@@ -394,39 +428,45 @@ export default function JobDetails() {
               <div className="space-y-3">
                 <button
                   onClick={handleSaveJob}
-                  className="btn btn-secondary w-full flex items-center justify-center gap-2 py-3"
+                  className="btn btn-secondary w-full flex items-center justify-center gap-3 py-3 px-4"
+                  style={{ minHeight: "44px" }}
                 >
-                  <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
-                  <span className="font-medium">{isSaved ? 'Unsave Job' : 'Save Job'}</span>
-                </button>
-                <button
-                  onClick={handleApply}
-                  disabled={applicationStatus === 'pending' || applicationStatus === 'accepted'}
-                  className={`btn w-full flex items-center justify-center gap-2 py-3 font-medium text-white ${
-                    applicationStatus === 'pending'
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : applicationStatus === 'accepted'
-                      ? 'bg-green-500 cursor-not-allowed'
-                      : applicationStatus === 'rejected'
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-[var(--primary-color)] hover:bg-[var(--secondary-color)]'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  <span>
-                    {applicationStatus === 'pending'
-                      ? 'Application Pending'
-                      : applicationStatus === 'accepted'
-                      ? 'Application Accepted'
-                      : applicationStatus === 'rejected'
-                      ? 'Apply Again'
-                      : 'Apply for this Job'}
+                  <span className="flex items-center justify-center gap-2 w-full">
+                    <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                    <span className="font-medium">{isSaved ? 'Unsave Job' : 'Save Job'}</span>
                   </span>
                 </button>
+                {applicationStatus === 'accepted' ? (
+                  <button
+                    disabled
+                    className="btn w-full flex items-center justify-center gap-3 py-3 px-4 font-medium text-white bg-green-500 cursor-not-allowed"
+                    style={{ minHeight: "44px" }}
+                  >
+                    <span className="flex items-center justify-center gap-2 w-full">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      <span>Application Accepted</span>
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleApply}
+                    className="btn w-full flex items-center justify-center gap-3 py-3 px-4 font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)]"
+                    style={{ minHeight: "44px" }}
+                  >
+                    <span className="flex items-center justify-center gap-2 w-full">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      <span>
+                        Apply for this Job
+                      </span>
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

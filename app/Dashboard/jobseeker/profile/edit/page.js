@@ -213,7 +213,7 @@ export default function EditProfile() {
           
           setSelectedFields(matchedFieldIds);
           setSelectedCategories(matchedCategoryIds);
-          setExpandedFields(matchedFieldIds); // Expand fields with selected categories
+          setExpandedFields(matchedFieldIds);
         }
       } else {
         throw new Error('Failed to fetch job fields data');
@@ -753,7 +753,7 @@ export default function EditProfile() {
       </div>
 
       {/* Personal Information */}
-      <div className="card">
+      <div className="card h-120em">
         <div className="panel-header">
           <h3 className="text-lg font-semibold text-white">Personal Information</h3>
           <p className="text-sm text-white text-opacity-80 mt-1">Update your basic profile details</p>
@@ -1200,7 +1200,7 @@ export default function EditProfile() {
           {/* Selected Categories Summary */}
           {selectedCategories.length > 0 && (
             <div className="mb-6 p-4 bg-[var(--primary-color)] bg-opacity-15 rounded-lg border border-[var(--primary-color)] border-opacity-20">
-              <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+              <p className="text-sm font-medium text-[var(--foreground)] mb-2 text-white">
                 Selected Categories ({selectedCategories.length}):
               </p>
               <div className="flex flex-wrap gap-2">

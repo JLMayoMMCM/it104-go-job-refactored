@@ -17,15 +17,19 @@ export default function RecommendedJobs() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
+  // applicationStatus: { [jobId]: array of applications }
   const [applicationStatus, setApplicationStatus] = useState({});
   const [savedJobs, setSavedJobs] = useState({});
   const [categories, setCategories] = useState([]);
+  const [jobCategories, setJobCategories] = useState([]);
+  const [experienceLevels, setExperienceLevels] = useState([]);
   
   // Filter states
   const [filters, setFilters] = useState({
     sort: 'relevance',
     category: 'all',
-    salaryRange: 'all'
+    salaryRange: 'all',
+    experienceLevel: 'all'
   });
   
   const router = useRouter();
@@ -43,10 +47,25 @@ export default function RecommendedJobs() {
     }
     
     fetchCategories();
+    fetchJobCategories();
+    fetchExperienceLevels();
     fetchAllJobs(accountId);
     fetchApplicationStatus(accountId);
     fetchSavedJobs(accountId);
   }, [router]);
+
+  // Fetch experience levels from API
+  const fetchExperienceLevels = async () => {
+    try {
+      const response = await fetch('/api/data/experience-levels');
+      const data = await response.json();
+      if (response.ok && data.success && data.data) {
+        setExperienceLevels(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching experience levels:', error);
+    }
+  };
 
   // Filter and sort jobs when search term or filters change
   useEffect(() => {
@@ -94,6 +113,8 @@ export default function RecommendedJobs() {
       switch (filters.sort) {
         case 'newest':
           return new Date(b.postedDate) - new Date(a.postedDate);
+        case 'oldest':
+          return new Date(a.postedDate) - new Date(b.postedDate);
         case 'salary_high':
           return parseInt(b.salary?.replace(/[^\d]/g, '') || '0') - parseInt(a.salary?.replace(/[^\d]/g, '') || '0');
         case 'salary_low':
@@ -129,18 +150,31 @@ export default function RecommendedJobs() {
     }
   };
 
+  // Fetch all job categories (not just fields)
+  const fetchJobCategories = async () => {
+    try {
+      const response = await fetch('/api/data/job-categories');
+      const data = await response.json();
+      if (response.ok && data.success && data.data) {
+        setJobCategories(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching job categories:', error);
+    }
+  };
+
   const fetchAllJobs = async (accountId) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Fetch all recommended jobs without pagination
+
+      // Fetch all recommended jobs without filters (client-side filtering only)
       const queryParams = new URLSearchParams({
         accountId: accountId,
         type: 'recommended',
-        limit: '1000' // Large limit to get all jobs
+        limit: '1000'
       });
-      
+
       const response = await fetch(`/api/jobseeker/jobs?${queryParams}`);
       const data = await response.json();
       
@@ -168,9 +202,11 @@ export default function RecommendedJobs() {
       const data = await response.json();
       
       if (response.ok && data.success && data.data) {
+        // Group all applications by jobId
         const statusMap = {};
         data.data.forEach(app => {
-          statusMap[app.jobId] = app.status;
+          if (!statusMap[app.jobId]) statusMap[app.jobId] = [];
+          statusMap[app.jobId].push(app);
         });
         setApplicationStatus(statusMap);
       }
@@ -417,12 +453,15 @@ export default function RecommendedJobs() {
               <button
                 type="button"
                 onClick={() => setShowFilterModal(true)}
-                className="btn btn-secondary px-6 py-3 flex items-center gap-2 text-[var(--foreground)]"
+                className="btn btn-secondary flex items-center justify-center gap-2 text-[var(--foreground)] w-full max-w-[140px] mx-auto"
+                style={{ minHeight: "44px" }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                </svg>
-                Filters
+                <span className="flex items-center justify-center gap-2 w-full">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                  </svg>
+                  <span>Filters</span>
+                </span>
               </button>
             </div>
           </div>
@@ -447,6 +486,17 @@ export default function RecommendedJobs() {
                   Salary: {getSalaryRangeLabel(filters.salaryRange)}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, salaryRange: 'all' }))}
+                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.experienceLevel !== 'all' && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
+                  Experience: {experienceLevels.find(e => (e.experience_level_id || e.id) === filters.experienceLevel)?.experience_level_name || filters.experienceLevel}
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, experienceLevel: 'all' }))}
                     className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
@@ -558,27 +608,31 @@ export default function RecommendedJobs() {
                     >
                       {savedJobs[job.id] ? 'Unsave' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => handleQuickApply(job)}
-                      disabled={applicationStatus[job.id] === 'pending' || applicationStatus[job.id] === 'accepted'}
-                      className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
-                        applicationStatus[job.id] === 'pending'
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : applicationStatus[job.id] === 'accepted'
-                          ? 'bg-green-500 cursor-not-allowed'
-                          : applicationStatus[job.id] === 'rejected'
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {applicationStatus[job.id] === 'pending'
-                        ? 'Pending'
-                        : applicationStatus[job.id] === 'accepted'
-                        ? 'Accepted'
-                        : applicationStatus[job.id] === 'rejected'
-                        ? 'Apply Again'
-                        : 'Apply'}
-                    </button>
+                    {(() => {
+                      // Determine button state based on all applications for this job
+                      const apps = applicationStatus[job.id] || [];
+                      let btn = {
+                        label: 'Apply',
+                        disabled: false,
+                        className: 'bg-green-600 hover:bg-green-700'
+                      };
+                      if (apps.some(app => (app.status || '').toLowerCase() === 'accepted')) {
+                        btn = {
+                          label: 'Accepted',
+                          disabled: true,
+                          className: 'bg-green-500 cursor-not-allowed'
+                        };
+                      }
+                      return (
+                        <button
+                          onClick={() => handleQuickApply(job)}
+                          disabled={btn.disabled}
+                          className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
+                        >
+                          {btn.label}
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={() => handleViewJob(job.id)}
                       className="btn btn-primary text-sm"
@@ -684,6 +738,7 @@ export default function RecommendedJobs() {
                 >
                   <option value="relevance">Relevance</option>
                   <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
                   <option value="salary_high">Highest Salary</option>
                   <option value="salary_low">Lowest Salary</option>
                 </select>
@@ -696,9 +751,9 @@ export default function RecommendedJobs() {
                   className="form-input"
                 >
                   <option value="all">All Categories</option>
-                  {categories.map(cat => (
-                    <option key={cat.category_field_id} value={cat.category_field_id}>
-                      {cat.category_field_name}
+                  {jobCategories.map(cat => (
+                    <option key={cat.job_category_id} value={cat.job_category_id}>
+                      {cat.job_category_name}
                     </option>
                   ))}
                 </select>
@@ -716,6 +771,21 @@ export default function RecommendedJobs() {
                   <option value="40001-60000">₱40,001 - ₱60,000</option>
                   <option value="60001-80000">₱60,001 - ₱80,000</option>
                   <option value="80001+">Above ₱80,000</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Job Experience Level</label>
+                <select
+                  value={filters.experienceLevel}
+                  onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                  className="form-input"
+                >
+                  <option value="all">All Experience Levels</option>
+                  {experienceLevels.map(level => (
+                    <option key={level.experience_level_id || level.id} value={level.experience_level_name}>
+                      {level.experience_level_name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
