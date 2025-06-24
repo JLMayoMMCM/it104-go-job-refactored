@@ -2,57 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-function ExperienceLevelBadge({ level }) {
-  const map = {
-    "Entry Level": {
-      className: "bg-blue-100 text-blue-800 border border-blue-300 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
-      icon: "🟦",
-      style: { fontStyle: "italic" }
-    },
-    "Mid Level": {
-      className: "bg-green-50 text-green-800 border border-green-400 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
-      icon: "🟩",
-      style: {}
-    },
-    "Senior Level": {
-      className: "bg-gradient-to-r from-orange-100 to-orange-200 text-orange-900 border border-orange-300 rounded-lg px-3 py-0.5 text-xs font-bold flex items-center gap-1 shadow-sm",
-      icon: "🟧",
-      style: { fontWeight: "bold" }
-    },
-    "Managerial Level": {
-      className: "bg-purple-100 text-purple-800 border border-purple-300 rounded-full px-3 py-0.5 text-xs font-semibold flex items-center gap-1",
-      icon: "👔",
-      style: {}
-    },
-    "Executive Level": {
-      className: "bg-red-100 text-red-800 border-2 border-red-400 rounded-full px-3 py-0.5 text-xs font-extrabold flex items-center gap-1 shadow-lg",
-      icon: "👑",
-      style: { textShadow: "0 1px 2px #fff" }
-    },
-    "Not specified": {
-      className: "bg-gray-100 text-gray-800 border border-gray-300 rounded px-3 py-0.5 text-xs font-normal flex items-center gap-1",
-      icon: "❔",
-      style: {}
-    }
-  };
-  const { className, icon, style } = map[level] || map["Not specified"];
-  return (
-    <span className={className} style={style}>
-      <span>{icon}</span>
-      <span>{level}</span>
-    </span>
-  );
-}
-
-const experienceLevelColors = {
-  "Entry Level": "bg-blue-100 text-blue-800",
-  "Mid Level": "bg-green-100 text-green-800",
-  "Senior Level": "bg-orange-100 text-orange-800",
-  "Managerial Level": "bg-purple-100 text-purple-800",
-  "Executive Level": "bg-red-100 text-red-800",
-  "Not specified": "bg-gray-100 text-gray-800"
-};
+import JobCard from '../../../../components/JobCard';
 
 export default function AllJobs() {
   const [allJobs, setAllJobs] = useState([]);
@@ -72,6 +22,7 @@ export default function AllJobs() {
   // applicationStatus: { [jobId]: array of applications }
   const [applicationStatus, setApplicationStatus] = useState({});
   const [savedJobs, setSavedJobs] = useState({});
+  const [loadingSavedJobs, setLoadingSavedJobs] = useState(true);
   const [jobFields, setJobFields] = useState([]);
   // const [jobCategories, setJobCategories] = useState([]);
   
@@ -305,7 +256,29 @@ export default function AllJobs() {
         const statusMap = {};
         data.data.forEach(app => {
           if (!statusMap[app.jobId]) statusMap[app.jobId] = [];
-          statusMap[app.jobId].push(app);
+          // Map numeric status IDs to string values for status
+          let status = app.status || app.Status || "";
+          if (typeof status === "number") {
+            if (status === 1) status = "Accepted";
+            else if (status === 2) status = "In-progress";
+            else if (status === 3) status = "Rejected";
+          } else if (typeof status === "string") {
+            status = status.trim();
+            if (status === "1") status = "Accepted";
+            else if (status === "2") status = "In-progress";
+            else if (status === "3") status = "Rejected";
+            else if (status.toLowerCase() === "in-progress" || status.toLowerCase() === "pending") {
+              status = "In-progress";
+            } else if (status.toLowerCase() === "accepted") {
+              status = "Accepted";
+            } else if (status.toLowerCase() === "rejected") {
+              status = "Rejected";
+            }
+          }
+          statusMap[app.jobId].push({
+            ...app,
+            status,
+          });
         });
         setApplicationStatus(statusMap);
       }
@@ -316,18 +289,23 @@ export default function AllJobs() {
 
   const fetchSavedJobs = async (accountId) => {
     try {
+      setLoadingSavedJobs(true);
       const response = await fetch(`/api/jobseeker/saved-jobs?accountId=${accountId}`);
       const data = await response.json();
       
       if (response.ok && data.success && data.data) {
         const savedMap = {};
         data.data.forEach(job => {
-          savedMap[job.job_id] = true;
+          // Support both job_id and jobId, and normalize to string for consistent comparison
+          const id = job.job_id !== undefined ? String(job.job_id) : (job.jobId !== undefined ? String(job.jobId) : null);
+          if (id) savedMap[id] = true;
         });
         setSavedJobs(savedMap);
       }
     } catch (error) {
       console.error('Error fetching saved jobs:', error);
+    } finally {
+      setLoadingSavedJobs(false);
     }
   };
 
@@ -344,6 +322,15 @@ export default function AllJobs() {
     try {
       const accountId = localStorage.getItem('accountId');
       if (savedJobs[jobId]) {
+        // Optimistically update UI before API call
+        setSavedJobs(prev => {
+          const newSaved = { ...prev };
+          delete newSaved[jobId];
+          return newSaved;
+        });
+        setSuccessMessage('Job unsaved successfully!');
+        setTimeout(() => setSuccessMessage(''), 2000);
+        
         // Unsave job
         const response = await fetch(`/api/jobseeker/saved-jobs`, {
           method: 'DELETE',
@@ -355,18 +342,17 @@ export default function AllJobs() {
         
         const data = await response.json();
         
-        if (response.ok && data.success) {
-          setSavedJobs(prev => {
-            const newSaved = { ...prev };
-            delete newSaved[jobId];
-            return newSaved;
-          });
-          setSuccessMessage('Job unsaved successfully!');
-          setTimeout(() => setSuccessMessage(''), 2000);
-        } else {
+        if (!(response.ok && data.success)) {
+          // Revert optimistic update on failure
+          setSavedJobs(prev => ({ ...prev, [jobId]: true }));
           throw new Error(data.error || 'Failed to unsave job');
         }
       } else {
+        // Optimistically update UI before API call
+        setSavedJobs(prev => ({ ...prev, [jobId]: true }));
+        setSuccessMessage('Job saved successfully!');
+        setTimeout(() => setSuccessMessage(''), 2000);
+        
         // Save job
         const response = await fetch(`/api/jobseeker/saved-jobs`, {
           method: 'POST',
@@ -378,11 +364,13 @@ export default function AllJobs() {
         
         const data = await response.json();
         
-        if (response.ok && data.success) {
-          setSavedJobs(prev => ({ ...prev, [jobId]: true }));
-          setSuccessMessage('Job saved successfully!');
-          setTimeout(() => setSuccessMessage(''), 2000);
-        } else {
+        if (!(response.ok && data.success)) {
+          // Revert optimistic update on failure
+          setSavedJobs(prev => {
+            const newSaved = { ...prev };
+            delete newSaved[jobId];
+            return newSaved;
+          });
           throw new Error(data.error || 'Failed to save job');
         }
       }
@@ -417,18 +405,32 @@ export default function AllJobs() {
       
       const data = await response.json();
       
-      if (response.ok && data.success) {
-        // Update application status immediately before closing modal
-        setApplicationStatus(prev => ({ ...prev, [selectedJob.id]: 'pending' }));
-        
-        setShowApplyModal(false);
-        setCoverLetter('');
-        setSelectedJob(null);
-        setSuccessMessage('Your application has been submitted successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        throw new Error(data.error || 'Failed to submit application');
-      }
+if (response.ok && data.success) {
+  // Update application status immediately before closing modal
+  setApplicationStatus(prev => {
+    // Always use an array for the job's applications
+    const prevApps = Array.isArray(prev[selectedJob.id]) ? prev[selectedJob.id] : [];
+    // Add a new "In-progress" (pending) application
+    return {
+      ...prev,
+      [selectedJob.id]: [
+        ...prevApps,
+        {
+          status: "In-progress",
+          // Optionally add more fields if needed (e.g., date, id)
+        }
+      ]
+    };
+  });
+
+  setShowApplyModal(false);
+  setCoverLetter('');
+  setSelectedJob(null);
+  setSuccessMessage('Your application has been submitted successfully!');
+  setTimeout(() => setSuccessMessage(''), 3000);
+} else {
+  throw new Error(data.error || 'Failed to submit application');
+}
     } catch (error) {
       console.error('Error submitting application:', error);
       setError('Failed to submit application. Please try again.');
@@ -651,135 +653,32 @@ export default function AllJobs() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
               {displayedJobs.map((job, index) => (
-                <div
+                <JobCard
                   key={job.id}
-                  className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
-                    index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
-                  } hover:shadow-md transition-shadow`}
-                >
-                  <div className="mb-3 md:mb-0 md:w-1/3">
-                    <h4 className="text-lg font-semibold text-[var(--foreground)] flex items-center gap-2">
-                      {job.title}
-{job.experienceLevel && (
-  <ExperienceLevelBadge level={job.experienceLevel} />
-)}
-                    </h4>
-                    {/* Categories and Field */}
-                    <div className="flex flex-wrap gap-2 mb-1">
-                      {Array.isArray(job.categories) && job.categories.map((cat, idx) => (
-                        <span key={job.id + '-' + cat} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{cat}</span>
-                      ))}
-                      {job.field && (
-                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{job.field}</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">{job.posted}</p>
-                    {/* Closing Date and Job Time */}
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {job.closingDate && (
-                        <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
-                          Deadline: {new Date(job.closingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                        </span>
-                      )}
-                      {job.jobTime && (
-                        <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
-                          {job.jobTime}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
-                    <div className="flex items-center text-[var(--text-light)] text-sm">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      {job.type}
-                    </div>
-                    <div className="flex items-center text-[var(--text-light)] text-sm">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {job.salary}
-                    </div>
-                    {/* Job Time Column */}
-                    <div className="flex items-center text-[var(--text-light)] text-sm">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {job.jobTime && typeof job.jobTime === 'string' && job.jobTime.trim() !== ''
-                        ? job.jobTime
-                        : <span className="text-xs text-gray-400">No time specified</span>
-                      }
-                    </div>
-                    {(job.matchPercentage || job.match) > 0 && (
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        job.match >= 80 ? 'bg-green-100 text-green-800' : 
-                        job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {job.match}% Match
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleSaveJob(job.id)}
-                      className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
-                    >
-                      {savedJobs[job.id] ? 'Unsave' : 'Save'}
-                    </button>
-{(() => {
-  // Determine button state based on all applications for this job
-  const apps = applicationStatus[job.id] || [];
-  let btn = {
-    label: "Apply",
-    disabled: false,
-    className: "bg-green-600 hover:bg-green-700"
-  };
-  if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "accepted")) {
-    btn = {
-      label: "Accepted",
-      disabled: true,
-      className: "bg-green-500 cursor-not-allowed"
-    };
-  } else if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "in-progress" || (app.status || app.Status || "").toLowerCase() === "pending")) {
-    btn = {
-      label: "Pending",
-      disabled: true,
-      className: "bg-gray-400 cursor-not-allowed"
-    };
-  } else if (apps.some(app => (app.status || app.Status || "").toLowerCase() === "rejected")) {
-    // If all are rejected, allow apply (default)
-    btn = {
-      label: "Apply",
-      disabled: false,
-      className: "bg-green-600 hover:bg-green-700"
-    };
-  }
-  return (
-    <button
-      onClick={() => handleQuickApply(job)}
-      disabled={btn.disabled}
-      className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
-    >
-      {btn.label}
-    </button>
-  );
-})()}
-                    <button
-                      onClick={() => handleViewJob(job.id)}
-                      className="btn btn-primary text-sm"
-                    >
-                      View Job
-                    </button>
-                  </div>
-                </div>
+                  job={job}
+                  applicationStatus={applicationStatus[job.id]}
+                  saved={!!savedJobs[job.id]}
+                  loadingSaved={loadingSavedJobs}
+                  onSave={handleSaveJob}
+                  onApplySuccess={(jobId) => {
+                    setApplicationStatus(prev => {
+                      const prevApps = Array.isArray(prev[jobId]) ? prev[jobId] : [];
+                      return {
+                        ...prev,
+                        [jobId]: [
+                          ...prevApps,
+                          {
+                            status: "In-progress",
+                            request_date: new Date().toISOString()
+                          }
+                        ]
+                      };
+                    });
+                  }}
+                  onView={handleViewJob}
+                />
               ))}
             </div>
           )}

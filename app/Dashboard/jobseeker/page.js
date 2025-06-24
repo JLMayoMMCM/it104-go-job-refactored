@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import JobCard from '../../components/JobCard'; // Using the main JobCard component
 
-export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs] = useState([]);
+export default function JobseekerDashboard() {
+  const [recentJobs, setRecentJobs] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
-  const [savedJobIds, setSavedJobIds] = useState(new Set()); // Track saved job IDs
+  const [savedJobIds, setSavedJobIds] = useState(new Set());
+  const [applicationStatus, setApplicationStatus] = useState({});
   const [analytics, setAnalytics] = useState({
     totalApplications: 0,
     acceptedApplications: 0,
@@ -33,62 +36,94 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
     }
     
     fetchDashboardData(accountId);
+    fetchApplicationStatus(accountId);
   }, [router]);
+
   const fetchDashboardData = async (accountId) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Fetch analytics data
-      const analyticsResponse = await fetch(`/api/jobseeker/analytics?accountId=${accountId}`);
-      if (!analyticsResponse.ok) {
-        const errorText = await analyticsResponse.text();
-        throw new Error(`Failed to fetch analytics data: ${analyticsResponse.status} ${errorText}`);
-      }
-      
-      const analyticsData = await analyticsResponse.json();
-      
-      if (analyticsData.success && analyticsData.data) {
-        setAnalytics(analyticsData.data.analytics);
-        setRecentJobs(analyticsData.data.recentJobs);
-        
-        // Create a Set of saved job IDs for efficient lookup
-        const savedIds = new Set();
-        if (analyticsData.data.savedJobs && Array.isArray(analyticsData.data.savedJobs)) {
-          analyticsData.data.savedJobs.forEach(job => {
-            if (job && job.jobId) {
-              savedIds.add(job.jobId);
-            }
-          });
+      // Fetch analytics, recent jobs, and recommended jobs in parallel
+      const [
+        analyticsRes, 
+        recentJobsRes, 
+        recommendedJobsRes,
+        savedJobsRes
+      ] = await Promise.all([
+        fetch(`/api/jobseeker/analytics?accountId=${accountId}`),
+        fetch(`/api/jobseeker/jobs?${new URLSearchParams({ accountId, type: 'search', sort: 'newest', limit: '5' })}`),
+        fetch(`/api/jobseeker/jobs?${new URLSearchParams({ accountId, type: 'recommended', limit: '5' })}`),
+        fetch(`/api/jobseeker/saved-jobs?accountId=${accountId}`)
+      ]);
+
+      // Process Analytics
+      if (analyticsRes.ok) {
+        const analyticsData = await analyticsRes.json();
+        if (analyticsData.success) {
+          setAnalytics(analyticsData.data.analytics);
+        } else {
+          console.error("Analytics API error:", analyticsData.error);
         }
-        setSavedJobIds(savedIds);
       } else {
-        throw new Error(analyticsData.error || 'Failed to fetch dashboard data: API returned unsuccessful response');
+        console.error("Failed to fetch analytics");
       }
       
-      // Fetch recommended jobs separately using the proper endpoint
-      const queryParams = new URLSearchParams({
-        accountId: accountId,
-        type: 'recommended',
-        limit: '5' // Limit to 5 for dashboard display
-      });
-      
-      const recommendedResponse = await fetch(`/api/jobseeker/jobs?${queryParams}`);
-      const recommendedData = await recommendedResponse.json();
-      
-      if (recommendedResponse.ok && recommendedData.success && recommendedData.data) {
-        setRecommendedJobs(recommendedData.data);
+      // Process Recent Jobs (from 'search' endpoint)
+      if (recentJobsRes.ok) {
+        const recentData = await recentJobsRes.json();
+        if (recentData.success) {
+          setRecentJobs(recentData.data);
+        } else {
+          console.error("Recent Jobs API error:", recentData.error);
+        }
       } else {
-        console.error('Error fetching recommended jobs:', recommendedData.error);
-        // Fallback to empty array if recommended jobs fail
-        setRecommendedJobs([]);
+        console.error("Failed to fetch recent jobs");
       }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError(error.message || 'Failed to fetch dashboard data. Please try again.');
+
+      // Process Recommended Jobs
+      if (recommendedJobsRes.ok) {
+        const recommendedData = await recommendedJobsRes.json();
+        if (recommendedData.success) {
+          // Filter to only show jobs with a match of 20% or higher
+          const filteredRecommended = recommendedData.data.filter(job => (job.match || 0) >= 20);
+          setRecommendedJobs(filteredRecommended);
+        } else {
+          console.error("Recommended Jobs API error:", recommendedData.error);
+        }
+      } else {
+        console.error("Failed to fetch recommended jobs");
+      }
+
+      // Process Saved Jobs
+      if (savedJobsRes.ok) {
+        const savedData = await savedJobsRes.json();
+        if (savedData.success) {
+          const savedIds = new Set(savedData.data.map(j => j.job_id));
+          setSavedJobIds(savedIds);
+        }
+      }
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to fetch dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+  
+  const fetchApplicationStatus = async (accountId) => {
+    try {
+      const r = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      const j = await r.json();
+      if (r.ok && j.success) {
+        const map = {};
+        j.data.forEach(a => {
+          if (!map[a.jobId]) map[a.jobId] = [];
+          map[a.jobId].push(a);
+        });
+        setApplicationStatus(map);
+      }
+    } catch (e) { console.error("Failed to fetch application status", e); }
   };
 
   const handleViewAllRecent = () => {
@@ -102,129 +137,96 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
   const handleViewJob = (jobId) => {
     router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
   };
+
   const handleSaveJob = async (jobId) => {
-    try {
-      const accountId = localStorage.getItem('accountId');
-      const response = await fetch(`/api/jobseeker/saved-jobs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ jobId, accountId }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        // Update local state to mark this job as saved
-        setSavedJobIds(prevSavedIds => {
-          const newSavedIds = new Set(prevSavedIds);
-          newSavedIds.add(jobId);
-          return newSavedIds;
-        });
-        
-        // Update analytics count
-        setAnalytics(prev => ({
-          ...prev,
-          savedJobs: prev.savedJobs + 1
-        }));
-        
-        setSuccessMessage('Job saved successfully!');
-        setTimeout(() => setSuccessMessage(''), 2000);
-      } else {
-        // If it's already saved, don't show an error
-        if (data.error && data.error.includes('already saved')) {
-          console.log('Job was already saved');
-        } else {
-          throw new Error(data.error || 'Failed to save job');
-        }
-      }
-    } catch (error) {
-      console.error('Error saving job:', error);
-      setError('Failed to save job. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-  
-  const handleUnsaveJob = async (jobId) => {
-    try {
-      const accountId = localStorage.getItem('accountId');
-      const response = await fetch(`/api/jobseeker/saved-jobs`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ jobId, accountId }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        // Update local state to mark this job as unsaved
-        setSavedJobIds(prevSavedIds => {
-          const newSavedIds = new Set(prevSavedIds);
-          newSavedIds.delete(jobId);
-          return newSavedIds;
-        });
-        
-        // Update analytics count (ensure it doesn't go below 0)
-        setAnalytics(prev => ({
-          ...prev,
-          savedJobs: Math.max(0, prev.savedJobs - 1)
-        }));
-        
-        setSuccessMessage('Job removed from saved list.');
-        setTimeout(() => setSuccessMessage(''), 2000);
-      } else {
-        throw new Error(data.error || 'Failed to remove job from saved list');
-      }
-    } catch (error) {
-      console.error('Error unsaving job:', error);
-      setError('Failed to remove job from saved list. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const [applicationStatus, setApplicationStatus] = useState({});
-
-  useEffect(() => {
     const accountId = localStorage.getItem('accountId');
-    const accountType = localStorage.getItem('accountType');
+    if (!accountId) return;
+
+    const isCurrentlySaved = savedJobIds.has(jobId);
     
-    if (!accountId || accountType !== '2') {
-      router.push('/Login');
-      return;
+    // Optimistic UI update
+    const newSavedJobIds = new Set(savedJobIds);
+    if (isCurrentlySaved) {
+      newSavedJobIds.delete(jobId);
+    } else {
+      newSavedJobIds.add(jobId);
     }
-    
-    fetchDashboardData(accountId);
-    fetchApplicationStatus(accountId);
-  }, [router]);
-  const fetchApplicationStatus = async (accountId) => {
+    setSavedJobIds(newSavedJobIds);
+    setSuccessMessage(isCurrentlySaved ? 'Job unsaved!' : 'Job saved!');
+    setTimeout(() => setSuccessMessage(''), 2000);
+
     try {
-      console.log('Fetching application status for accountId:', accountId);
-      const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
-      
+      const response = await fetch('/api/jobseeker/saved-jobs', {
+        method: isCurrentlySaved ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, accountId }),
+      });
+
       if (!response.ok) {
-        console.error('Error response from API:', response.status, response.statusText);
-        return;
+        // Revert on failure
+        setSavedJobIds(savedJobIds);
+        setError("Failed to update saved status.");
+        setTimeout(() => setError(null), 3000);
       }
-      
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        console.log(`Found ${data.data.length} applications for status mapping`);
-        const statusMap = {};
-        data.data.forEach(app => {
-          statusMap[app.jobId] = app.status;
-        });
-        setApplicationStatus(statusMap);
-      } else {
-        console.warn('No application data found or API returned unsuccessful response:', data);
-      }
-    } catch (error) {
-      console.error('Error fetching application status:', error);
+    } catch (e) {
+      console.error(e);
+      setSavedJobIds(savedJobIds);
     }
   };
+
+  const handleApplySuccess = (jobId) => {
+    const accountId = localStorage.getItem('accountId');
+    fetchApplicationStatus(accountId); // Re-fetch statuses
+  };
+
+  const renderJobList = (jobs, title, viewAllHandler, isRecommended = false) => (
+    <div className="card overflow-hidden p-0">
+      <div className="panel-header flex justify-between items-center p-2 sm:p-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-white">{title}</h2>
+        <button 
+          onClick={viewAllHandler}
+          className="text-xs sm:text-sm text-white hover:text-[var(--light-color)] transition-colors"
+        >
+          View All →
+        </button>
+      </div>
+      <div className="p-2 sm:p-4">
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => <JobCard key={i} loading={true} />)}
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="text-center py-6 sm:py-8 border border-dashed border-[var(--border-color)] rounded-lg">
+            <p className="text-lg font-semibold text-[var(--foreground)]">No Jobs Found</p>
+            <p className="text-sm text-[var(--text-light)] mt-2">
+              {isRecommended ? "Update your profile preferences for better recommendations." : "Check back later for new job postings."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
+            {jobs.filter(Boolean).map((job) => {
+              const id = job.id ?? job.jobId ?? job.job_id;
+              return (
+                <JobCard
+                  key={id}
+                  job={{ ...job, id }}
+                  applicationStatus={applicationStatus[id]}
+                  saved={savedJobIds.has(id)}
+                  loadingSaved={false}
+                  onView={() => handleViewJob(id)}
+                  onSave={() => handleSaveJob(id)}
+                  onApplySuccess={() => handleApplySuccess(id)}
+                  showSave={true}
+                  showApply={true}
+                  showView={true}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const handleQuickApply = (job) => {
     setSelectedJob(job);
@@ -508,229 +510,8 @@ export default function JobseekerDashboard() {  const [recentJobs, setRecentJobs
 
       {/* Jobs Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-        {/* Recommended Jobs */}
-        <div className="card overflow-hidden p-0">
-          <div className="panel-header flex justify-between items-center p-2 sm:p-3">
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Recommended for You</h2>
-            <button 
-              onClick={handleViewAllRecommended}
-              className="text-xs sm:text-sm text-white hover:text-[var(--light-color)] transition-colors"
-            >
-              View All Recommended →
-            </button>
-          </div>
-          <div className="p-2 sm:p-4">
-            {recommendedJobs.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 border border-dashed border-[var(--border-color)] rounded-lg">
-                <svg className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-[var(--text-light)]">
-                  <p>No recommended jobs available at the moment. Update your profile for better matches.</p>
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <button
-                    onClick={handleViewAllRecommended}
-                    className="btn btn-primary text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-2"
-                  >
-                    Search Jobs
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 sm:space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
-                {recommendedJobs.map((job, index) => (
-                  <div
-                    key={job.id}
-                    className={`flex flex-col min-h-[150px] sm:min-h-[180px] p-2 border border-[var(--border-color)] rounded-lg ${
-                      index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
-                    } hover:shadow-md transition-shadow`}
-                  >
-                    <div className="mb-2 sm:mb-3">
-                      <h4 className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)] mt-0.5 sm:mt-1">Posted date: {job.posted}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
-                      <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        {job.type}
-                      </div>
-                      <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {job.salary}
-                        {job.match > 0 && (
-                          <span className={`ml-1 sm:ml-2 px-1 sm:px-2 py-0.5 rounded-full text-xs ${
-                            job.match >= 80 ? 'bg-green-100 text-green-800' : 
-                            job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {job.match}% Match
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-end">
-                      {savedJobIds.has(job.id) ? (
-                        <button
-                          onClick={() => handleUnsaveJob(job.id)}
-                          className="px-2 sm:px-3 py-1 sm:py-2 bg-red-50 border border-red-400 text-red-500 rounded-md text-xs sm:text-sm font-medium hover:bg-red-100 transition-all w-20 sm:w-24"
-                        >
-                          Unsave
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleSaveJob(job.id)}
-                          className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
-                        >
-                          Save
-                        </button>
-                      )}
-                      {(() => {
-                        const status = (applicationStatus[job.id] || '').toLowerCase();
-                        if (status === 'accepted') {
-                          return (
-                            <button
-                              disabled
-                              className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-500 cursor-not-allowed"
-                            >
-                              Accepted
-                            </button>
-                          );
-                        }
-                        return (
-                          <button
-                            onClick={() => handleQuickApply(job)}
-                            className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-600 hover:bg-green-700"
-                          >
-                            Apply
-                          </button>
-                        );
-                      })()}
-                      <button
-                        onClick={() => handleViewJobDetails(job.id)}
-                        className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Recent Jobs */}
-        <div className="card overflow-hidden p-0">
-          <div className="panel-header flex justify-between items-center p-2 sm:p-3">
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Recent Job Postings</h2>
-            <button 
-              onClick={handleViewAllRecent}
-              className="text-xs sm:text-sm text-white hover:text-[var(--light-color)] transition-colors"
-            >
-              View All Jobs →
-            </button>
-          </div>
-          <div className="p-2 sm:p-4">
-            {recentJobs.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 border border-dashed border-[var(--border-color)] rounded-lg">
-                <svg className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-[var(--text-light)]">
-                  <p>No recent job postings available at the moment.</p>
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <button
-                    onClick={handleViewAllRecent}
-                    className="btn btn-primary text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-2"
-                  >
-                    Search Jobs
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 sm:space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
-                {recentJobs.map((job, index) => (
-                  <div
-                    key={job.id}
-                    className={`flex flex-col min-h-[150px] sm:min-h-[180px] p-2 border border-[var(--border-color)] rounded-lg ${
-                      index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
-                    } hover:shadow-md transition-shadow`}
-                  >
-                    <div className="mb-2 sm:mb-3">
-                      <h4 className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)]">{job.company} • {job.location}</p>
-                      <p className="text-xs sm:text-sm text-[var(--text-light)] mt-0.5 sm:mt-1">Posted date: {job.postedDate}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
-                      <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        {job.jobType}
-                      </div>
-                      <div className="flex items-center text-[var(--text-light)] text-xs sm:text-sm">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {job.salary}
-                      </div>
-                    </div>
-                    <div className="mt-1 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-end">
-                      {savedJobIds.has(job.id) ? (
-                        <button
-                          onClick={() => handleUnsaveJob(job.id)}
-                          className="px-2 sm:px-3 py-1 sm:py-2 bg-red-50 border border-red-400 text-red-500 rounded-md text-xs sm:text-sm font-medium hover:bg-red-100 transition-all w-20 sm:w-24"
-                        >
-                          Unsave
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleSaveJob(job.id)}
-                          className="px-2 sm:px-3 py-1 sm:py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-xs sm:text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all w-20 sm:w-24"
-                        >
-                          Save
-                        </button>
-                      )}
-                      {(() => {
-                        const status = (applicationStatus[job.id] || '').toLowerCase();
-                        if (status === 'accepted') {
-                          return (
-                            <button
-                              disabled
-                              className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-500 cursor-not-allowed"
-                            >
-                              Accepted
-                            </button>
-                          );
-                        }
-                        return (
-                          <button
-                            onClick={() => handleQuickApply(job)}
-                            className="px-2 sm:px-3 py-1 sm:py-2 text-white rounded-md text-xs sm:text-sm font-medium transition-all w-20 sm:w-24 bg-green-600 hover:bg-green-700"
-                          >
-                            Apply
-                          </button>
-                        );
-                      })()}
-                      <button
-                        onClick={() => handleViewJobDetails(job.id)}
-                        className="btn btn-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 w-20 sm:w-24"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        {renderJobList(recommendedJobs, "Recommended for You", handleViewAllRecommended, true)}
+        {renderJobList(recentJobs, "Recent Job Postings", handleViewAllRecent)}
       </div>
 
       {/* Quick Apply Modal */}

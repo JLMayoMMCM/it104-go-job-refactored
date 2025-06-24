@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
 
-export async function POST(request, { params }) {
+export async function POST(request, context) {
   try {
+    const { params } = context;
     const companyId = params.companyId;
     const body = await request.json();
     const { accountId } = body;
 
     if (!accountId) {
-      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
     }
 
     // Get job seeker ID
@@ -19,7 +20,7 @@ export async function POST(request, { params }) {
       .single();
 
     if (jobSeekerError || !jobSeekerData) {
-      return NextResponse.json({ error: 'Job seeker not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Job seeker not found' }, { status: 404 });
     }
 
     const jobSeekerId = jobSeekerData.job_seeker_id;
@@ -32,7 +33,7 @@ export async function POST(request, { params }) {
       .single();
 
     if (companyError || !companyData) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Company not found' }, { status: 404 });
     }
 
     // Check if already following
@@ -44,7 +45,7 @@ export async function POST(request, { params }) {
       .single();
 
     if (existingFollow) {
-      return NextResponse.json({ error: 'Already following this company' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Already following this company' }, { status: 400 });
     }
 
     // Add follow record
@@ -59,28 +60,33 @@ export async function POST(request, { params }) {
 
     if (followError) {
       console.error('Error following company:', followError);
-      return NextResponse.json({ error: 'Failed to follow company' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Failed to follow company' }, { status: 500 });
     }
 
     return NextResponse.json({ 
+      success: true,
       message: `You are now following ${companyData.company_name}`,
       isFollowing: true 
     });
 
   } catch (error) {
     console.error('Error in follow company:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
   try {
+    const { params } = context;
     const companyId = params.companyId;
-    const { searchParams } = new URL(request.url);
-    const accountId = searchParams.get('accountId');
 
+    // The body is not available in DELETE requests in the same way from the client,
+    // so we need to get the accountId from the request body which is now being passed.
+    const body = await request.json();
+    const { accountId } = body;
+    
     if (!accountId) {
-      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
     }
 
     // Get job seeker ID
@@ -91,7 +97,7 @@ export async function DELETE(request, { params }) {
       .single();
 
     if (jobSeekerError || !jobSeekerData) {
-      return NextResponse.json({ error: 'Job seeker not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Job seeker not found' }, { status: 404 });
     }
 
     const jobSeekerId = jobSeekerData.job_seeker_id;
@@ -112,16 +118,17 @@ export async function DELETE(request, { params }) {
 
     if (unfollowError) {
       console.error('Error unfollowing company:', unfollowError);
-      return NextResponse.json({ error: 'Failed to unfollow company' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Failed to unfollow company' }, { status: 500 });
     }
 
     return NextResponse.json({ 
+      success: true,
       message: `You have unfollowed ${companyData?.company_name || 'the company'}`,
       isFollowing: false 
     });
 
   } catch (error) {
     console.error('Error in unfollow company:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

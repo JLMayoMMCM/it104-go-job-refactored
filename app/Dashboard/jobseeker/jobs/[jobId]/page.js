@@ -3,6 +3,48 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
+function ExperienceLevelBadge({ level }) {
+  const map = {
+    "Entry Level": {
+      className: "bg-blue-100 text-blue-800 border border-blue-300 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "🟦",
+      style: { fontStyle: "italic" }
+    },
+    "Mid Level": {
+      className: "bg-green-50 text-green-800 border border-green-400 rounded-full px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "🟩",
+      style: {}
+    },
+    "Senior Level": {
+      className: "bg-gradient-to-r from-orange-100 to-orange-200 text-orange-900 border border-orange-300 rounded-lg px-3 py-0.5 text-xs font-bold flex items-center gap-1 shadow-sm",
+      icon: "🟧",
+      style: { fontWeight: "bold" }
+    },
+    "Managerial Level": {
+      className: "bg-purple-100 text-purple-800 border border-purple-300 rounded-full px-3 py-0.5 text-xs font-semibold flex items-center gap-1",
+      icon: "👔",
+      style: {}
+    },
+    "Executive Level": {
+      className: "bg-red-100 text-red-800 border-2 border-red-400 rounded-full px-3 py-0.5 text-xs font-extrabold flex items-center gap-1 shadow-lg",
+      icon: "👑",
+      style: { textShadow: "0 1px 2px #fff" }
+    },
+    "Not specified": {
+      className: "bg-gray-100 text-gray-800 border border-gray-300 rounded px-3 py-0.5 text-xs font-normal flex items-center gap-1",
+      icon: "❔",
+      style: {}
+    }
+  };
+  const { className, icon, style } = map[level] || map["Not specified"];
+  return (
+    <span className={className} style={style}>
+      <span>{icon}</span>
+      <span>{level}</span>
+    </span>
+  );
+}
+
 export default function JobDetails() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -185,8 +227,14 @@ export default function JobDetails() {
     }
   };
 
-  const handleViewCompany = (companyId) => {
-    router.push(`/Dashboard/jobseeker/company/${companyId}`);
+  const handleViewCompany = () => {
+    if (job && job.companyId) {
+      router.push(`/Dashboard/jobseeker/company/${job.companyId}`);
+    } else {
+      console.error('Company ID not found on job object');
+      setError('Could not navigate to company page: Company ID is missing.');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   if (loading) {
@@ -274,20 +322,48 @@ export default function JobDetails() {
       <div className="profile-header">
         <button
           onClick={handleBack}
-          className="flex items-center text-white mb-4"
+          className="flex items-center text-white mb-4 hover:underline"
         >
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Jobs
         </button>
-        <h1 className="text-heading">{job.title || 'Job Title'}</h1>
+        <h1 className="text-heading flex items-center gap-4">
+          {job.title || 'Job Title'}
+          {job.experienceLevel && <ExperienceLevelBadge level={job.experienceLevel} />}
+        </h1>
         <p className="text-description text-[var(--light-color)]">
           {job.company || 'Company'} • {job.location || 'Location'}
           {job.companyRating > 0 && <span> • ⭐ {job.companyRating.toFixed(1)}/5.0</span>}
         </p>
       </div>
 
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 my-4">
+        <button
+          onClick={handleViewCompany}
+          className="btn btn-secondary w-full sm:w-auto"
+        >
+          View Company
+        </button>
+        <button
+          onClick={handleSaveJob}
+          className={`btn ${isSaved ? 'btn-secondary' : 'btn-primary'} w-full sm:w-auto transition-all`}
+        >
+          {isSaved ? 'Unsave Job' : 'Save Job'}
+        </button>
+        <button
+          onClick={handleApply}
+          disabled={applicationStatus === 'pending' || applicationStatus === 'accepted'}
+          className="btn btn-primary w-full sm:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {applicationStatus === 'pending' && 'Application Pending'}
+          {applicationStatus === 'accepted' && 'Application Accepted'}
+          {applicationStatus === 'apply' && 'Apply for this Job'}
+          {applicationStatus === 'rejected' && 'Re-apply for this Job'}
+        </button>
+      </div>
 
       {/* Job Details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -327,32 +403,35 @@ export default function JobDetails() {
                   </div>
                 </div>
               </div>
-              {/* Categories and Fields */}
-              {Array.isArray(job.categories) && job.categories.length > 0 && (
-                <div className="mb-2">
-                  <div className="text-sm text-[var(--text-light)] mb-1">Categories</div>
-                  <div className="flex flex-wrap gap-2">
-                    {job.categories.map((cat, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-block rounded-full bg-[var(--accent-color)] text-white px-3 py-1 text-xs font-semibold shadow-sm"
-                        style={{ background: "var(--accent-color)", color: "#fff" }}
-                      >
-                        {cat.name}
-                        {cat.field ? (
-                          <span className="ml-1 text-[var(--light-color)] font-normal">
-                            ({cat.field})
-                          </span>
-                        ) : null}
-                      </span>
-                    ))}
-                  </div>
+              {/* Field and Categories */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {job.field && (
+                  <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">{job.field}</span>
+                )}
+                {Array.isArray(job.categories) && job.categories.map((cat, idx) => (
+                  <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">{cat.name || cat}</span>
+                ))}
+              </div>
+
+              <div className="text-description">
+                <p>Posted: {job.posted ? new Date(job.posted).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p>
+              </div>
+
+              {/* Closing Date and Job Time */}
+              {(job.closingDate || job.jobTime) && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {job.closingDate && (
+                    <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
+                      Deadline: {new Date(job.closingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                  {job.jobTime && (
+                    <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">
+                      {job.jobTime}
+                    </span>
+                  )}
                 </div>
               )}
-              <div className="text-description">
-                <p>Posted: {job.posted}</p>
-                {job.closingDate && <p>Application Deadline: {job.closingDate}</p>}
-              </div>
             </div>
           </div>
 
@@ -413,7 +492,7 @@ export default function JobDetails() {
               </div>
               <p className="text-description mb-4">{job.companyDescription}</p>
               <button
-                onClick={() => handleViewCompany(job.companyId)}
+                onClick={handleViewCompany}
                 className="btn btn-secondary w-full"
               >
                 View Company Profile
@@ -421,56 +500,6 @@ export default function JobDetails() {
             </div>
           </div>
           
-          {/* Action Buttons */}
-          <div className="card">
-            <div className="p-6">
-              <h2 className="text-subheading mb-4">Actions</h2>
-              <div className="space-y-3">
-                <button
-                  onClick={handleSaveJob}
-                  className="btn btn-secondary w-full flex items-center justify-center gap-3 py-3 px-4"
-                  style={{ minHeight: "44px" }}
-                >
-                  <span className="flex items-center justify-center gap-2 w-full">
-                    <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                    <span className="font-medium">{isSaved ? 'Unsave Job' : 'Save Job'}</span>
-                  </span>
-                </button>
-                {applicationStatus === 'accepted' ? (
-                  <button
-                    disabled
-                    className="btn w-full flex items-center justify-center gap-3 py-3 px-4 font-medium text-white bg-green-500 cursor-not-allowed"
-                    style={{ minHeight: "44px" }}
-                  >
-                    <span className="flex items-center justify-center gap-2 w-full">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      <span>Application Accepted</span>
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleApply}
-                    className="btn w-full flex items-center justify-center gap-3 py-3 px-4 font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)]"
-                    style={{ minHeight: "44px" }}
-                  >
-                    <span className="flex items-center justify-center gap-2 w-full">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      <span>
-                        Apply for this Job
-                      </span>
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Success/Error Messages */}
           {successMessage && (
             <div className="success-message">

@@ -230,7 +230,7 @@ export default function Applications() {
                 </button>
               </div>
             </div>
-          ) : (            <div className="space-y-4">              {applications.map((app, index) => (
+          ) : (            <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">              {applications.map((app, index) => (
                 <div
                   key={app.request_id || index}
                   className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${

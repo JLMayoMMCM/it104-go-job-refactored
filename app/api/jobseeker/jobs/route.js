@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabase';
-import { calculateJobMatch, prepareJobSeekerDataForMatching } from '../../../lib/matchingAlgorithm';
+import { createClient } from '@/app/lib/supabase';
+import { calculateJobMatch, prepareJobSeekerDataForMatching } from '@/app/lib/matchingAlgorithm';
 
 async function handleSearchJobs(supabase, filters, accountId) {
   const { page, limit, search, sort, category, jobType, experienceLevel, salaryMin, salaryMax, location, jobSeekerData } = filters;
@@ -317,39 +317,11 @@ export async function GET(request) {
         });
       }
 
-      // Get jobs that match the categories and experience level
+      // Get jobs that match the categories. Experience level is handled by the matching algorithm.
       let jobsQuery = supabase
         .from('job_category_list')
         .select('job_id')
         .in('job_category_id', categoryIds);
-
-      // Filter by experience level if present (from filter or user profile)
-      let experienceLevelFilter = experienceLevel;
-      if (experienceLevelFilter && experienceLevelFilter !== 'all') {
-        // Join with job table to filter by experience level
-        const { data: jobIdsByExp, error: expError } = await supabase
-          .from('job')
-          .select('job_id')
-          .eq('job_experience_level_id', experienceLevelFilter);
-        if (expError) {
-          console.error('Experience level filter error:', expError);
-          return NextResponse.json({ success: false, error: 'Failed to filter by experience level' }, { status: 500 });
-        }
-        const expJobIds = jobIdsByExp?.map(j => j.job_id) || [];
-        jobsQuery = jobsQuery.in('job_id', expJobIds);
-      } else if (jobSeekerMatchingData.experienceLevelId) {
-        // Default to user's experience level if no filter is set
-        const { data: jobIdsByExp, error: expError } = await supabase
-          .from('job')
-          .select('job_id')
-          .eq('job_experience_level_id', jobSeekerMatchingData.experienceLevelId);
-        if (expError) {
-          console.error('Experience level filter error:', expError);
-          return NextResponse.json({ success: false, error: 'Failed to filter by experience level' }, { status: 500 });
-        }
-        const expJobIds = jobIdsByExp?.map(j => j.job_id) || [];
-        jobsQuery = jobsQuery.in('job_id', expJobIds);
-      }
 
       const { data: jobCategoryList, error: jclError } = await jobsQuery;
 
@@ -458,6 +430,14 @@ export async function GET(request) {
           rating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0.0;
         }
 
+        // Gather categories and field again for completeness
+        const catNames = (job.job_category_list || [])
+          .map(jcl => jcl.job_category?.job_category_name)
+          .filter(Boolean);
+        const fieldName = (job.job_category_list && job.job_category_list.length > 0)
+          ? job.job_category_list[0].job_category?.category_field?.category_field_name
+          : 'Not specified';
+
         return {
           id: job.job_id,
           title: job.job_name,
@@ -469,13 +449,18 @@ export async function GET(request) {
           match: matchPercentage,
           matchPercentage: matchPercentage,
           posted: postedAgo,
-          description: job.job_description?.substring(0, 150) + '...'
+          description: job.job_description?.substring(0, 150) + '...',
+          experienceLevel: job.experience_level?.experience_level_name || 'Not specified',
+          job_experience_level_id: job.job_experience_level_id || null,
+          categories: catNames,
+          field: fieldName,
+          closingDate: job.job_closing_date || null,
+          jobTime: job.job_time || null
         };
       }) || [];
 
-      // Filter to include jobs with match percentages >= 25% (allowing field matches) and sort by match
+      // Sort jobs by match percentage
       const formattedJobs = jobsWithMatches
-        .filter(job => job.match >= 25)
         .sort((a, b) => b.match - a.match)
         .slice(0, limit || 6); // Use provided limit or default to 6
 

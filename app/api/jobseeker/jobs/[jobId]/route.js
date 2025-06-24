@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../lib/supabase';
-import { calculateJobMatch, prepareJobSeekerDataForMatching } from '../../../../lib/matchingAlgorithm';
+import { createClient } from '@/app/lib/supabase';
+import { calculateJobMatch, prepareJobSeekerDataForMatching } from '@/app/lib/matchingAlgorithm';
 
 export async function GET(request) {
   try {

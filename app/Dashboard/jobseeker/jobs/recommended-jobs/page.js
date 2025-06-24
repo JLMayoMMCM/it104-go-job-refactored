@@ -2,195 +2,225 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import JobCard from '../../../../components/JobCard';
 
 export default function RecommendedJobs() {
+  /* --------------------------- STATE --------------------------- */
+  const [rawJobs, setRawJobs] = useState([]);
   const [allJobs, setAllJobs] = useState([]);
+  const [experienceLevels, setExperienceLevels] = useState([]);
+  const [jobFields, setJobFields] = useState([]);
+  const [applicationStatus, setApplicationStatus] = useState({});
+  const [savedJobs, setSavedJobs] = useState({});
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [displayedJobs, setDisplayedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [showApplyModal, setShowApplyModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [coverLetter, setCoverLetter] = useState('');
-  // applicationStatus: { [jobId]: array of applications }
-  const [applicationStatus, setApplicationStatus] = useState({});
-  const [savedJobs, setSavedJobs] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [jobCategories, setJobCategories] = useState([]);
-  const [experienceLevels, setExperienceLevels] = useState([]);
-  
-  // Filter states
   const [filters, setFilters] = useState({
-    sort: 'relevance',
+    sort: 'match_high',
     category: 'all',
     salaryRange: 'all',
     experienceLevel: 'all'
   });
   
   const router = useRouter();
-
   const jobsPerPage = 10;
 
-  // Initial load - fetch all jobs and application status
+  /* ---------------------- INITIAL LOAD ------------------------ */
   useEffect(() => {
     const accountId = localStorage.getItem('accountId');
     const accountType = localStorage.getItem('accountType');
-    
     if (!accountId || accountType !== '2') {
       router.push('/Login');
       return;
     }
     
-    fetchCategories();
-    fetchJobCategories();
-    fetchExperienceLevels();
-    fetchAllJobs(accountId);
-    fetchApplicationStatus(accountId);
-    fetchSavedJobs(accountId);
+    // Fetch all necessary data in parallel for faster loading
+    Promise.all([
+      fetchJobFields(),
+      fetchExperienceLevels(),
+      fetchApplicationStatus(accountId),
+      fetchSavedJobs(accountId)
+    ]).then(() => {
+      fetchAndProcessRecommendedJobs(accountId);
+    });
   }, [router]);
 
-  // Fetch experience levels from API
-  const fetchExperienceLevels = async () => {
-    try {
-      const response = await fetch('/api/data/experience-levels');
-      const data = await response.json();
-      if (response.ok && data.success && data.data) {
-        setExperienceLevels(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching experience levels:', error);
-    }
-  };
-
-  // Filter and sort jobs when search term or filters change
+  /* ----------------------- FILTERING -------------------------- */
   useEffect(() => {
-    if (allJobs.length === 0) return;
+    if (loading) return; // Don't filter until initial load is complete
+    
+    // First filter for match percentage >= 20%
+    let list = allJobs.filter(job => (job.match || 0) >= 20);
 
-    let filtered = [...allJobs];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(job => 
-        job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location?.toLowerCase().includes(searchTerm.toLowerCase())
+    // 1. Search Term Filter
+    if (searchTerm.trim()) {
+      const lowercasedTerm = searchTerm.toLowerCase();
+      list = list.filter(j =>
+        j.title?.toLowerCase().includes(lowercasedTerm) ||
+        j.company?.toLowerCase().includes(lowercasedTerm) ||
+        j.location?.toLowerCase().includes(lowercasedTerm)
       );
     }
 
-    // Apply category filter
+    // 2. Job Field (Category) Filter
     if (filters.category !== 'all') {
-      filtered = filtered.filter(job => job.categoryId === filters.category);
+      const fid = String(filters.category);
+      list = list.filter(j => j.fieldId === fid);
     }
 
-    // Apply salary range filter
+    // 3. Salary Range Filter
     if (filters.salaryRange !== 'all') {
-      filtered = filtered.filter(job => {
-        const salary = parseInt(job.salary?.replace(/[^\d]/g, '') || '0');
+      const getSal = s => typeof s === 'number' ? s : parseInt(String(s).replace(/[^\d]/g, '')) || 0;
+      list = list.filter(j => {
+        const s = getSal(j.salary);
         switch (filters.salaryRange) {
-          case '0-20000':
-            return salary <= 20000;
-          case '20001-40000':
-            return salary >= 20001 && salary <= 40000;
-          case '40001-60000':
-            return salary >= 40001 && salary <= 60000;
-          case '60001-80000':
-            return salary >= 60001 && salary <= 80000;
-          case '80001+':
-            return salary >= 80001;
-          default:
-            return true;
+          case '0-20000': return s <= 20000;
+          case '20001-40000': return s >= 20001 && s <= 40000;
+          case '40001-60000': return s >= 40001 && s <= 60000;
+          case '60001-80000': return s >= 60001 && s <= 80000;
+          case '80001+': return s >= 80001;
+          default: return true;
         }
       });
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
+    // 4. Experience Level Filter
+    if (filters.experienceLevel !== 'all') {
+      list = list.filter(j => String(j.job_experience_level_id) === String(filters.experienceLevel));
+    }
+
+    // 5. Sorting
+    const getSal = j => typeof j.salary === 'number' ? j.salary : parseInt(String(j.salary).replace(/[^\d]/g, '')) || -1;
+    const getMatch = j => j.match || 0;
+    list.sort((a, b) => {
       switch (filters.sort) {
-        case 'newest':
-          return new Date(b.postedDate) - new Date(a.postedDate);
-        case 'oldest':
-          return new Date(a.postedDate) - new Date(b.postedDate);
-        case 'salary_high':
-          return parseInt(b.salary?.replace(/[^\d]/g, '') || '0') - parseInt(a.salary?.replace(/[^\d]/g, '') || '0');
-        case 'salary_low':
-          return parseInt(a.salary?.replace(/[^\d]/g, '') || '0') - parseInt(b.salary?.replace(/[^\d]/g, '') || '0');
-        case 'relevance':
-        default:
-          return (b.matchPercentage || b.match || 0) - (a.matchPercentage || a.match || 0);
+        case 'match_high': return getMatch(b) - getMatch(a);
+        case 'match_low': return getMatch(a) - getMatch(b);
+        case 'newest': return new Date(b.postedDate) - new Date(a.postedDate);
+        case 'oldest': return new Date(a.postedDate) - new Date(b.postedDate);
+        case 'salary_high': return getSal(b) - getSal(a);
+        case 'salary_low': return getSal(a) - getSal(b);
+        default: return getMatch(b) - getMatch(a);
       }
     });
 
-    setFilteredJobs(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [allJobs, searchTerm, filters]);
+    setFilteredJobs(list);
+    setCurrentPage(1); // Reset to first page on filter change
+  }, [allJobs, searchTerm, filters, loading]);
 
-  // Paginate filtered jobs
+  /* --------------------- PAGINATION --------------------------- */
   useEffect(() => {
-    const startIndex = (currentPage - 1) * jobsPerPage;
-    const endIndex = startIndex + jobsPerPage;
-    setDisplayedJobs(filteredJobs.slice(startIndex, endIndex));
+    const start = (currentPage - 1) * jobsPerPage;
+    setDisplayedJobs(filteredJobs.slice(start, start + jobsPerPage));
     setTotalPages(Math.ceil(filteredJobs.length / jobsPerPage));
   }, [filteredJobs, currentPage]);
 
-  const fetchCategories = async () => {
+  /* ----------------------- FETCHERS --------------------------- */
+  const fetchJobFields = async () => {
     try {
-      const response = await fetch('/api/data/job-fields');
-      const data = await response.json();
-      
-      if (response.ok && data.success && data.data) {
-        setCategories(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
+      const r = await fetch('/api/data/job-fields');
+      const j = await r.json();
+      if (r.ok && j.success) setJobFields(j.data);
+    } catch (e) { console.error("Failed to fetch job fields", e); }
   };
 
-  // Fetch all job categories (not just fields)
-  const fetchJobCategories = async () => {
+  const fetchExperienceLevels = async () => {
     try {
-      const response = await fetch('/api/data/job-categories');
-      const data = await response.json();
-      if (response.ok && data.success && data.data) {
-        setJobCategories(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching job categories:', error);
-    }
+      const r = await fetch('/api/data/experience-levels');
+      const j = await r.json();
+      if (r.ok && j.success) setExperienceLevels(j.data);
+    } catch (e) { console.error("Failed to fetch experience levels", e); }
   };
 
-  const fetchAllJobs = async (accountId) => {
+  const fetchAndProcessRecommendedJobs = async (accountId) => {
     try {
       setLoading(true);
-      setError(null);
 
-      // Fetch all recommended jobs without filters (client-side filtering only)
-      const queryParams = new URLSearchParams({
-        accountId: accountId,
-        type: 'recommended',
-        limit: '1000'
+      // Fetch both recommended jobs (for IDs and match scores) and all jobs (for full data)
+      const [recRes, allRes] = await Promise.all([
+        fetch(`/api/jobseeker/jobs?${new URLSearchParams({ accountId, type: 'recommended', limit: '1000' })}`),
+        fetch(`/api/jobseeker/jobs?${new URLSearchParams({ accountId, type: 'search', limit: '5000' })}`)
+      ]);
+
+      const recJson = await recRes.json();
+      const allJson = await allRes.json();
+
+      if (!recRes.ok) throw new Error(recJson.error || 'Failed to fetch recommended jobs');
+      if (!allRes.ok) {
+        console.error(allJson.error || 'Failed to fetch all jobs data');
+        // If all jobs fails, we can still use the recommended jobs data
+        setAllJobs(recJson.data || []);
+        return;
+      }
+
+      const allJobsMap = new Map((allJson.data || []).map(job => [job.id, job]));
+
+      const enrichedJobs = (recJson.data || []).map(recJob => {
+        const fullJobData = allJobsMap.get(recJob.id);
+        if (fullJobData) {
+          // Create a new object using the full data from the 'search' endpoint
+          // and ONLY add the match score from the recommendation data to avoid conflicts.
+          return {
+            ...fullJobData,
+            id: fullJobData.id || fullJobData.job_id,
+            title: fullJobData.title || fullJobData.job_name,
+            company: fullJobData.company || fullJobData.company_name,
+            location: fullJobData.location || fullJobData.job_location,
+            type: fullJobData.type || fullJobData.job_type?.job_type_name,
+            salary: fullJobData.salary || fullJobData.job_salary,
+            experienceLevel: fullJobData.experience_level?.experience_level_name || 
+                           getExperienceLevelName(fullJobData.job_experience_level_id),
+            match: recJob.matchPercentage || recJob.match || 0,
+            fieldId: fullJobData.job_category_list?.[0]?.job_category?.category_field?.category_field_id,
+            categories: fullJobData.job_category_list?.map(jcl => ({
+              id: jcl.job_category?.job_category_id,
+              name: jcl.job_category?.job_category_name
+            })) || [],
+            field: fullJobData.job_category_list?.[0]?.job_category?.category_field?.category_field_name,
+            closingDate: fullJobData.job_closing_date || fullJobData.closingDate,
+            jobTime: fullJobData.job_time || fullJobData.jobTime,
+            rating: fullJobData.rating || 0,
+            posted: fullJobData.posted || fullJobData.postedDate,
+            description: fullJobData.description || fullJobData.job_description?.substring(0, 150) + '...'
+          };
+        }
+        // Fallback to the partial recommended job data if not found in the full list
+        return {
+          ...recJob,
+          id: recJob.id || recJob.job_id,
+          title: recJob.title || recJob.job_name,
+          company: recJob.company || recJob.company_name,
+          location: recJob.location || recJob.job_location,
+          type: recJob.type || recJob.job_type?.job_type_name,
+          salary: recJob.salary || recJob.job_salary,
+          experienceLevel: recJob.experience_level?.experience_level_name || 
+                         getExperienceLevelName(recJob.job_experience_level_id),
+          match: recJob.matchPercentage || recJob.match || 0,
+          fieldId: recJob.job_category_list?.[0]?.job_category?.category_field?.category_field_id,
+          categories: recJob.job_category_list?.map(jcl => ({
+            id: jcl.job_category?.job_category_id,
+            name: jcl.job_category?.job_category_name
+          })) || [],
+          field: recJob.job_category_list?.[0]?.job_category?.category_field?.category_field_name,
+          closingDate: recJob.job_closing_date || recJob.closingDate,
+          jobTime: recJob.job_time || recJob.jobTime,
+          rating: recJob.rating || 0,
+          posted: recJob.posted || recJob.postedDate,
+          description: recJob.description || recJob.job_description?.substring(0, 150) + '...'
+        };
       });
-
-      const response = await fetch(`/api/jobseeker/jobs?${queryParams}`);
-      const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch recommended jobs');
-      }
-      
-      if (data.success && data.data) {
-        setAllJobs(data.data);
-        setFilteredJobs(data.data);
-      } else {
-        throw new Error('Recommended jobs data not found');
-      }
-    } catch (error) {
-      console.error('Error fetching recommended jobs:', error);
-      setError(error.message);
+      setAllJobs(enrichedJobs);
+    } catch (e) {
+      setError(e.message);
+      console.error('Error fetching recommended jobs:', e);
     } finally {
       setLoading(false);
     }
@@ -198,145 +228,84 @@ export default function RecommendedJobs() {
 
   const fetchApplicationStatus = async (accountId) => {
     try {
-      const response = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
-      const data = await response.json();
-      
-      if (response.ok && data.success && data.data) {
-        // Group all applications by jobId
-        const statusMap = {};
-        data.data.forEach(app => {
-          if (!statusMap[app.jobId]) statusMap[app.jobId] = [];
-          statusMap[app.jobId].push(app);
+      const r = await fetch(`/api/jobseeker/applications?accountId=${accountId}`);
+      const j = await r.json();
+      if (r.ok && j.success) {
+        const map = {};
+        j.data.forEach(a => {
+          if (!map[a.jobId]) map[a.jobId] = [];
+          map[a.jobId].push(a);
         });
-        setApplicationStatus(statusMap);
+        setApplicationStatus(map);
       }
-    } catch (error) {
-      console.error('Error fetching application status:', error);
-    }
+    } catch (e) { console.error("Failed to fetch application status", e); }
   };
 
   const fetchSavedJobs = async (accountId) => {
     try {
-      const response = await fetch(`/api/jobseeker/saved-jobs?accountId=${accountId}`);
-      const data = await response.json();
+      setLoadingSaved(true);
+      const r = await fetch(`/api/jobseeker/saved-jobs?accountId=${accountId}`);
+      const j = await r.json();
+      if (r.ok && j.success) {
+        const map = {};
+        j.data.forEach(s => {
+          const i = s.job_id ?? s.jobId;
+          if (i != null) map[i] = true;
+        });
+        setSavedJobs(map);
+      }
+    } catch (e) { console.error("Failed to fetch saved jobs", e); } finally { setLoadingSaved(false); }
+  };
+
+  /* --------------------- HANDLERS ----------------------------- */
+  const handlePageChange = (p) => {
+    setCurrentPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handleViewJob = (id) => router.push(`/Dashboard/jobseeker/jobs/${id}`);
+
+  const handleSaveJob = async (id) => {
+    try {
+      const accountId = localStorage.getItem('accountId');
+      if (!accountId) return;
       
-      if (response.ok && data.success && data.data) {
-        const savedMap = {};
-        data.data.forEach(job => {
-          savedMap[job.job_id] = true;
-        });
-        setSavedJobs(savedMap);
-      }
-    } catch (error) {
-      console.error('Error fetching saved jobs:', error);
-    }
-  };
-
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-    window.scrollTo(0, 0); // Scroll to top on page change
-  };
-
-  const handleViewJob = (jobId) => {
-    router.push(`/Dashboard/jobseeker/jobs/${jobId}`);
-  };
-
-  const handleSaveJob = async (jobId) => {
-    try {
-      const accountId = localStorage.getItem('accountId');
-      if (savedJobs[jobId]) {
-        // Unsave job
-        const response = await fetch(`/api/jobseeker/saved-jobs`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ jobId, accountId }),
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          setSavedJobs(prev => {
-            const newSaved = { ...prev };
-            delete newSaved[jobId];
-            return newSaved;
-          });
-          setSuccessMessage('Job unsaved successfully!');
-          setTimeout(() => setSuccessMessage(''), 2000);
-        } else {
-          throw new Error(data.error || 'Failed to unsave job');
-        }
-      } else {
-        // Save job
-        const response = await fetch(`/api/jobseeker/saved-jobs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ jobId, accountId }),
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          setSavedJobs(prev => ({ ...prev, [jobId]: true }));
-          setSuccessMessage('Job saved successfully!');
-          setTimeout(() => setSuccessMessage(''), 2000);
-        } else {
-          throw new Error(data.error || 'Failed to save job');
-        }
-      }
-    } catch (error) {
-      console.error('Error handling job save/unsave:', error);
-      setError('Failed to update job status. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const handleQuickApply = (job) => {
-    setSelectedJob(job);
-    setShowApplyModal(true);
-  };
-
-  const handleSubmitApplication = async () => {
-    if (!selectedJob) return;
-    
-    try {
-      const accountId = localStorage.getItem('accountId');
-      const response = await fetch(`/api/jobseeker/applications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          jobId: selectedJob.id, 
-          accountId, 
-          coverLetter: coverLetter || 'I am interested in this position and would like to apply.'
-        }),
+      const isCurrentlySaved = savedJobs[id];
+      // Optimistic UI update
+      setSavedJobs(prev => ({ ...prev, [id]: !isCurrentlySaved }));
+      setSuccess(isCurrentlySaved ? 'Job unsaved!' : 'Job saved!');
+      setTimeout(() => setSuccess(''), 2000);
+      
+      const response = await fetch('/api/jobseeker/saved-jobs', {
+        method: isCurrentlySaved ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: id, accountId }),
       });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        // Update application status immediately before closing modal
-        setApplicationStatus(prev => ({ ...prev, [selectedJob.id]: 'pending' }));
-        
-        setShowApplyModal(false);
-        setCoverLetter('');
-        setSelectedJob(null);
-        setSuccessMessage('Your application has been submitted successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        throw new Error(data.error || 'Failed to submit application');
+
+      if (!response.ok) {
+        // Revert on failure
+        setSavedJobs(prev => ({ ...prev, [id]: isCurrentlySaved }));
+        setError("Failed to update saved status.");
+        setTimeout(() => setError(null), 3000);
       }
-    } catch (error) {
-      console.error('Error submitting application:', error);
-      setError('Failed to submit application. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
+    } catch (e) { console.error(e); }
+  };
+  
+  const handleApplySuccess = (jobId) => {
+    const accountId = localStorage.getItem('accountId');
+    fetchApplicationStatus(accountId); // Re-fetch all statuses
   };
 
+  const handleClearFilters = () => {
+    setFilters({
+      sort: 'match_high',
+      category: 'all',
+      salaryRange: 'all',
+      experienceLevel: 'all'
+    });
+  };
+
+  /* --------------------- UTILITIES ---------------------------- */
   const getSalaryRangeLabel = (range) => {
     switch (range) {
       case '0-20000': return 'Below ₱20,000';
@@ -344,106 +313,61 @@ export default function RecommendedJobs() {
       case '40001-60000': return '₱40,001 - ₱60,000';
       case '60001-80000': return '₱60,001 - ₱80,000';
       case '80001+': return 'Above ₱80,000';
-      default: return 'All Salary Ranges';
+      default: return range.replace('_', ' ');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
-      </div>
-    );
-  }
+  // Map experience level IDs to their display names
+  const getExperienceLevelName = (levelId) => {
+    const levelMap = {
+      1: "Entry Level",
+      2: "Mid Level",
+      3: "Senior Level",
+      4: "Managerial Level",
+      5: "Executive Level"
+    };
+    return levelMap[levelId] || "Not specified";
+  };
 
-  if (error) {
+  /* ------------------------ RENDER ---------------------------- */
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
     return (
-      <div className="space-y-6">
-        <div className="error-message">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-[var(--error-color)]">Error loading recommended jobs</h3>
-              <div className="mt-2 text-sm text-[var(--error-color)]">
-                <p>{error}</p>
-              </div>
-              <div className="mt-4">
-                <button
-                  onClick={() => {
-                    setError(null);
-                    setLoading(true);
-                    const accountId = localStorage.getItem('accountId');
-                    if (accountId) fetchAllJobs(accountId);
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </div>
+      <div className="px-6 py-4 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between">
+        <div className="text-sm text-[var(--text-light)] mb-2 sm:mb-0">Page {currentPage} of {totalPages}</div>
+        <div className="flex space-x-2">
+          <button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} className="btn-page">Prev</button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button key={i} onClick={() => handlePageChange(i + 1)} className={currentPage === i + 1 ? "btn-page-active" : "btn-page"}>{i + 1}</button>
+          ))}
+          <button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} className="btn-page">Next</button>
         </div>
       </div>
     );
-  }
+  };
+
+  if (error) return <div className="error-message">{error}</div>;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="profile-header">
         <h1 className="text-heading">Recommended Jobs</h1>
-        <p className="text-description">Jobs tailored to your preferences and profile.</p>
+        <p className="text-description">Jobs tailored to your profile based on your skills and preferences.</p>
       </div>
 
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div className="success-message">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <div className="text-sm text-[var(--success-color)]">
-                <p>{successMessage}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {error && (
-        <div className="error-message">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <div className="text-sm text-[var(--error-color)]">
-                <p>{error}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {success && <div className="success-message">{success}</div>}
 
-      {/* Search and Filters */}
+      {/* Search & Filters */}
       <div className="card overflow-hidden">
         <div className="p-6">
           <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-grow relative">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search recommended jobs by title, company, or location..."
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search jobs by title, company, or location..."
                   className="form-input"
                 />
                 <svg className="absolute right-3 top-3.5 w-5 h-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,12 +391,12 @@ export default function RecommendedJobs() {
           </div>
           
           {/* Active Filters Display */}
-          {(filters.category !== 'all' || filters.salaryRange !== 'all' || filters.sort !== 'relevance') && (
+          {(filters.category !== 'all' || filters.salaryRange !== 'all' || filters.sort !== 'match_high') && (
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="text-sm text-[var(--text-light)]">Active filters:</span>
               {filters.category !== 'all' && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
-                  Category: {categories.find(c => c.category_field_id === filters.category)?.category_field_name}
+                  Category: {jobFields.find(f => f.category_field_id === filters.category)?.category_field_name}
                   <button
                     onClick={() => setFilters(prev => ({ ...prev, category: 'all' }))}
                     className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
@@ -492,22 +416,11 @@ export default function RecommendedJobs() {
                   </button>
                 </span>
               )}
-              {filters.experienceLevel !== 'all' && (
+              {filters.sort !== 'match_high' && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
-                  Experience: {experienceLevels.find(e => (e.experience_level_id || e.id) === filters.experienceLevel)?.experience_level_name || filters.experienceLevel}
+                  Sort: {filters.sort === 'salary_high' ? 'Highest Salary' : filters.sort === 'salary_low' ? 'Lowest Salary' : filters.sort === 'newest' ? 'Newest First' : 'Oldest First'}
                   <button
-                    onClick={() => setFilters(prev => ({ ...prev, experienceLevel: 'all' }))}
-                    className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-              {filters.sort !== 'relevance' && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--light-color)] bg-opacity-30 text-[var(--foreground)]">
-                  Sort: {filters.sort === 'newest' ? 'Newest' : filters.sort === 'salary_high' ? 'Highest Salary' : 'Lowest Salary'}
-                  <button
-                    onClick={() => setFilters(prev => ({ ...prev, sort: 'relevance' }))}
+                    onClick={() => setFilters(prev => ({ ...prev, sort: 'match_high' }))}
                     className="ml-1 text-[var(--foreground)] hover:text-[var(--accent-color)]"
                   >
                     ×
@@ -516,9 +429,10 @@ export default function RecommendedJobs() {
               )}
               <button
                 onClick={() => setFilters({
-                  sort: 'relevance',
+                  sort: 'match_high',
                   category: 'all',
-                  salaryRange: 'all'
+                  salaryRange: 'all',
+                  experienceLevel: 'all'
                 })}
                 className="text-xs text-[var(--error-color)] hover:text-[var(--error-color)] underline"
               >
@@ -535,193 +449,39 @@ export default function RecommendedJobs() {
       </div>
 
       {/* Jobs List */}
-      <div className="card">
+      <div className="card" style={{overflowX:'auto'}}>
         <div className="p-6">
-          {displayedJobs.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, index) => <JobCard key={index} loading={true} />)}
+            </div>
+          ) : displayedJobs.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
-              <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <div className="mt-2 text-sm text-[var(--text-light)]">
-                <p>No recommended jobs found matching your criteria. Try adjusting your filters or search terms.</p>
-              </div>
-              <div className="mt-6">
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilters({
-                      sort: 'relevance',
-                      category: 'all',
-                      salaryRange: 'all'
-                    });
-                    setCurrentPage(1);
-                  }}
-                  className="btn btn-primary text-sm"
-                >
-                  Clear Filters
-                </button>
-              </div>
+              <p className="text-lg font-semibold text-[var(--foreground)]">No Jobs Found</p>
+              <p className="text-sm text-[var(--text-light)] mt-2">No recommended jobs match your current filters. Try adjusting your search.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {displayedJobs.map((job, index) => (
-                <div
+            <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
+              {displayedJobs.map(job => (
+                <JobCard
                   key={job.id}
-                  className={`flex flex-col md:flex-row md:items-center justify-between p-4 border border-[var(--border-color)] rounded-lg ${
-                    index % 2 === 0 ? 'bg-[var(--background)]' : 'bg-[rgba(128, 128, 128, 0.05)]'
-                  } hover:shadow-md transition-shadow`}
-                >
-                  <div className="mb-3 md:mb-0 md:w-1/3">
-                    <h4 className="text-lg font-semibold text-[var(--foreground)]">{job.title}</h4>
-                    <p className="text-sm text-[var(--text-light)]">{job.company} • {job.location} {job.rating > 0 && <span>• ⭐ {job.rating.toFixed(1)}/5.0</span>}</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">{job.posted}</p>
-                  </div>
-                  <div className="flex flex-col md:flex-row md:items-center md:w-1/3 space-y-2 md:space-y-0 md:space-x-4">
-                    <div className="flex items-center text-[var(--text-light)] text-sm">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      {job.type}
-                    </div>
-                    <div className="flex items-center text-[var(--text-light)] text-sm">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {job.salary}
-                    </div>
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      job.match >= 80 ? 'bg-green-100 text-green-800' : 
-                      job.match >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {job.match || 0}% Match
-                    </div>
-                  </div>
-                  <div className="mt-3 md:mt-0 md:w-1/3 flex justify-end space-x-2">
-                    {/* Removed View Company button */}
-                    <button
-                      onClick={() => handleSaveJob(job.id)}
-                      className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md text-sm font-medium hover:bg-[var(--primary-color)] hover:text-white transition-all"
-                    >
-                      {savedJobs[job.id] ? 'Unsave' : 'Save'}
-                    </button>
-                    {(() => {
-                      // Determine button state based on all applications for this job
-                      const apps = applicationStatus[job.id] || [];
-                      let btn = {
-                        label: 'Apply',
-                        disabled: false,
-                        className: 'bg-green-600 hover:bg-green-700'
-                      };
-                      if (apps.some(app => (app.status || '').toLowerCase() === 'accepted')) {
-                        btn = {
-                          label: 'Accepted',
-                          disabled: true,
-                          className: 'bg-green-500 cursor-not-allowed'
-                        };
-                      }
-                      return (
-                        <button
-                          onClick={() => handleQuickApply(job)}
-                          disabled={btn.disabled}
-                          className={`px-4 py-2 rounded-md text-sm font-medium text-white ${btn.className}`}
-                        >
-                          {btn.label}
-                        </button>
-                      );
-                    })()}
-                    <button
-                      onClick={() => handleViewJob(job.id)}
-                      className="btn btn-primary text-sm"
-                    >
-                      View Job
-                    </button>
-                  </div>
-                </div>
+                  job={job}
+                  applicationStatus={applicationStatus[job.id] || []}
+                  saved={!!savedJobs[job.id]}
+                  loadingSaved={loadingSaved}
+                  onSave={handleSaveJob}
+                  onApplySuccess={handleApplySuccess}
+                  onView={handleViewJob}
+                  showSave={true}
+                  showApply={true}
+                  showView={true}
+                />
               ))}
             </div>
           )}
         </div>
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between">
-            <div className="text-sm text-[var(--text-light)] mb-2 sm:mb-0">
-              Showing page {currentPage} of {totalPages}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded-md text-sm font-medium ${
-                  currentPage === 1
-                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
-                    : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
-                }`}
-              >
-                Previous
-              </button>
-              
-              {/* Page number buttons */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === page
-                      ? 'bg-[var(--primary-color)] text-white'
-                      : 'bg-[var(--border-color)] text-[var(--text-light)] hover:bg-[var(--hover-color)]'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded-md text-sm font-medium ${
-                  currentPage === totalPages
-                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
-                    : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
-                }`}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Apply Modal */}
-      {showApplyModal && selectedJob && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-          <div className="modal-content">
-            <h2 className="text-subheading">Apply for {selectedJob.title}</h2>
-            <p className="text-description mb-4">at {selectedJob.company}</p>
-            <div className="mb-4">
-              <label className="form-label">Cover Letter (optional)</label>
-              <textarea 
-                value={coverLetter} 
-                onChange={(e) => setCoverLetter(e.target.value)} 
-                placeholder="Enter your cover letter or a brief message. A default message will be sent if left empty." 
-                className="form-textarea"
-              ></textarea>
-            </div>
-            <div className="button-group">
-              <button onClick={() => {
-                setShowApplyModal(false);
-                setSelectedJob(null);
-                setCoverLetter('');
-              }} className="btn btn-secondary">Cancel</button>
-              <button onClick={handleSubmitApplication} className="btn btn-primary">Submit Application</button>
-            </div>
-          </div>
+        {renderPagination()}
         </div>
-      )}
 
       {/* Filter Modal */}
       {showFilterModal && (
@@ -736,7 +496,8 @@ export default function RecommendedJobs() {
                   onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
                   className="form-input"
                 >
-                  <option value="relevance">Relevance</option>
+                  <option value="match_high">Best Match</option>
+                  <option value="match_low">Lowest Match</option>
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
                   <option value="salary_high">Highest Salary</option>
@@ -744,50 +505,53 @@ export default function RecommendedJobs() {
                 </select>
               </div>
               <div>
-                <label className="form-label">Job Category</label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                <label className="form-label">Job Field</label>
+          <select
+            value={filters.category}
+            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
                   className="form-input"
-                >
-                  <option value="all">All Categories</option>
-                  {jobCategories.map(cat => (
-                    <option key={cat.job_category_id} value={cat.job_category_id}>
-                      {cat.job_category_name}
-                    </option>
-                  ))}
-                </select>
+          >
+            <option value="all">All Fields</option>
+                  {jobFields.map((field) => (
+                    <option
+                      key={field.category_field_id}
+                      value={field.category_field_id}
+                    >
+                {field.category_field_name}
+              </option>
+            ))}
+          </select>
               </div>
               <div>
                 <label className="form-label">Salary Range</label>
-                <select
-                  value={filters.salaryRange}
-                  onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
+          <select
+            value={filters.salaryRange}
+            onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
                   className="form-input"
                 >
-                  <option value="all">All Salary Ranges</option>
-                  <option value="0-20000">Below ₱20,000</option>
-                  <option value="20001-40000">₱20,001 - ₱40,000</option>
-                  <option value="40001-60000">₱40,001 - ₱60,000</option>
-                  <option value="60001-80000">₱60,001 - ₱80,000</option>
-                  <option value="80001+">Above ₱80,000</option>
-                </select>
+                  <option key="all" value="all">All Salary Ranges</option>
+                  <option key="0-20000" value="0-20000">Below ₱20,000</option>
+                  <option key="20001-40000" value="20001-40000">₱20,001 - ₱40,000</option>
+                  <option key="40001-60000" value="40001-60000">₱40,001 - ₱60,000</option>
+                  <option key="60001-80000" value="60001-80000">₱60,001 - ₱80,000</option>
+                  <option key="80001+" value="80001+">Above ₱80,000</option>
+          </select>
               </div>
               <div>
                 <label className="form-label">Job Experience Level</label>
-                <select
-                  value={filters.experienceLevel}
-                  onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
+          <select
+            value={filters.experienceLevel}
+            onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
                   className="form-input"
-                >
-                  <option value="all">All Experience Levels</option>
-                  {experienceLevels.map(level => (
-                    <option key={level.experience_level_id || level.id} value={level.experience_level_name}>
-                      {level.experience_level_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          >
+                  <option key="all" value="all">All Experience Levels</option>
+            {experienceLevels.map(level => (
+                    <option key={level.job_seeker_experience_level_id} value={level.job_seeker_experience_level_id}>
+                {level.experience_level_name}
+              </option>
+            ))}
+          </select>
+        </div>
             </div>
             <div className="button-group">
               <button onClick={() => setShowFilterModal(false)} className="btn btn-secondary">Cancel</button>

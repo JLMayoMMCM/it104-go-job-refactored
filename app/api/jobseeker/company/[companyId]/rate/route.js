@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
 
-export async function POST(request, { params }) {
+export async function POST(request, context) {
   try {
+    const { params } = context;
     const companyId = params.companyId;
     const body = await request.json();
     const { accountId, rating, reviewText } = body;
@@ -102,7 +103,8 @@ export async function POST(request, { params }) {
     return NextResponse.json({ 
       message: `Thank you for rating ${companyData.company_name}`,
       rating: rating,
-      userRating: rating
+      userRating: rating,
+      success: true,
     });
 
   } catch (error) {
@@ -111,8 +113,9 @@ export async function POST(request, { params }) {
   }
 }
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
   try {
+    const { params } = context;
     const companyId = params.companyId;
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('accountId');
@@ -150,7 +153,8 @@ export async function GET(request, { params }) {
     return NextResponse.json({ 
       userRating: ratingData?.rating || 0,
       reviewText: ratingData?.review_text || '',
-      ratingDate: ratingData?.rating_date || null
+      ratingDate: ratingData?.rating_date || null,
+      success: true,
     });
 
   } catch (error) {
