@@ -2,9 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 export default function RegisterSelectorPage() {
   const router = useRouter();
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateMode = () => setDarkMode(darkModeQuery.matches);
+    updateMode();
+    darkModeQuery.addEventListener('change', updateMode);
+    return () => darkModeQuery.removeEventListener('change', updateMode);
+  }, []);
 
   const registrationOptions = [
     {
@@ -40,7 +50,11 @@ export default function RegisterSelectorPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 transition-colors duration-300"
+      data-theme="logo"
+      data-mode={darkMode ? 'dark' : 'light'}
+    >
       <div className="max-w-4xl w-full space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
@@ -50,7 +64,7 @@ export default function RegisterSelectorPage() {
               alt="GoJob Logo"
               width={200}
               height={96}
-              className="mx-auto"
+              className="mx-auto filter-none dark:brightness-90"
               priority
             />
           </div>
@@ -61,10 +75,13 @@ export default function RegisterSelectorPage() {
         {/* Registration Options */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           {registrationOptions.map((option) => (
-            <div key={option.type} className="bg-[var(--card-background)] rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div
+              key={option.type}
+              className="bg-[var(--card-background)] border border-[var(--border-color)] rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1"
+            >
               <button
                 onClick={() => router.push(option.route)}
-                className="w-full p-8 text-center hover:bg-[rgba(128, 128, 128, 0.05)] rounded-xl transition-colors duration-200"
+                className="w-full p-8 text-center hover:bg-[var(--background)] rounded-xl transition-colors duration-200"
               >
                 <div className="flex justify-center mb-4">
                   {option.icon}
@@ -86,7 +103,7 @@ export default function RegisterSelectorPage() {
             Already have an account?{' '}
             <button
               onClick={() => router.push('/Login')}
-              className="text-[var(--primary-color)] hover:text-[var(--secondary-color)] font-medium"
+              className="text-[var(--primary-color)] hover:text-[var(--primary-color-hover)] font-medium transition-colors duration-200"
             >
               Sign in here
             </button>

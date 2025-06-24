@@ -81,16 +81,44 @@
   --border-color: #3d6d8c;
   --text-light: #adb5bd;
   --text-dark: #f8f9fa;
+  --input-background: #243447;
+}
+
+/* Company Theme (based on Logo) */
+[data-theme="logo"] {
+  --primary-color: #53a8b6;
+  --primary-color-hover: #438e9a;
+  --background: #f0f7f8;
+  --foreground: #2c3e50;
+  --card-background: #ffffff;
+  --border-color: #d1e0e3;
+  --input-background: #ffffff;
+  --text-light: #6c757d;
+  --text-dark: #343a40;
+}
+
+[data-theme="logo"][data-mode="dark"] {
+  --primary-color: #5cb6c6;
+  --primary-color-hover: #6ac0cf;
+  --background: #17202a;
+  --foreground: #e8f4f8;
+  --card-background: #1f2a38;
+  --border-color: #3a4b5c;
+  --input-background: #2a3b4d;
+  --text-light: #a0b0c0;
+  --text-dark: #ffffff;
 }
 
 /* Jobseeker Theme */
 [data-theme="jobseeker"] {
   --primary-color: var(--jobseeker-primary);
+  --primary-color-hover: #407ea3;
   --secondary-color: var(--jobseeker-secondary);
   --accent-color: var(--jobseeker-accent);
   --light-color: var(--jobseeker-light);
   --background: #f0f8ff;
   --foreground: #2c3e50;
+  --input-background: #ffffff;
 }
 
 [data-theme="jobseeker"][data-mode="light"] {
@@ -102,21 +130,24 @@
 
 [data-theme="jobseeker"][data-mode="dark"] {
   --primary-color: #5ca9b8;
+  --primary-color-hover: #6ab3c2;
   --secondary-color: #9bd1d9;
-  --accent-color: #3d6d8c;
   --background: #19212e;
   --foreground: #e8f4f8;
   --light-color: #ffffff;
+  --input-background: #243447;
 }
 
 /* Employee Theme */
 [data-theme="employee"] {
   --primary-color: var(--employee-primary);
+  --primary-color-hover: #478c5a;
   --secondary-color: var(--employee-secondary);
   --accent-color: var(--employee-accent);
   --light-color: var(--employee-light);
   --background: #f5fff5;
   --foreground: #2c3e50;
+  --input-background: #ffffff;
 }
 
 [data-theme="employee"][data-mode="light"] {
@@ -128,11 +159,12 @@
 
 [data-theme="employee"][data-mode="dark"] {
   --primary-color: #6ca080;
+  --primary-color-hover: #79b38e;
   --secondary-color: #a8c9ad;
-  --accent-color: #3d7a8c;
   --background: #1a242e;
   --foreground: #e8f4f8;
   --light-color: #ffffff;
+  --input-background: #243447;
 }
 
 /* Body Base Styles */

@@ -8,6 +8,7 @@ export default function JobseekerRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
   const [nationalities, setNationalities] = useState([]);
   const [educationLevels, setEducationLevels] = useState([]);
   const [experienceLevels, setExperienceLevels] = useState([]);
@@ -33,6 +34,19 @@ export default function JobseekerRegistrationPage() {
     experienceLevelId: '',
     description: ''
   });
+
+  // Detect dark mode preference
+  useEffect(() => {
+    // Check system preference
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setDarkMode(darkModeQuery.matches);
+
+    // Listen for changes
+    const updateDarkMode = (e) => setDarkMode(e.matches);
+    darkModeQuery.addEventListener('change', updateDarkMode);
+
+    return () => darkModeQuery.removeEventListener('change', updateDarkMode);
+  }, []);
 
   // Load dropdown data on component mount
     useEffect(() => {
@@ -174,9 +188,25 @@ export default function JobseekerRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-8 px-4">
+    <div 
+      className="min-h-screen bg-[var(--background)] py-8 px-4 transition-colors duration-300" 
+      data-theme="jobseeker"
+      data-mode={darkMode ? 'dark' : 'light'}
+    >
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.push('/Login/Register')}
+            className="flex items-center text-[var(--text-dark)] hover:text-[var(--primary-color)] transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Registration
+          </button>
+        </div>
+
         <div className="text-center mb-8">
           <div className="mx-auto h-20 w-auto mb-4">
             <Image
@@ -193,29 +223,17 @@ export default function JobseekerRegistrationPage() {
         </div>
 
         {/* Registration Form */}
-        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-[var(--error-color)]">Error</h3>
-                    <div className="mt-2 text-sm text-[var(--error-color)]">
-                      <p>{error}</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
+                <p>{error}</p>
               </div>
             )}
 
             {/* Personal Details Section */}
-            <div className="border-b border-gray-200 pb-6">
+            <div className="border-b border-[var(--border-color)] pb-6">
               <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Personal Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,7 +248,7 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -245,7 +263,7 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -259,10 +277,10 @@ export default function JobseekerRegistrationPage() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
-
+                
                 <div>
                   <label htmlFor="dateOfBirth" className="block text-sm font-medium text-[var(--text-dark)]">
                     Date of Birth *
@@ -274,7 +292,7 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -288,16 +306,16 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
                   >
-                    <option value="">Select Gender</option>
-                    <option value="1">Male</option>
-                    <option value="2">Female</option>
-                    <option value="3">Other</option>
-                    <option value="4">Prefer not to say</option>
+                    <option key="default-gender" value="">Select Gender</option>
+                    <option key="male" value="1">Male</option>
+                    <option key="female" value="2">Female</option>
+                    <option key="other" value="3">Other</option>
+                    <option key="prefer" value="4">Prefer not to say</option>
                   </select>
                 </div>
-
+                
                 <div>
                   <label htmlFor="nationalityId" className="block text-sm font-medium text-[var(--text-dark)]">
                     Nationality *
@@ -308,10 +326,10 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.nationalityId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
                   >
-                    <option value="">Select Nationality</option>
-                    {nationalities.map((nationality) => (
+                    <option key="default-nationality" value="">Select Nationality</option>
+                    {nationalities.map(nationality => (
                       <option key={nationality.nationality_id} value={nationality.nationality_id}>
                         {nationality.nationality_name}
                       </option>
@@ -322,13 +340,12 @@ export default function JobseekerRegistrationPage() {
             </div>
 
             {/* Account Details Section */}
-            <div className="border-b border-gray-200 pb-6">
+            <div className="border-b border-[var(--border-color)] pb-6">
               <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Account Details</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Email Address *
+                    Email *
                   </label>
                   <input
                     type="email"
@@ -337,7 +354,7 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -352,7 +369,7 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.username}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -367,39 +384,37 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                     placeholder="+63 9XX XXX XXXX"
                   />
                 </div>
 
-                <div></div>
-
-                <div>
+                <div className="relative">
                   <label htmlFor="password" className="block text-sm font-medium text-[var(--text-dark)]">
                     Password *
                   </label>
-                  <div className="mt-1 relative">
+                  <div className="mt-1 relative rounded-md shadow-sm">
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
                       required
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] pr-10 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                       placeholder="Min. 8 characters"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-light)] hover:text-[var(--text-dark)]"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
                     >
                       {showPassword ? (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                         </svg>
                       ) : (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
@@ -408,31 +423,32 @@ export default function JobseekerRegistrationPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--text-dark)]">
                     Confirm Password *
                   </label>
-                  <div className="mt-1 relative">
+                  <div className="mt-1 relative rounded-md shadow-sm">
                     <input
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
                       required
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] pr-10 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                      placeholder="Confirm your password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-light)] hover:text-[var(--text-dark)]"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
                     >
                       {showConfirmPassword ? (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                         </svg>
                       ) : (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
@@ -444,9 +460,8 @@ export default function JobseekerRegistrationPage() {
             </div>
 
             {/* Professional Details Section */}
-            <div className="pb-6">
+            <div className="border-b border-[var(--border-color)] pb-6">
               <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Professional Details</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="educationLevelId" className="block text-sm font-medium text-[var(--text-dark)]">
@@ -458,10 +473,10 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.educationLevelId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
                   >
-                    <option value="">Select Education Level</option>
-                    {educationLevels.map((level) => (
+                    <option key="default-education" value="">Select Education Level</option>
+                    {educationLevels.map(level => (
                       <option key={level.job_seeker_education_level_id} value={level.job_seeker_education_level_id}>
                         {level.education_level_name}
                       </option>
@@ -479,55 +494,48 @@ export default function JobseekerRegistrationPage() {
                     required
                     value={formData.experienceLevelId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
                   >
-                    <option value="">Select Experience Level</option>
-                    {experienceLevels.map((level) => (
+                    <option key="default-experience" value="">Select Experience Level</option>
+                    {experienceLevels.map(level => (
                       <option key={level.job_seeker_experience_level_id} value={level.job_seeker_experience_level_id}>
                         {level.experience_level_name}
                       </option>
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div className="md:col-span-2">
-                  <label htmlFor="description" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows={3}
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Tell us about yourself, your skills, and what you're looking for..."
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+              <div className="mt-4">
+                <label htmlFor="description" className="block text-sm font-medium text-[var(--text-dark)]">
+                  Professional Summary
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  rows="4"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Tell us about your skills and career goals..."
+                  className="form-input"
+                ></textarea>
               </div>
             </div>
-
+            
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex items-center justify-end space-x-4 mt-6">
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-                  isLoading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]'
-                }`}
+                className="flex justify-center items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating Account...
-                  </>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                 ) : (
-                  'Create Account'
+                  'Register'
                 )}
               </button>
             </div>

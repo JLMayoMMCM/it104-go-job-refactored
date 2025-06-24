@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -8,6 +8,20 @@ export default function CompanyRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Detect dark mode preference
+  useEffect(() => {
+    // Check system preference
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setDarkMode(darkModeQuery.matches);
+
+    // Listen for changes
+    const updateDarkMode = (e) => setDarkMode(e.matches);
+    darkModeQuery.addEventListener('change', updateDarkMode);
+
+    return () => darkModeQuery.removeEventListener('change', updateDarkMode);
+  }, []);
 
   const [formData, setFormData] = useState({
     // Company Details
@@ -107,9 +121,25 @@ export default function CompanyRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-8 px-4">
+    <div 
+      className="min-h-screen bg-[var(--background)] py-8 px-4 transition-colors duration-300" 
+      data-theme="logo"
+      data-mode={darkMode ? 'dark' : 'light'}
+    >
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.push('/Login/Register')}
+            className="flex items-center text-[var(--text-dark)] hover:text-[var(--primary-color)] transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Registration
+          </button>
+        </div>
+
         <div className="text-center mb-8">
           <div className="mx-auto h-20 w-auto mb-4">
             <Image
@@ -117,7 +147,7 @@ export default function CompanyRegistrationPage() {
               alt="GoJob Logo"
               width={160}
               height={80}
-              className="mx-auto"
+              className="mx-auto filter-none dark:brightness-90"
               priority
             />
           </div>
@@ -126,15 +156,22 @@ export default function CompanyRegistrationPage() {
         </div>
 
         {/* Registration Form */}
-        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
+                <p>{error}</p>
+              </div>
+            )}
+
             {/* Company Details Section */}
-            <div className="border-b border-gray-200 pb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Company Information</h3>
+            <div className="border-b border-[var(--border-color)] pb-6">
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Company Information</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="companyName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Company Name *
                   </label>
                   <input
@@ -144,14 +181,14 @@ export default function CompanyRegistrationPage() {
                     required
                     value={formData.companyName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="Enter your company name"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="companyEmail" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="companyEmail" className="block text-sm font-medium text-[var(--text-dark)]">
                       Company Email *
                     </label>
                     <input
@@ -161,13 +198,13 @@ export default function CompanyRegistrationPage() {
                       required
                       value={formData.companyEmail}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                       placeholder="company@example.com"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="companyPhone" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="companyPhone" className="block text-sm font-medium text-[var(--text-dark)]">
                       Company Phone *
                     </label>
                     <input
@@ -177,14 +214,14 @@ export default function CompanyRegistrationPage() {
                       required
                       value={formData.companyPhone}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                       placeholder="+63 2 XXX XXXX"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="companyWebsite" className="block text-sm font-medium text-[var(--text-dark)]">
                     Company Website (Optional)
                   </label>
                   <input
@@ -193,13 +230,13 @@ export default function CompanyRegistrationPage() {
                     name="companyWebsite"
                     value={formData.companyWebsite}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="https://www.yourcompany.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="companyDescription" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="companyDescription" className="block text-sm font-medium text-[var(--text-dark)]">
                     Company Description (Optional)
                   </label>
                   <textarea
@@ -208,20 +245,20 @@ export default function CompanyRegistrationPage() {
                     rows={4}
                     value={formData.companyDescription}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Brief description of your company, what you do, your mission, etc."
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
+                    placeholder="Tell us about your company..."
                   />
                 </div>
               </div>
             </div>
 
             {/* Company Address Section */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Company Address</h3>
+            <div className="border-b border-[var(--border-color)] pb-6">
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Company Address</h3>
               
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="premiseName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="premiseName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Building/Premise Name (Optional)
                   </label>
                   <input
@@ -230,14 +267,14 @@ export default function CompanyRegistrationPage() {
                     name="premiseName"
                     value={formData.premiseName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="e.g., ABC Building, Tower 1"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
+                    placeholder="e.g., ABC Building"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="streetName" className="block text-sm font-medium text-gray-700">
-                    Street Address *
+                  <label htmlFor="streetName" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Street Name *
                   </label>
                   <input
                     type="text"
@@ -246,100 +283,63 @@ export default function CompanyRegistrationPage() {
                     required
                     value={formData.streetName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="e.g., 123 Main Street"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="barangayName" className="block text-sm font-medium text-gray-700">
-                      Barangay *
-                    </label>
-                    <input
-                      type="text"
-                      id="barangayName"
-                      name="barangayName"
-                      required
-                      value={formData.barangayName}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                      placeholder="e.g., Poblacion"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="barangayName" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Barangay *
+                  </label>
+                  <input
+                    type="text"
+                    id="barangayName"
+                    name="barangayName"
+                    required
+                    value={formData.barangayName}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
+                    placeholder="Enter barangay name"
+                  />
+                </div>
 
-                  <div>
-                    <label htmlFor="cityName" className="block text-sm font-medium text-gray-700">
-                      City *
-                    </label>
-                    <input
-                      type="text"
-                      id="cityName"
-                      name="cityName"
-                      required
-                      value={formData.cityName}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                      placeholder="e.g., Manila"
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="cityName" className="block text-sm font-medium text-[var(--text-dark)]">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    id="cityName"
+                    name="cityName"
+                    required
+                    value={formData.cityName}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
+                    placeholder="Enter city name"
+                  />
                 </div>
               </div>
             </div>
-
-            {/* Terms and Conditions */}
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-              <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <svg className="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3 text-sm">
-                  <p className="text-gray-700">
-                    <strong>Important:</strong> After submitting this form, a verification email will be sent to your company email address. 
-                    Your company registration will only be completed after email verification is confirmed.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="text-[var(--error-color)] text-sm bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-3">
-                {error}
-              </div>
-            )}
 
             {/* Submit Button */}
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="text-gray-600 hover:text-gray-800 font-medium"
-              >
-                ← Back
-              </button>
-              
+            <div className="flex items-center justify-end space-x-4 mt-6">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex justify-center items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-[var(--card-background)] bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Registering Company...' : 'Register Company'}
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-[var(--card-background)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  'Register'
+                )}
               </button>
             </div>
           </form>
-        </div>
-
-        {/* Additional Information */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            Need help? Contact our support team at{' '}
-            <a href="mailto:support@gojob.com" className="text-purple-600 hover:text-purple-500">
-              support@gojob.com
-            </a>
-          </p>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ export default function EmployeeRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
   const [nationalities, setNationalities] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -31,6 +32,19 @@ export default function EmployeeRegistrationPage() {
     companyId: '',
     positionName: ''
   });
+
+  // Detect dark mode preference
+  useEffect(() => {
+    // Check system preference
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setDarkMode(darkModeQuery.matches);
+
+    // Listen for changes
+    const updateDarkMode = (e) => setDarkMode(e.matches);
+    darkModeQuery.addEventListener('change', updateDarkMode);
+
+    return () => darkModeQuery.removeEventListener('change', updateDarkMode);
+  }, []);
 
   // Load nationalities on component mount
   useEffect(() => {
@@ -182,9 +196,25 @@ export default function EmployeeRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-8 px-4">
+    <div 
+      className="min-h-screen bg-[var(--background)] py-8 px-4 transition-colors duration-300" 
+      data-theme="employee"
+      data-mode={darkMode ? 'dark' : 'light'}
+    >
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.push('/Login/Register')}
+            className="flex items-center text-[var(--text-dark)] hover:text-[var(--primary-color)] transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Registration
+          </button>
+        </div>
+
         <div className="text-center mb-8">
           <div className="mx-auto h-20 w-auto mb-4">
             <Image
@@ -192,19 +222,67 @@ export default function EmployeeRegistrationPage() {
               alt="GoJob Logo"
               width={160}
               height={80}
-              className="mx-auto"
+              className="mx-auto filter-none dark:brightness-90"
               priority
             />
           </div>
           <h1 className="text-3xl font-bold text-[var(--foreground)]">Employee Registration</h1>
-          <p className="mt-2 text-[var(--text-light)]">Join your company's hiring team</p>
+          <p className="mt-2 text-[var(--text-light)]">Join your company to start managing jobs</p>
         </div>
 
         {/* Registration Form */}
-        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
+                <p>{error}</p>
+              </div>
+            )}
+
+            {/* Company Verification Section */}
+            <div className="border-b border-[var(--border-color)] pb-6">
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Company Verification</h3>
+              <div className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <label htmlFor="companyId" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Company ID *
+                  </label>
+                  <select
+                    id="companyId"
+                    name="companyId"
+                    required
+                    value={formData.companyId}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                  >
+                    <option value="">Select Company</option>
+                    {nationalities.map((nationality) => (
+                      <option key={nationality.nationality_id} value={nationality.nationality_id}>
+                        {nationality.nationality_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={verifyCompany}
+                  className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-md hover:bg-[var(--primary-color)] hover:text-white transition-colors duration-200"
+                >
+                  Verify
+                </button>
+              </div>
+              {companyVerification && (
+                <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                  <p className="text-green-700 dark:text-green-200">
+                    Company verified: {companyVerification.company_name}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Personal Details Section */}
-            <div className="border-b border-gray-200 pb-6">
+            <div className="border-b border-[var(--border-color)] pb-6">
               <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Personal Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,7 +297,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -234,7 +312,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -248,7 +326,7 @@ export default function EmployeeRegistrationPage() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -263,7 +341,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -277,7 +355,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   >
                     <option value="">Select Gender</option>
                     <option value="1">Male</option>
@@ -297,7 +375,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.nationalityId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   >
                     <option value="">Select Nationality</option>
                     {nationalities.map((nationality) => (
@@ -311,7 +389,7 @@ export default function EmployeeRegistrationPage() {
             </div>
 
             {/* Account Details Section */}
-            <div className="border-b border-gray-200 pb-6">
+            <div className="border-b border-[var(--border-color)] pb-6">
               <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Account Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -326,7 +404,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -341,7 +419,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.username}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                   />
                 </div>
 
@@ -356,7 +434,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                     placeholder="+63 9XX XXX XXXX"
                   />
                 </div>
@@ -375,7 +453,7 @@ export default function EmployeeRegistrationPage() {
                       required
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                       placeholder="Min. 8 characters"
                     />
                     <button
@@ -409,7 +487,7 @@ export default function EmployeeRegistrationPage() {
                       required
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                     />
                     <button
                       type="button"
@@ -438,45 +516,6 @@ export default function EmployeeRegistrationPage() {
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="companyId" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Company ID *
-                  </label>
-                  <div className="mt-1 flex space-x-2">
-                    <input
-                      type="text"
-                      id="companyId"
-                      name="companyId"
-                      required
-                      value={formData.companyId}
-                      onChange={handleInputChange}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                      placeholder="Enter your company's ID"
-                    />
-                    <button
-                      type="button"
-                      onClick={verifyCompany}
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                  
-                  {companyVerification && (
-                    <div className="mt-2 p-3 bg-[rgba(83, 168, 182, 0.1)] border border-[var(--success-color)] rounded-md">
-                      <div className="flex items-center">
-                        <svg className="h-5 w-5 text-[var(--success-color)] mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-[var(--success-color)]">Company Verified</p>
-                          <p className="text-sm text-[var(--success-color)]">{companyVerification.company_name}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
                   <label htmlFor="positionName" className="block text-sm font-medium text-[var(--text-dark)]">
                     Position/Role *
                   </label>
@@ -487,36 +526,28 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.positionName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
                     placeholder="e.g., HR Manager, Recruiter, Team Lead"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="text-[var(--error-color)] text-sm bg-[rgba(231, 76, 60, 0.1)] border border-[var(--error-color)] rounded-md p-3">
-                {error}
-              </div>
-            )}
-
             {/* Submit Button */}
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="text-[var(--text-light)] hover:text-[var(--text-dark)] font-medium"
-              >
-                ← Back
-              </button>
-              
+            <div className="flex items-center justify-end space-x-4 mt-6">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex justify-center items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  'Register'
+                )}
               </button>
             </div>
           </form>

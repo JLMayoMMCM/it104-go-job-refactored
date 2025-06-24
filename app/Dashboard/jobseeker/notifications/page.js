@@ -169,99 +169,84 @@ export default function NotificationsPage() {
   const filteredNotifications = filter === 'unread' ? unreadNotifications : readNotifications;
 
   return (
-    <div className="w-full px-0 py-8">
+    <div className="w-full min-h-screen bg-[var(--background)]">
       {/* Header & Filter Section */}
-      <div className="bg-white dark:bg-[var(--background)] border-b border-[var(--border-color)] px-6 py-6 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl font-bold text-[var(--foreground)] mb-4 sm:mb-0">Notifications</h1>
-        <div className="flex gap-3">
-          <button
-            className={`btn btn-secondary px-4 py-2 ${filter === 'unread' ? 'ring-2 ring-[var(--primary-color)]' : ''}`}
-            onClick={() => setFilter('unread')}
-          >
-            Unread
-          </button>
-          <button
-            className={`btn btn-secondary px-4 py-2 ${filter === 'read' ? 'ring-2 ring-[var(--primary-color)]' : ''}`}
-            onClick={() => setFilter('read')}
-          >
-            Read
-          </button>
+      <div className="w-full bg-[var(--card-background)] border-b border-[var(--border-color)] shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">Notifications</h1>
+            <div className="flex gap-3">
+              <button
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-md border border-[var(--border-color)] bg-[var(--card-background)] text-[var(--text-dark)] hover:bg-[var(--background)] transition-colors duration-200 ${
+                  filter === 'unread' ? 'ring-2 ring-[var(--primary-color)] text-[var(--primary-color)]' : ''
+                }`}
+                onClick={() => setFilter('unread')}
+              >
+                Unread
+              </button>
+              <button
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-md border border-[var(--border-color)] bg-[var(--card-background)] text-[var(--text-dark)] hover:bg-[var(--background)] transition-colors duration-200 ${
+                  filter === 'read' ? 'ring-2 ring-[var(--primary-color)] text-[var(--primary-color)]' : ''
+                }`}
+                onClick={() => setFilter('read')}
+              >
+                Read
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="card w-full overflow-hidden px-0 py-0">
-        {/* Table Title */}
-        <div className="flex items-center justify-between px-6 pt-6 mb-2">
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">
-            {filter === 'unread'
-              ? `Unread Notifications (${unreadNotifications.length})`
-              : `Read Notifications (${readNotifications.length})`}
-          </h2>
-        </div>
-        {/* Notifications Table with fixed height and overflow */}
-        <div className="overflow-x-auto w-full h-[420px] overflow-y-auto px-6">
-          {filteredNotifications.length > 0 ? (
-            <table className="w-full min-w-[900px] divide-y divide-[var(--border-color)]">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Type</th>
-                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Title</th>
-                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Message</th>
-                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Date</th>
-                  <th className="px-4 py-2 text-left text-sm font-semibold text-[var(--foreground)]">Sender</th>
-                  {filter === 'unread' && <th className="px-4 py-2"></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredNotifications.map(notification => (
-                  <tr key={notification.id} className="border-b border-[var(--border-color)] hover:bg-[var(--light-color)] transition">
-                    <td className="px-4 py-3">{getNotificationIcon(notification.type, notification.is_read)}</td>
-                    <td className="px-4 py-3 font-semibold">{notification.title}</td>
-                    <td className="px-4 py-3">{notification.message}</td>
-                    <td className="px-4 py-3">{formatDate(notification.created_at)}</td>
-                    <td className="px-4 py-3">{notification.sender_name || '-'}</td>
-                    {filter === 'unread' ? (
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="btn btn-secondary"
-                        >
-                          Mark as Read
-                        </button>
-                      </td>
-                    ) : (
-                      <td className="px-4 py-3"></td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-              <h3 className="mt-2 text-lg font-medium text-[var(--foreground)]">
-                {filter === 'unread' ? 'No unread notifications' : 'No read notifications'}
-              </h3>
-              <p className="mt-1 text-[var(--text-light)]">
-                {filter === 'unread'
-                  ? "You're all caught up! Check back later for updates."
-                  : "You haven't read any notifications yet."}
-              </p>
-            </div>
-          )}
-        </div>
-        {/* Mark All as Read Button - bottom right */}
-        <div className="flex justify-end mt-4 pr-8 pb-6">
-          <button
-            onClick={unreadNotifications.length > 0 ? handleMarkAllAsRead : undefined}
-            className={`btn ${unreadNotifications.length > 0 ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`}
-            disabled={unreadNotifications.length === 0}
-          >
-            Mark All as Read
-          </button>
+      {/* Content Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Table Section */}
+        <div className="bg-[var(--card-background)] rounded-lg shadow overflow-hidden">
+          {/* Table Title */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+            <h2 className="text-lg sm:text-xl font-semibold text-[var(--foreground)]">
+              {filter === 'unread'
+                ? `Unread Notifications (${unreadNotifications.length})`
+                : `Read Notifications (${readNotifications.length})`}
+            </h2>
+            {filter === 'unread' && unreadNotifications.length > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="text-sm text-[var(--primary-color)] hover:text-[var(--primary-color-hover)] transition-colors duration-200"
+              >
+                Mark All as Read
+              </button>
+            )}
+          </div>
+
+          {/* Notifications List */}
+          <div className="divide-y divide-[var(--border-color)]">
+            {filteredNotifications.length === 0 ? (
+              <div className="px-6 py-8 text-center">
+                <p className="text-[var(--text-light)]">
+                  {filter === 'unread' ? 'No unread notifications' : 'No read notifications'}
+                </p>
+              </div>
+            ) : (
+              filteredNotifications.map((notification) => (
+                <div key={notification.id} className="flex items-start gap-4 px-6 py-4 hover:bg-[var(--background)] transition-colors duration-200">
+                  {getNotificationIcon(notification.type, notification.is_read)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--foreground)]">{notification.title}</p>
+                    <p className="mt-1 text-sm text-[var(--text-light)]">{notification.message}</p>
+                    <p className="mt-1 text-xs text-[var(--text-light)]">{formatDate(notification.created_at)}</p>
+                  </div>
+                  {!notification.is_read && (
+                    <button
+                      onClick={() => handleMarkAsRead(notification.id)}
+                      className="flex-shrink-0 text-sm text-[var(--primary-color)] hover:text-[var(--primary-color-hover)] transition-colors duration-200"
+                    >
+                      Mark as Read
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

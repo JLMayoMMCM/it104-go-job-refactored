@@ -85,16 +85,9 @@ export default function ViewCompany() {
         throw new Error(result.error || 'Failed to update follow status.');
       }
       
-      if (wasFollowing) {
-        setSuccessMessage('Unfollowed successfully! Redirecting...');
-        setTimeout(() => {
-          router.push('/Dashboard/jobseeker/company/followed');
-        }, 1500);
-      } else {
-        setCompany(prev => ({ ...prev, isFollowing: !prev.isFollowing }));
-        setSuccessMessage(result.message);
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
+      setCompany(prev => ({ ...prev, isFollowing: !wasFollowing }));
+      setSuccessMessage(result.message || (wasFollowing ? 'Unfollowed successfully!' : 'Followed successfully!'));
+      setTimeout(() => setSuccessMessage(''), 3000);
 
     } catch (err) {
       setError(err.message);
