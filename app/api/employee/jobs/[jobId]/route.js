@@ -295,43 +295,34 @@ export async function DELETE(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const jobId = (await params).jobId;
-    const body = await request.json();
-    const { accountId, action, employee_password } = body;
+    const jobId = params.jobId;
+    const { accountId, employee_password, action } = await request.json();
 
-    if (!accountId) {
-      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+    if (!accountId || !employee_password || !action) {
+      return NextResponse.json({ error: 'Account ID, password, and action are required' }, { status: 400 });
     }
 
-    if (!['enable', 'disable'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid action. Use enable or disable.' }, { status: 400 });
+    if (!['enable', 'disable', 'reactivate'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action specified' }, { status: 400 });
     }
 
-    // For disable action, require password confirmation
-    if (action === 'disable') {
-      if (!employee_password) {
-        return NextResponse.json({ error: 'Password is required to disable job posting' }, { status: 400 });
-      }
+    // Step 1: Verify employee password
+    const { data: accountData, error: accountError } = await supabase
+      .from('account')
+      .select('account_password')
+      .eq('account_id', accountId)
+      .single();
 
-      // Verify employee password
-      const { data: accountData, error: accountError } = await supabase
-        .from('account')
-        .select('account_password')
-        .eq('account_id', accountId)
-        .single();
-
-      if (accountError || !accountData) {
-        return NextResponse.json({ error: 'Employee account not found' }, { status: 404 });
-      }
-
-      // Verify password using bcryptjs
-      const isPasswordValid = await bcrypt.compare(employee_password, accountData.account_password);
-      if (!isPasswordValid) {
-        return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
-      }
+    if (accountError || !accountData) {
+      return NextResponse.json({ error: 'Employee account not found' }, { status: 404 });
     }
 
-    // Get employee's company_id
+    const isPasswordValid = await bcrypt.compare(employee_password, accountData.account_password);
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+    }
+
+    // Step 2: Get employee's company_id
     const { data: employee, error: empError } = await supabase
       .from('employee')
       .select('company_id')
@@ -342,7 +333,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Verify job belongs to employee's company
+    // Step 3: Verify the job belongs to the employee's company
     const { data: job, error: jobError } = await supabase
       .from('job')
       .select('company_id')
@@ -354,8 +345,8 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
     }
 
-    // Update job status
-    const newStatus = action === 'enable' ? true : false;
+    // Step 4: Update the job status
+    const newStatus = (action === 'enable' || action === 'reactivate');
     const { error: updateError } = await supabase
       .from('job')
       .update({ job_is_active: newStatus })
@@ -368,13 +359,12 @@ export async function PATCH(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: `Job ${action}d successfully`,
-      job_id: jobId,
-      job_is_active: newStatus
+      message: `Job ${action === 'disable' ? 'disabled' : 'enabled'} successfully.`,
+      job_is_active: newStatus,
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('PATCH API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

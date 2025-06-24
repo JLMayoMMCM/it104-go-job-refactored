@@ -7,7 +7,7 @@ import Image from 'next/image';
 // Loading component that matches the page design
 function LoginVerificationLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto h-24 w-auto mb-4">
@@ -20,16 +20,16 @@ function LoginVerificationLoading() {
               priority
             />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Loading...</h2>
-          <p className="mt-2 text-gray-600 text-sm">
+          <h2 className="text-3xl font-bold text-[var(--foreground)]">Loading...</h2>
+          <p className="mt-2 text-[var(--text-light)] text-sm">
             Please wait while we prepare your login verification page.
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-12 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-[var(--input-background)] rounded w-1/3"></div>
+            <div className="h-12 bg-[var(--input-background)] rounded"></div>
+            <div className="h-10 bg-[var(--input-background)] rounded"></div>
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ function LoginVerificationContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
@@ -186,39 +186,18 @@ function LoginVerificationContent() {
               priority
             />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Secure Login</h2>
-          <p className="mt-2 text-gray-600 text-sm">
-            We've sent a verification code to your email address for added security. Please enter it below to complete your login.
+          <h2 className="text-3xl font-bold text-[var(--foreground)]">Secure Login</h2>
+          <p className="mt-2 text-[var(--text-light)] text-sm">
+            We've sent a verification code to your email for added security. Please enter it below to complete your login.
           </p>
         </div>
 
         {/* Verification Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8">
           <form className="space-y-6" onSubmit={handleVerification}>
-            {/* Security Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">
-                    Enhanced Security
-                  </h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <p>
-                      This extra step helps protect your account from unauthorized access.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Verification Code Input */}
             <div>
-              <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="verificationCode" className="block text-sm font-medium text-[var(--foreground)] mb-2">
                 Verification Code
               </label>
               <input
@@ -235,17 +214,17 @@ function LoginVerificationContent() {
                   setVerificationCode(value);
                   setError('');
                 }}
-                className="block w-full px-4 py-3 text-center text-2xl font-bold border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 tracking-widest"
+                className="block w-full px-4 py-3 text-center text-2xl font-bold border border-[var(--border-color)] bg-[var(--input-background)] rounded-md shadow-sm placeholder-[var(--text-light)] focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] tracking-widest"
                 placeholder="000000"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-[var(--text-light)]">
                 Enter the 6-digit code sent to your email
               </p>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3 dark:bg-red-900/20 dark:border-red-500/30 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -254,52 +233,36 @@ function LoginVerificationContent() {
             <button
               type="submit"
               disabled={isLoading || verificationCode.length !== 6}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-[var(--button-text)] bg-[var(--primary-color)] hover:bg-[var(--primary-color-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? 'Verifying...' : 'Complete Login'}
             </button>
 
             {/* Resend Code */}
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[var(--text-light)]">
                 Didn't receive the code?{' '}
                 <button
                   type="button"
                   onClick={handleResendCode}
                   disabled={resendTimer > 0 || isResending}
-                  className="text-blue-600 hover:text-blue-500 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="font-medium text-[var(--primary-color)] hover:text-[var(--primary-color-hover)] focus:outline-none disabled:text-[var(--text-light)] disabled:cursor-not-allowed transition-colors"
                 >
-                  {isResending 
-                    ? 'Sending...' 
-                    : resendTimer > 0 
-                      ? `Resend in ${resendTimer}s` 
-                      : 'Resend Code'
-                  }
+                  {isResending
+                    ? 'Sending...'
+                    : resendTimer > 0
+                    ? `Resend in ${resendTimer}s`
+                    : 'Resend code'}
                 </button>
               </p>
-            </div>
-
-            {/* Back to Login */}
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => router.push('/Login')}
-                className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-              >
-                ← Back to Login
-              </button>
             </div>
           </form>
         </div>
 
-        {/* Security Tips */}
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-          <h3 className="text-sm font-medium text-gray-800 mb-2">Security Tips:</h3>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li>• Never share your verification code with anyone</li>
-            <li>• The code expires in 5 minutes for your security</li>
-            <li>• If you didn't try to log in, change your password immediately</li>
-          </ul>
+        <div className="text-center">
+          <button onClick={() => router.push('/Login')} className="text-sm text-[var(--text-light)] hover:text-[var(--foreground)] transition-colors">
+            ← Back to Login
+          </button>
         </div>
       </div>
     </div>

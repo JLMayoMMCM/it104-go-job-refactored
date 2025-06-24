@@ -165,7 +165,6 @@ export default function JobseekerLayout({ children }) {
     { name: 'Saved Jobs', href: '/Dashboard/jobseeker/saved-jobs', icon: 'saved' },
     { name: 'Followed Companies', href: '/Dashboard/jobseeker/company/followed', icon: 'building' },
     { name: 'Notifications', href: '/Dashboard/jobseeker/notifications', icon: 'notifications', badge: unreadNotifications },
-    { name: 'Preferences', href: '/Dashboard/jobseeker/preferences', icon: 'cog' }
   ];
 
   const getIcon = (iconName) => {
@@ -213,13 +212,6 @@ case 'saved':
           <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19.5A2.5 2.5 0 01 1.5 17V12A8.5 8.5 0 0110 3.5h4A8.5 8.5 0 0122.5 12v5a2.5 2.5 0 01-2.5 2.5H4z" />
-          </svg>
-        );
-      case 'cog':
-        return (
-          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 00.955.806c1.759.467 2.527 2.951 1.191 4.291a1.724 1.724 0 00-.302.983c.084 1.8-1.459 3.336-3.259 3.252a1.724 1.724 0 00-1.569.873c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-.955-.806c-1.759-.467-2.527-2.951-1.191-4.291a1.724 1.724 0 00.302-.983c-.084-1.8 1.459-3.336 3.259-3.252a1.724 1.724 0 001.569-.873z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         );
       case 'recommended':
