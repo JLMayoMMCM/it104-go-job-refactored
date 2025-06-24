@@ -27,6 +27,8 @@ export default function EditProfilePage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState('');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -85,10 +87,10 @@ export default function EditProfilePage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const handlePhotoChange = async (e) => {
@@ -150,10 +152,30 @@ export default function EditProfilePage() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.first_name) newErrors.first_name = 'First name is required';
+    if (!formData.last_name) newErrors.last_name = 'Last name is required';
+
+    if (formData.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.phone)) {
+        newErrors.phone = 'Invalid phone number format';
+    }
+
+    if (formData.password && formData.password.length > 0 && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     setSubmitting(true);
-    setError('');
+    setError(''); // Clear general error
 
     try {
       const accountId = localStorage.getItem('accountId') || '1';
@@ -207,7 +229,11 @@ export default function EditProfilePage() {
       }
 
       if (profileData.success) {
-        router.push('/Dashboard/employee/profile');
+        setSuccessMessage('Profile updated successfully!');
+        setTimeout(() => {
+          setSuccessMessage('');
+          router.push('/Dashboard/employee/profile');
+        }, 2000);
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -234,6 +260,24 @@ export default function EditProfilePage() {
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">Edit Profile</h1>
             <p className="text-white text-opacity-90 text-sm sm:text-base lg:text-lg">Update your personal information</p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="bg-green-600 text-white rounded-md p-4 mb-6">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <div className="text-sm font-medium">
+                    <p>{successMessage}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Form */}
           <div className="card">
@@ -331,6 +375,7 @@ export default function EditProfilePage() {
                     required
                     className="form-input"
                   />
+                  {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name}</p>}
                 </div>
                 <div>
                   <label htmlFor="last_name" className="form-label">Last Name</label>
@@ -343,6 +388,7 @@ export default function EditProfilePage() {
                     required
                     className="form-input"
                   />
+                  {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name}</p>}
                 </div>
                 <div>
                   <label htmlFor="middle_name" className="form-label">Middle Name (Optional)</label>
@@ -416,6 +462,7 @@ export default function EditProfilePage() {
                       className="form-input"
                       placeholder="e.g., +63 912 345 6789"
                     />
+                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                   </div>
                 </div>
               </div>
@@ -510,23 +557,25 @@ export default function EditProfilePage() {
                       className="form-input"
                       placeholder="Enter your password"
                     />
+                    {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
                   </div>
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="button-group justify-end">
+              <div className="flex justify-end items-center mt-6 space-x-3">
+                {successMessage && <div className="text-green-600 mr-4">{successMessage}</div>}
                 <button
                   type="button"
                   onClick={() => router.push('/Dashboard/employee/profile')}
-                  className="btn btn-secondary text-sm px-4 py-2 min-w-[100px]"
+                  className="btn btn-secondary px-4 py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  className="btn btn-primary px-4 py-2"
                   disabled={submitting}
-                  className="btn btn-primary text-sm px-4 py-2 min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Saving...' : 'Save Changes'}
                 </button>

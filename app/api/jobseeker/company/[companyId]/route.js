@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/app/lib/supabase'; // Correct path to supabase client
 
-export async function GET(request, { params }) {
-  const { companyId } = params;
+export async function GET(request, context) {
+  const { companyId } = context.params;
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get('accountId');
 
@@ -147,7 +147,7 @@ export async function GET(request, { params }) {
       ...companyData,
       company_logo: companyData.company_logo ? Buffer.from(companyData.company_logo).toString('base64') : null,
       location: locationString,
-      average_rating: averageRating.toFixed(1),
+      average_rating: averageRating,
       total_ratings: totalRatings,
       reviews: (ratingsData || []).map(r => ({
         rating: r.rating,

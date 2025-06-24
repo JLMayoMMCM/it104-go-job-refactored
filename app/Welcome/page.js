@@ -29,141 +29,64 @@ export default function WelcomePage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 overflow-hidden"
-      style={{
-        color: 'var(--foreground)',
-        transition: 'background 0.3s, color 0.3s'
-      }}
-    >
-      <div className="max-w-4xl w-full text-center space-y-12">
-        {/* Logo Section */}
-        <div className="space-y-6">
-          <div className="flex justify-center">
-            <Image
-              src="/Assets/Logo.png"
-              alt="GoJob Logo"
-              width={300}
-              height={300}
-              className="mx-auto drop-shadow-lg"
-              priority
-            />
-          </div>
-          
-          {/* Welcome Text */}
-          <div className="space-y-4">
-            <h1
-              className="text-5xl md:text-6xl font-bold text-heading"
-              style={{
-                background: 'linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontWeight: 800,
-                letterSpacing: '0.02em'
-              }}
-            >
-              Welcome to <span style={{
-                color: 'var(--primary-color)',
-                background: 'none',
-                WebkitBackgroundClip: 'initial',
-                WebkitTextFillColor: 'initial'
-              }}>GoJob</span>
-            </h1>
-            <p
-              className="text-xl md:text-2xl text-subheading max-w-2xl mx-auto leading-relaxed"
-              style={{
-                color: 'var(--text-light)'
-              }}
-            >
-              Your gateway to finding the perfect job opportunities and connecting with top talent
-            </p>
-          </div>
+    <div className="relative h-screen w-screen overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+        style={{ backgroundImage: "url('/Assets/welcome-bg.png')", opacity: 1 }}
+      />
+
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black opacity-40"></div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-4">
+        
+        {/* Logo and Title */}
+        <div 
+          className="flex flex-col items-center justify-center p-8 rounded-lg transition-all duration-500"
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(0.25rem)',
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
+          }}
+        >
+          <img src="/Assets/Logo.png" alt="GoJob Logo" className="w-24 h-24 mb-4" />
+          <img src="/Assets/Title.png" alt="GoJob Title" className="w-48" />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center max-w-md mx-auto">
+        {/* Buttons */}
+        <div className="mt-12 space-y-4 md:space-y-0 md:space-x-6 flex flex-col md:flex-row">
           <button
-            onClick={handleViewJobsClick}
-            className="btn btn-primary min-w-[8rem] text-lg text-white"
+            onClick={handleJobseekerClick}
+            className="btn-welcome"
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(0.25rem)'
+            }}
           >
-            View Jobs
+            <span className="text-2xl mr-4">🧑‍💼</span>
+            <div>
+              <p className="font-bold text-xl">Find a Job</p>
+              <p className="text-sm opacity-80">I am a Jobseeker</p>
+            </div>
           </button>
-          
           <button
-            onClick={handleLoginClick}
-            className="btn btn-primary min-w-[8rem] text-lg text-white"
+            onClick={handleEmployeeClick}
+            className="btn-welcome"
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(0.25rem)'
+            }}
           >
-            Login
+            <span className="text-2xl mr-4">🏢</span>
+            <div>
+              <p className="font-bold text-xl">Hire Talent</p>
+              <p className="text-sm opacity-80">I am an Employer</p>
+            </div>
           </button>
         </div>
 
-        {/* Features Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          <div
-            className="card-uniform p-6 shadow-lg hover:shadow-xl transition-shadow duration-300"
-            style={{
-              backdropFilter: 'blur(4px)'
-            }}
-          >
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4"
-              style={{
-                background: 'var(--primary-color)'
-              }}
-            >
-              <svg className="w-6 h-6" style={{ color: 'var(--foreground)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Find Jobs</h3>
-            <p style={{ color: 'var(--text-light)' }}>Discover opportunities that match your skills and career goals</p>
-          </div>
-
-          <div
-            className="card-uniform p-6 shadow-lg hover:shadow-xl transition-shadow duration-300"
-            style={{
-              backdropFilter: 'blur(4px)'
-            }}
-          >
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4"
-              style={{
-                background: 'var(--secondary-color)'
-              }}
-            >
-              <svg className="w-6 h-6" style={{ color: 'var(--foreground)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Connect</h3>
-            <p style={{ color: 'var(--text-light)' }}>Build professional relationships with employers and colleagues</p>
-          </div>
-
-          <div
-            className="card-uniform p-6 shadow-lg hover:shadow-xl transition-shadow duration-300"
-            style={{
-              backdropFilter: 'blur(4px)'
-            }}
-          >
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4"
-              style={{
-                background: 'var(--accent-color)'
-              }}
-            >
-              <svg className="w-6 h-6" style={{ color: 'var(--foreground)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Grow</h3>
-            <p style={{ color: 'var(--text-light)' }}>Advance your career with the right opportunities and resources</p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-16 text-sm" style={{ color: 'var(--text-light)' }}>
-          <p>© 2024 GoJob. All rights reserved.</p>
-        </div>
       </div>
     </div>
   );

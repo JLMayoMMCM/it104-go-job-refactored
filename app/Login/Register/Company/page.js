@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function CompanyRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [darkMode, setDarkMode] = useState(false);
 
   // Detect dark mode preference
@@ -39,82 +39,58 @@ export default function CompanyRegistrationPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setError('');
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const validateForm = () => {
-    // Check required fields
-    const requiredFields = [
-      'companyName', 'companyEmail', 'companyPhone',
-      'streetName', 'barangayName', 'cityName'
-    ];
+    const newErrors = {};
+    const requiredFields = ['companyName', 'companyEmail', 'companyPhone', 'streetName', 'barangayName', 'cityName'];
+    requiredFields.forEach(field => {
+      if (!formData[field]) newErrors[field] = 'This field is required';
+    });
 
-    for (const field of requiredFields) {
-      if (!formData[field]) {
-        setError(`Please fill in all required fields`);
-        return false;
+    if (formData.companyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.companyEmail)) {
+      newErrors.companyEmail = 'Please enter a valid email address';
+    }
+
+    if (formData.companyWebsite) {
+      try {
+        new URL(formData.companyWebsite);
+      } catch (_) {
+        newErrors.companyWebsite = 'Please enter a valid website URL';
       }
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.companyEmail)) {
-      setError('Please enter a valid company email address');
-      return false;
+    if (formData.companyPhone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.companyPhone)) {
+      newErrors.companyPhone = 'Invalid phone number format. Use numbers, +, and -.';
     }
 
-    // Validate website format if provided
-    if (formData.companyWebsite && formData.companyWebsite.trim()) {
-      const websiteRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-      if (!websiteRegex.test(formData.companyWebsite)) {
-        setError('Please enter a valid website URL');
-        return false;
-      }
-    }
-
-    // Validate phone format
-    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-    if (!phoneRegex.test(formData.companyPhone)) {
-      setError('Please enter a valid phone number');
-      return false;
-    }
-
-    return true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsLoading(true);
-    setError('');
-
+    setErrors({});
     try {
       const response = await fetch('/api/auth/register/company', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        // Redirect to verification page
         router.push(`/Login/Verification/Registration?companyId=${data.companyId}&type=company`);
       } else {
-        setError(data.message || 'Registration failed');
+        setErrors({ form: data.message || 'Registration failed' });
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setErrors({ form: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -159,9 +135,9 @@ export default function CompanyRegistrationPage() {
         <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
-            {error && (
+            {errors.form && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
-                <p>{error}</p>
+                <p>{errors.form}</p>
               </div>
             )}
 
@@ -184,6 +160,9 @@ export default function CompanyRegistrationPage() {
                     className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="Enter your company name"
                   />
+                  {errors.companyName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -201,6 +180,9 @@ export default function CompanyRegistrationPage() {
                       className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                       placeholder="company@example.com"
                     />
+                    {errors.companyEmail && (
+                      <p className="text-red-500 text-sm mt-1">{errors.companyEmail}</p>
+                    )}
                   </div>
 
                   <div>
@@ -217,6 +199,9 @@ export default function CompanyRegistrationPage() {
                       className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                       placeholder="+63 2 XXX XXXX"
                     />
+                    {errors.companyPhone && (
+                      <p className="text-red-500 text-sm mt-1">{errors.companyPhone}</p>
+                    )}
                   </div>
                 </div>
 
@@ -233,6 +218,9 @@ export default function CompanyRegistrationPage() {
                     className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="https://www.yourcompany.com"
                   />
+                  {errors.companyWebsite && (
+                    <p className="text-red-500 text-sm mt-1">{errors.companyWebsite}</p>
+                  )}
                 </div>
 
                 <div>
@@ -286,6 +274,9 @@ export default function CompanyRegistrationPage() {
                     className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="e.g., 123 Main Street"
                   />
+                  {errors.streetName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.streetName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -302,6 +293,9 @@ export default function CompanyRegistrationPage() {
                     className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="Enter barangay name"
                   />
+                  {errors.barangayName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.barangayName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -318,6 +312,9 @@ export default function CompanyRegistrationPage() {
                     className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 placeholder-[var(--text-light)]"
                     placeholder="Enter city name"
                   />
+                  {errors.cityName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.cityName}</p>
+                  )}
                 </div>
               </div>
             </div>

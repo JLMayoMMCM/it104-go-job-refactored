@@ -378,7 +378,7 @@ export default function RecommendedJobs() {
                 type="button"
                 onClick={() => setShowFilterModal(true)}
                 className="btn btn-secondary flex items-center justify-center gap-2 text-[var(--foreground)] w-full max-w-[140px] mx-auto"
-                style={{ minHeight: "44px" }}
+                style={{ minHeight: "2.75rem" }}
               >
                 <span className="flex items-center justify-center gap-2 w-full">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,7 +461,7 @@ export default function RecommendedJobs() {
               <p className="text-sm text-[var(--text-light)] mt-2">No recommended jobs match your current filters. Try adjusting your search.</p>
             </div>
           ) : (
-            <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
+            <div className="space-y-4 max-h-[calc(100vh-17.5rem)] overflow-y-auto scrollbar-hide">
               {displayedJobs.map(job => (
                 <JobCard
                   key={job.id}

@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function EmployeeRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [darkMode, setDarkMode] = useState(false);
   const [nationalities, setNationalities] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -71,13 +71,10 @@ export default function EmployeeRegistrationPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setError('');
-    
-    // Clear company verification when company ID changes
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
     if (name === 'companyId') {
       setCompanyVerification(null);
     }
@@ -85,7 +82,7 @@ export default function EmployeeRegistrationPage() {
 
   const verifyCompany = async () => {
     if (!formData.companyId) {
-      setError('Please enter a Company ID');
+      setErrors(prev => ({ ...prev, companyId: 'Please enter a Company ID' }));
       return;
     }
 
@@ -95,101 +92,84 @@ export default function EmployeeRegistrationPage() {
 
       if (response.ok) {
         setCompanyVerification(data.company);
-        setError('');
+        setErrors(prev => ({ ...prev, companyId: null }));
       } else {
         setCompanyVerification(null);
-        setError(data.message || 'Company not found');
+        setErrors(prev => ({ ...prev, companyId: data.message || 'Company not found' }));
       }
     } catch (error) {
       setCompanyVerification(null);
-      setError('Failed to verify company. Please try again.');
+      setErrors(prev => ({ ...prev, companyId: 'Failed to verify company. Please try again.' }));
     }
   };
 
   const validateForm = () => {
-    // Check required fields
+    const newErrors = {};
     const requiredFields = [
       'firstName', 'lastName', 'dateOfBirth', 'gender', 'nationalityId',
       'email', 'username', 'phone', 'password', 'confirmPassword',
       'companyId', 'positionName'
     ];
+    requiredFields.forEach(field => {
+      if (!formData[field]) newErrors[field] = 'This field is required';
+    });
 
-    for (const field of requiredFields) {
-      if (!formData[field]) {
-        setError(`Please fill in all required fields`);
-        return false;
-      }
-    }
-
-    // Validate company verification
     if (!companyVerification) {
-      setError('Please verify your Company ID before proceeding');
-      return false;
+      newErrors.companyId = 'Please verify your Company ID before proceeding';
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return false;
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    // Validate password match
+    if (formData.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.phone)) {
+      newErrors.phone = 'Invalid phone number format. Use numbers, +, and -.';
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // Validate password strength
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
+    if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
     }
-
-    // Validate age (must be at least 18 for employees)
-    const birthDate = new Date(formData.dateOfBirth);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    if (age < 18) {
-      setError('You must be at least 18 years old to register as an employee');
-      return false;
+    
+    if (formData.dateOfBirth) {
+        const birthDate = new Date(formData.dateOfBirth);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < 18) {
+            newErrors.dateOfBirth = 'You must be at least 18 years old';
+        }
     }
-
-    return true;
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsLoading(true);
-    setError('');
-
+    setErrors({});
     try {
       const response = await fetch('/api/auth/register/employee', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          companyEmail: companyVerification.company_email
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, companyEmail: companyVerification.company_email }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        // Redirect to verification page
         router.push(`/Login/Verification/Registration?accountId=${data.accountId}&type=employee`);
       } else {
-        setError(data.message || 'Registration failed');
+        setErrors({ form: data.message || 'Registration failed' });
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setErrors({ form: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -234,9 +214,11 @@ export default function EmployeeRegistrationPage() {
         <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
-            {error && (
+            {Object.keys(errors).length > 0 && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
-                <p>{error}</p>
+                {Object.entries(errors).map(([field, error]) => (
+                  <p key={field}>{error}</p>
+                ))}
               </div>
             )}
 
@@ -254,7 +236,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.companyId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white ${errors.companyId ? 'border-red-500' : ''}`}
                   >
                     <option value="">Select Company</option>
                     {nationalities.map((nationality) => (
@@ -263,6 +245,7 @@ export default function EmployeeRegistrationPage() {
                       </option>
                     ))}
                   </select>
+                  {errors.companyId && <p className="mt-1 text-xs text-red-500">{errors.companyId}</p>}
                 </div>
                 <button
                   type="button"
@@ -297,8 +280,9 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.firstName ? 'border-red-500' : ''}`}
                   />
+                  {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>}
                 </div>
 
                 <div>
@@ -312,8 +296,9 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.lastName ? 'border-red-500' : ''}`}
                   />
+                  {errors.lastName && <p className="mt-1 text-xs text-red-500">{errors.lastName}</p>}
                 </div>
 
                 <div>
@@ -326,8 +311,9 @@ export default function EmployeeRegistrationPage() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.middleName ? 'border-red-500' : ''}`}
                   />
+                  {errors.middleName && <p className="mt-1 text-xs text-red-500">{errors.middleName}</p>}
                 </div>
 
                 <div>
@@ -341,8 +327,9 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.dateOfBirth ? 'border-red-500' : ''}`}
                   />
+                  {errors.dateOfBirth && <p className="mt-1 text-xs text-red-500">{errors.dateOfBirth}</p>}
                 </div>
 
                 <div>
@@ -355,7 +342,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.gender ? 'border-red-500' : ''}`}
                   >
                     <option value="">Select Gender</option>
                     <option value="1">Male</option>
@@ -363,6 +350,7 @@ export default function EmployeeRegistrationPage() {
                     <option value="3">Other</option>
                     <option value="4">Prefer not to say</option>
                   </select>
+                  {errors.gender && <p className="mt-1 text-xs text-red-500">{errors.gender}</p>}
                 </div>
 
                 <div>
@@ -375,7 +363,7 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.nationalityId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.nationalityId ? 'border-red-500' : ''}`}
                   >
                     <option value="">Select Nationality</option>
                     {nationalities.map((nationality) => (
@@ -384,6 +372,7 @@ export default function EmployeeRegistrationPage() {
                       </option>
                     ))}
                   </select>
+                  {errors.nationalityId && <p className="mt-1 text-xs text-red-500">{errors.nationalityId}</p>}
                 </div>
               </div>
             </div>
@@ -404,8 +393,9 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.email ? 'border-red-500' : ''}`}
                   />
+                  {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -419,8 +409,9 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.username}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.username ? 'border-red-500' : ''}`}
                   />
+                  {errors.username && <p className="mt-1 text-xs text-red-500">{errors.username}</p>}
                 </div>
 
                 <div>
@@ -434,9 +425,10 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.phone ? 'border-red-500' : ''}`}
                     placeholder="+63 9XX XXX XXXX"
                   />
+                  {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
                 </div>
 
                 <div></div>
@@ -453,7 +445,7 @@ export default function EmployeeRegistrationPage() {
                       required
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                      className={`block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.password ? 'border-red-500' : ''}`}
                       placeholder="Min. 8 characters"
                     />
                     <button
@@ -473,6 +465,7 @@ export default function EmployeeRegistrationPage() {
                       )}
                     </button>
                   </div>
+                  {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
                 </div>
 
                 <div>
@@ -487,7 +480,7 @@ export default function EmployeeRegistrationPage() {
                       required
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                      className={`block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                     />
                     <button
                       type="button"
@@ -506,6 +499,7 @@ export default function EmployeeRegistrationPage() {
                       )}
                     </button>
                   </div>
+                  {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>}
                 </div>
               </div>
             </div>
@@ -526,9 +520,10 @@ export default function EmployeeRegistrationPage() {
                     required
                     value={formData.positionName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.positionName ? 'border-red-500' : ''}`}
                     placeholder="e.g., HR Manager, Recruiter, Team Lead"
                   />
+                  {errors.positionName && <p className="mt-1 text-xs text-red-500">{errors.positionName}</p>}
                 </div>
               </div>
             </div>

@@ -4,21 +4,42 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import JobCard from '../../../../components/JobCard'; // Assuming JobCard is here
 
-function StarRating({ rating, onRate, loading }) {
+function Star({ index, rating, onRate, loading }) {
+  const isFilled = index < Math.round(rating);
+  const isPartial = false; // Simplify; we now treat partial stars as full when rounded
+
+  const handleClick = () => {
+    if (onRate && !loading) {
+      onRate(index + 1);
+    }
+  };
+
+  const getStarColor = () => {
+    if (isFilled) {
+        return 'text-yellow-400';
+    }
+    return 'text-gray-300';
+  };
+  
+  return (
+    <svg
+      onClick={handleClick}
+      className={`w-5 h-5 ${onRate ? 'cursor-pointer' : ''} ${getStarColor()} ${loading ? 'cursor-not-allowed' : ''}`}
+      fill="currentColor"
+      viewBox="0 0 20 20"
+    >
+      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.363 2.44a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.363-2.44a1 1 0 00-1.175 0l-3.363 2.44c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.245 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69L9.049 2.927z" />
+    </svg>
+  );
+}
+
+function StarRating({ rating, onRate, loading, interactive = false }) {
+  const starArray = interactive ? 5 : Math.max(0, Math.floor(rating));
+
   return (
     <div className="flex items-center">
-      {[...Array(5)].map((_, i) => (
-        <svg
-          key={i}
-          onClick={() => !loading && onRate(i + 1)}
-          className={`w-5 h-5 cursor-pointer ${
-            i < rating ? 'text-yellow-400' : 'text-gray-300'
-          } ${loading ? 'cursor-not-allowed' : ''}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.363 2.44a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.363-2.44a1 1 0 00-1.175 0l-3.363 2.44c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.245 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69L9.049 2.927z" />
-        </svg>
+      {[...Array(starArray)].map((_, i) => (
+        <Star key={i} index={i} rating={interactive ? rating : starArray} onRate={interactive ? onRate : undefined} loading={loading} />
       ))}
     </div>
   );
@@ -156,7 +177,7 @@ export default function ViewCompany() {
               </a>
             )}
             <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
-              <StarRating rating={average_rating} onRate={() => {}} />
+              <StarRating rating={average_rating} interactive={false} />
               <span className="text-white/80 text-sm">({(typeof average_rating === 'number' ? average_rating.toFixed(1) : parseFloat(average_rating || 0).toFixed(1))} from {total_ratings} reviews)</span>
             </div>
           </div>
@@ -180,13 +201,13 @@ export default function ViewCompany() {
         <p className="text-sm text-[var(--text-light)] mb-4">
           {userRating ? `You rated this company ${userRating.rating} stars.` : "You haven't rated this company yet."}
         </p>
-        <StarRating rating={userRating?.rating || 0} onRate={handleRateCompany} />
+        <StarRating rating={userRating?.rating || 0} onRate={handleRateCompany} interactive={true} />
       </div>
 
       {/* Job Postings */}
       <div className="card p-6">
         <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Active Job Postings ({jobs.length})</h2>
-        <div className="space-y-4 max-h-[40rem] overflow-y-auto pr-2">
+        <div className="space-y-4 max-h-[25rem] overflow-y-auto pr-2">
           {jobs.length > 0 ? jobs.map(job => (
             <JobCard key={job.id} job={job} showSave={true} showApply={true} showView={true} />
           )) : <p className="text-[var(--text-light)]">No active job postings from this company.</p>}
@@ -196,14 +217,14 @@ export default function ViewCompany() {
       {/* Reviews Section */}
       <div className="card p-6">
         <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Reviews ({reviews.length})</h2>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[25rem] overflow-y-auto pr-2">
           {reviews.length > 0 ? reviews.map((review, i) => (
             <div key={i} className="p-4 border border-[var(--border-color)] rounded-lg bg-white/50">
               <div className="flex items-center mb-2">
                 <img src={review.author_avatar || '/Assets/Logo.png'} className="w-10 h-10 rounded-full mr-3" />
                 <div>
                   <p className="font-semibold text-[var(--foreground)]">{review.author_name}</p>
-                  <StarRating rating={review.rating} onRate={()=>{}} />
+                  <StarRating rating={review.rating} interactive={false} />
                 </div>
               </div>
               <p className="text-[var(--text-light)]">{review.review_text || "No review text."}</p>

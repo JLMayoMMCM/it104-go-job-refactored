@@ -76,6 +76,7 @@ export default function EditProfile() {
   }, [router]);
 
   // Update selected fields when categories change
+  /*
   useEffect(() => {
     const fieldsFromCategories = jobFields.filter(field => 
       field.categories && field.categories.some(cat => 
@@ -85,6 +86,7 @@ export default function EditProfile() {
     
     setSelectedFields([...new Set(fieldsFromCategories)]);
   }, [selectedCategories, jobFields]);
+  */
 
   // Clear errors when component mounts or profile data is reloaded
   useEffect(() => {
@@ -224,29 +226,63 @@ export default function EditProfile() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!profile.firstName) newErrors.firstName = 'First name is required';
+    if (!profile.lastName) newErrors.lastName = 'Last name is required';
+    
+    if (!profile.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (profile.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(profile.phone)) {
+        newErrors.phone = 'Invalid phone number format';
+    }
+    
+    if (selectedCategories.length === 0) {
+        newErrors.jobCategories = 'Please select at least one job category';
+    }
+
+    setFieldErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const handleCategoryToggle = (categoryId) => {
-    setSelectedCategories(prev => {
-      if (prev.includes(categoryId)) {
-        return prev.filter(id => id !== categoryId);
-      } else {
-        return [...prev, categoryId];
-      }
-    });
+    const newSelectedCategories = selectedCategories.includes(categoryId)
+      ? selectedCategories.filter(id => id !== categoryId)
+      : [...selectedCategories, categoryId];
+      
+    setSelectedCategories(newSelectedCategories);
+
+    // Manually update selected fields based on the new category selection
+    const newSelectedFields = jobFields
+      .filter(field => field.categories.some(cat => newSelectedCategories.includes(cat.id)))
+      .map(field => field.id);
+      
+    setSelectedFields([...new Set(newSelectedFields)]);
+
+    if (newSelectedCategories.length > 0) {
+      setFieldErrors(prev => ({ ...prev, jobCategories: '' }));
+    }
   };
 
   const handleFieldToggle = (fieldId) => {
-    setExpandedFields(prev => {
-      if (prev.includes(fieldId)) {
-        return prev.filter(id => id !== fieldId);
-      } else {
-        return [...prev, fieldId];
-      }
-    });
+    setExpandedFields(prev => 
+      prev.includes(fieldId) 
+        ? prev.filter(id => id !== fieldId) 
+        : [...prev, fieldId]
+    );
   };
 
   const fetchGenders = async () => {
@@ -410,26 +446,13 @@ export default function EditProfile() {
   };
 
   const handleSaveProfile = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    setLoading(true);
+    setGeneralError(null);
     try {
-      // Clear previous errors
-      setGeneralError(null);
-      setPasswordError('');
-      setFieldErrors({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        premise: '',
-        street: '',
-        barangay: '',
-        city: '',
-        nationality: '',
-        gender: '',
-        educationLevel: '',
-        experienceLevel: '',
-        jobCategories: ''
-      });
-      
       const accountId = localStorage.getItem('accountId');
       
       if (!accountId) {
@@ -607,6 +630,7 @@ export default function EditProfile() {
       window.dispatchEvent(new Event('profileUpdated'));
       
       setTimeout(() => {
+        setSuccessMessage('');
         router.push('/Dashboard/jobseeker/profile');
       }, 2000);
       
@@ -670,15 +694,15 @@ export default function EditProfile() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="bg-[var(--success-color)] bg-opacity-10 border border-[var(--success-color)] border-opacity-20 rounded-md p-4">
+        <div className="bg-green-600 text-white rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <div className="text-sm text-[var(--success-color)]">
+              <div className="text-sm font-medium">
                 <p>{successMessage}</p>
               </div>
             </div>
@@ -1332,7 +1356,12 @@ export default function EditProfile() {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 items-center">
+        {successMessage && (
+          <div className="text-green-600 text-sm font-medium">
+            {successMessage}
+          </div>
+        )}
         <button
           onClick={() => router.push('/Dashboard/jobseeker/profile')}
           className="btn btn-secondary px-4 py-2 text-sm font-medium min-w-[120px] text-center"

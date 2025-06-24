@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function JobseekerRegistrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [darkMode, setDarkMode] = useState(false);
   const [nationalities, setNationalities] = useState([]);
   const [educationLevels, setEducationLevels] = useState([]);
@@ -104,84 +104,88 @@ export default function JobseekerRegistrationPage() {
       ...prev,
       [name]: value
     }));
-    setError('');
+    // Clear error for the field being edited
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
   };
 
   const validateForm = () => {
-    // Check required fields
+    const newErrors = {};
+
+    // Required fields
     const requiredFields = [
       'firstName', 'lastName', 'dateOfBirth', 'gender', 'nationalityId',
       'email', 'username', 'phone', 'password', 'confirmPassword',
       'educationLevelId', 'experienceLevelId'
     ];
-
-    for (const field of requiredFields) {
+    requiredFields.forEach(field => {
       if (!formData[field]) {
-        setError(`Please fill in all required fields`);
-        return false;
+        newErrors[field] = 'This field is required';
       }
+    });
+
+    // Email format
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return false;
+    // Phone number format
+    if (formData.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.phone)) {
+        newErrors.phone = 'Invalid phone number format. Use numbers, +, and -.';
     }
 
-    // Validate password match
+    // Password match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // Validate password strength
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
+    // Password strength
+    if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
     }
 
-    // Validate age (must be at least 16)
-    const birthDate = new Date(formData.dateOfBirth);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    if (age < 16) {
-      setError('You must be at least 16 years old to register');
-      return false;
+    // Age validation
+    if (formData.dateOfBirth) {
+        const birthDate = new Date(formData.dateOfBirth);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < 16) {
+            newErrors.dateOfBirth = 'You must be at least 16 years old';
+        }
     }
-
-    return true;
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    setError('');
+    setErrors({});
 
     try {
       const response = await fetch('/api/auth/register/jobseeker', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        // Redirect to verification page
         router.push(`/Login/Verification/Registration?accountId=${data.accountId}&type=jobseeker`);
       } else {
-        setError(data.message || 'Registration failed');
+        setErrors({ form: data.message || 'Registration failed' });
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setErrors({ form: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -225,10 +229,10 @@ export default function JobseekerRegistrationPage() {
         {/* Registration Form */}
         <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
+            {/* Form-wide Error Message */}
+            {errors.form && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
-                <p>{error}</p>
+                <p>{errors.form}</p>
               </div>
             )}
 
@@ -245,11 +249,12 @@ export default function JobseekerRegistrationPage() {
                     type="text"
                     id="firstName"
                     name="firstName"
-                    required
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
+                    required
                   />
+                  {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
                 </div>
 
                 <div>
@@ -260,11 +265,12 @@ export default function JobseekerRegistrationPage() {
                     type="text"
                     id="lastName"
                     name="lastName"
-                    required
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
+                    required
                   />
+                  {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
                 </div>
 
                 <div>
@@ -277,7 +283,7 @@ export default function JobseekerRegistrationPage() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
                   />
                 </div>
                 
@@ -289,11 +295,12 @@ export default function JobseekerRegistrationPage() {
                     type="date"
                     id="dateOfBirth"
                     name="dateOfBirth"
-                    required
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
+                    required
                   />
+                  {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
                 </div>
 
                 <div>
@@ -303,17 +310,17 @@ export default function JobseekerRegistrationPage() {
                   <select
                     id="gender"
                     name="gender"
-                    required
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                    className="form-input"
+                    required
                   >
-                    <option key="default-gender" value="">Select Gender</option>
-                    <option key="male" value="1">Male</option>
-                    <option key="female" value="2">Female</option>
-                    <option key="other" value="3">Other</option>
-                    <option key="prefer" value="4">Prefer not to say</option>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
+                  {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
                 </div>
                 
                 <div>
@@ -323,18 +330,19 @@ export default function JobseekerRegistrationPage() {
                   <select
                     id="nationalityId"
                     name="nationalityId"
-                    required
                     value={formData.nationalityId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                    className="form-input"
+                    required
                   >
-                    <option key="default-nationality" value="">Select Nationality</option>
-                    {nationalities.map(nationality => (
-                      <option key={nationality.nationality_id} value={nationality.nationality_id}>
-                        {nationality.nationality_name}
+                    <option value="">Select Nationality</option>
+                    {nationalities.map(nat => (
+                      <option key={nat.nationality_id} value={nat.nationality_id}>
+                        {nat.nationality_name}
                       </option>
                     ))}
                   </select>
+                  {errors.nationalityId && <p className="text-red-500 text-xs mt-1">{errors.nationalityId}</p>}
                 </div>
               </div>
             </div>
@@ -345,17 +353,18 @@ export default function JobseekerRegistrationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Email *
+                    Email Address *
                   </label>
                   <input
                     type="email"
                     id="email"
                     name="email"
-                    required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
+                    required
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -366,11 +375,12 @@ export default function JobseekerRegistrationPage() {
                     type="text"
                     id="username"
                     name="username"
-                    required
                     value={formData.username}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                    className="form-input"
+                    required
                   />
+                  {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
                 </div>
 
                 <div>
@@ -381,107 +391,112 @@ export default function JobseekerRegistrationPage() {
                     type="tel"
                     id="phone"
                     name="phone"
-                    required
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
-                    placeholder="+63 9XX XXX XXXX"
+                    className="form-input"
+                    required
                   />
-                </div>
-
-                <div className="relative">
-                  <label htmlFor="password" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Password *
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      required
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] pr-10 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
-                      placeholder="Min. 8 characters"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    >
-                      {showPassword ? (
-                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Confirm Password *
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      required
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className="block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] pr-10 shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
-                      placeholder="Confirm your password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    >
-                      {showConfirmPassword ? (
-                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      ) : (
-                        <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
               </div>
             </div>
 
-            {/* Professional Details Section */}
+            {/* Password Section */}
             <div className="border-b border-[var(--border-color)] pb-6">
-              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Professional Details</h3>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Set Your Password</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label htmlFor="password" name="password" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Password *
+                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="form-input"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  >
+                    {showPassword ? (
+                      <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                </div>
+                
+                <div className="relative">
+                  <label htmlFor="confirmPassword" name="confirmPassword" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Confirm Password *
+                  </label>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="form-input"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7A9.97 9.97 0 014.02 8.971m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Job Preferences Section */}
+            <div>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-4">Job Preferences</h3>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="educationLevelId" className="block text-sm font-medium text-[var(--text-dark)]">
-                    Education Level *
+                    Highest Education Level *
                   </label>
                   <select
                     id="educationLevelId"
                     name="educationLevelId"
-                    required
                     value={formData.educationLevelId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                    className="form-input"
+                    required
                   >
-                    <option key="default-education" value="">Select Education Level</option>
+                    <option value="">Select Education Level</option>
                     {educationLevels.map(level => (
                       <option key={level.job_seeker_education_level_id} value={level.job_seeker_education_level_id}>
                         {level.education_level_name}
                       </option>
                     ))}
                   </select>
+                  {errors.educationLevelId && <p className="text-red-500 text-xs mt-1">{errors.educationLevelId}</p>}
                 </div>
 
                 <div>
@@ -491,24 +506,25 @@ export default function JobseekerRegistrationPage() {
                   <select
                     id="experienceLevelId"
                     name="experienceLevelId"
-                    required
                     value={formData.experienceLevelId}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white"
+                    className="form-input"
+                    required
                   >
-                    <option key="default-experience" value="">Select Experience Level</option>
+                    <option value="">Select Experience Level</option>
                     {experienceLevels.map(level => (
                       <option key={level.job_seeker_experience_level_id} value={level.job_seeker_experience_level_id}>
                         {level.experience_level_name}
                       </option>
                     ))}
                   </select>
+                  {errors.experienceLevelId && <p className="text-red-500 text-xs mt-1">{errors.experienceLevelId}</p>}
                 </div>
               </div>
 
               <div className="mt-4">
                 <label htmlFor="description" className="block text-sm font-medium text-[var(--text-dark)]">
-                  Professional Summary
+                  Briefly describe yourself (Optional)
                 </label>
                 <textarea
                   id="description"
@@ -516,8 +532,8 @@ export default function JobseekerRegistrationPage() {
                   rows="4"
                   value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="Tell us about your skills and career goals..."
                   className="form-input"
+                  placeholder="E.g., A passionate software developer with 3 years of experience in React and Node.js..."
                 ></textarea>
               </div>
             </div>
