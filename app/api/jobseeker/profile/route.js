@@ -16,10 +16,10 @@ export async function GET(request) {
     console.log('Fetching profile for accountId:', accountId);
     const supabase = createClient();
 
-    // Fetch account data with correct field names including resume
+    // Fetch account data with correct field names
     const { data: accountData, error: accountError } = await supabase
       .from('account')
-      .select('account_id, account_profile_photo, account_email, account_phone, account_resume')
+      .select('account_id, account_profile_photo, account_email, account_phone, account_is_verified')
       .eq('account_id', accountId)
       .single();
 
@@ -38,7 +38,7 @@ export async function GET(request) {
     // Fetch job_seeker data to get person_id and education/experience levels
     const { data: jobSeekerData, error: jobSeekerError } = await supabase
       .from('job_seeker')
-      .select('job_seeker_id, person_id, job_seeker_experience_level_id, job_seeker_education_level_id')
+      .select('job_seeker_id, person_id, job_seeker_experience_level_id, job_seeker_education_level_id, job_seeker_resume')
       .eq('account_id', accountId)
       .single();
 
@@ -210,11 +210,11 @@ export async function GET(request) {
 
     // Format resume data if it exists
     let resumeData = null;
-    if (accountData.account_resume) {
+    if (jobSeekerData.job_seeker_resume) {
       // Extract filename from URL if possible
       let filename = 'Resume.pdf';
       try {
-        const urlParts = accountData.account_resume.split('/');
+        const urlParts = jobSeekerData.job_seeker_resume.split('/');
         filename = urlParts[urlParts.length - 1].split('?')[0] || 'Resume.pdf';
       } catch (e) {
         console.error('Error extracting filename from URL:', e);
@@ -225,7 +225,7 @@ export async function GET(request) {
       
       // Attempt to get file size via HEAD request if it's a direct file URL
       try {
-        const response = await fetch(accountData.account_resume, { method: 'HEAD' });
+        const response = await fetch(jobSeekerData.job_seeker_resume, { method: 'HEAD' });
         if (response.ok) {
           const contentLength = response.headers.get('content-length');
           if (contentLength) {
@@ -244,7 +244,7 @@ export async function GET(request) {
       }
       
       resumeData = {
-        url: accountData.account_resume,
+        url: jobSeekerData.job_seeker_resume,
         name: filename,
         size: sizeText
       };
@@ -253,238 +253,96 @@ export async function GET(request) {
     console.log('Successfully formatted profile data');
 
     // Return formatted data matching what the frontend expects
-    return NextResponse.json({
-      success: true,
-      data: {
-        account: {
-          account_id: accountData.account_id,
-          profile_photo: accountData.account_profile_photo,
-          resume: resumeData
-        },
-        person: {
-          person_id: personData.person_id,
-          first_name: personData.first_name,
-          last_name: personData.last_name,
-          email: accountData.account_email, // Get email from account table
-          phone: accountData.account_phone, // Get phone from account table
-          address: fullAddress,
-          nationality: personData.nationality?.nationality_name || 'Not specified',
-          gender: personData.gender?.gender_name || 'Not specified',
-          education_level: educationLevel,
-          experience_level: experienceLevel
-        },
-        job_preferences: jobPreferences
-      }
-    });
+    const responseData = {
+      account: {
+        account_id: accountData.account_id,
+        profile_photo: accountData.account_profile_photo,
+        resume: resumeData,
+        account_is_verified: accountData.account_is_verified
+      },
+      person: {
+        person_id: personData.person_id,
+        first_name: personData.first_name,
+        last_name: personData.last_name,
+        email: accountData.account_email, // Get email from account table
+        phone: accountData.account_phone, // Get phone from account table
+        address: fullAddress,
+        nationality: personData.nationality?.nationality_name || 'Not specified',
+        gender: personData.gender?.gender_name || 'Not specified',
+        education_level: educationLevel,
+        experience_level: experienceLevel
+      },
+      job_preferences: jobPreferences
+    };
+
+    return NextResponse.json({ success: true, data: responseData });
   } catch (error) {
-    console.error('Unexpected error fetching jobseeker profile:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error: ' + error.message 
-    }, { status: 500 });
+    console.error('Unexpected error in GET jobseeker profile:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
   try {
-    const body = await request.json();
-    const { accountId, password, firstName, lastName, email, phone, premise, street, barangay, city, nationality, gender, educationLevel, experienceLevel } = body;
+    const { accountId, firstName, lastName, email, phone, educationLevelId, experienceLevelId } = await request.json();
 
     if (!accountId) {
       return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
     }
 
-    if (!password) {
-      return NextResponse.json({ success: false, error: 'Password is required to update profile' }, { status: 400 });
-    }
-
     const supabase = createClient();
 
-    // First, verify the password
-    const { data: accountData, error: accountError } = await supabase
-      .from('account')
-      .select('account_id, account_password')
-      .eq('account_id', accountId)
-      .single();
-
-    if (accountError || !accountData) {
-      return NextResponse.json({ success: false, error: 'Account not found' }, { status: 404 });
-    }
-
-    // Compare provided password with stored hash
-    const passwordValid = await bcrypt.compare(password, accountData.account_password);
-    if (!passwordValid) {
-      return NextResponse.json({ success: false, error: 'Invalid password. Please enter your correct password to update your profile.' }, { status: 401 });
-    }
-
-    // Get job seeker data
-    const { data: jobSeekerData, error: jobSeekerError } = await supabase
-      .from('job_seeker')
-      .select('job_seeker_id, person_id')
-      .eq('account_id', accountId)
-      .single();
-
-    if (jobSeekerError || !jobSeekerData) {
-      return NextResponse.json({ success: false, error: 'Job seeker data not found' }, { status: 404 });
-    }
-
-    // First get the current person data to preserve existing values if needed
-    const { data: currentPerson, error: currentPersonError } = await supabase
-      .from('person')
-      .select('address_id, nationality_id, gender')
-      .eq('person_id', jobSeekerData.person_id)
-      .single();
-
-    if (currentPersonError) {
-      console.error('Error fetching current person data:', currentPersonError);
-      return NextResponse.json({ success: false, error: 'Failed to fetch current person data' }, { status: 500 });
-    }
-
-    // Determine address_id to use
-    let addressIdToUse = currentPerson.address_id; // Default to existing
-    // Check if any address fields are provided in the request
-    const addressProvided = premise || street || barangay || city;
-    if (addressProvided) {
-      // If any address fields are provided, update the existing address if it exists
-      if (currentPerson.address_id) {
-        const { data: updatedAddress, error: updateAddressError } = await supabase
-          .from('address')
-          .update({
-            premise_name: premise || '',
-            street_name: street || '',
-            barangay_name: barangay || '',
-            city_name: city || ''
-          })
-          .eq('address_id', currentPerson.address_id)
-          .select('address_id')
-          .single();
-
-        if (updateAddressError) {
-          console.error('Error updating address:', updateAddressError);
-          // If update fails, create a new address
-          addressIdToUse = await getOrCreateAddressId(supabase, premise || '', street || '', barangay || '', city || '');
-        } else {
-          addressIdToUse = updatedAddress.address_id;
-        }
-      } else {
-        // If no existing address, create a new one
-        addressIdToUse = await getOrCreateAddressId(supabase, premise || '', street || '', barangay || '', city || '');
-      }
-    }
-    // If no address fields provided, keep the existing address_id
-
-    // First get the nationality ID from the name
-    let nationalityId = currentPerson.nationality_id; // Default to existing
-    if (nationality && nationality !== 'Not specified') {
-      const { data: nationalityData, error: nationalityError } = await supabase
-        .from('nationality')
-        .select('nationality_id')
-        .eq('nationality_name', nationality)
-        .single();
-
-      if (nationalityError) {
-        console.error('Nationality query error:', nationalityError);
-      } else if (nationalityData) {
-        nationalityId = nationalityData.nationality_id;
-      }
-    }
-
-    // Get gender ID from name
-    let genderId = currentPerson.gender; // Default to existing
-    if (gender && gender !== 'Not specified') {
-      const { data: genderData, error: genderError } = await supabase
-        .from('gender')
-        .select('gender_id')
-        .eq('gender_name', gender)
-        .single();
-
-      if (genderError) {
-        console.error('Gender query error:', genderError);
-      } else if (genderData) {
-        genderId = genderData.gender_id;
-      }
-    }
-
-    // Get education level ID from name
-    let educationLevelId = null;
-    if (educationLevel) {
-      const { data: educationData, error: educationError } = await supabase
-        .from('job_seeker_education_level')
-        .select('job_seeker_education_level_id')
-        .eq('education_level_name', educationLevel)
-        .single();
-
-      if (educationError) {
-        console.error('Education level query error:', educationError);
-      } else if (educationData) {
-        educationLevelId = educationData.job_seeker_education_level_id;
-      }
-    }
-
-    // Get experience level ID from name
-    let experienceLevelId = null;
-    if (experienceLevel) {
-      const { data: experienceData, error: experienceError } = await supabase
-        .from('job_seeker_experience_level')
-        .select('job_seeker_experience_level_id')
-        .eq('experience_level_name', experienceLevel)
-        .single();
-
-      if (experienceError) {
-        console.error('Experience level query error:', experienceError);
-      } else if (experienceData) {
-        experienceLevelId = experienceData.job_seeker_experience_level_id;
-      }
-    }
-
-    // Update person data
-    const { data: updatedPerson, error: personError } = await supabase
-      .from('person')
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        nationality_id: nationalityId,
-        gender: genderId,
-        address_id: addressIdToUse
-      })
-      .eq('person_id', jobSeekerData.person_id)
-      .select()
-      .single();
-
-    if (personError) {
-      console.error('Error updating person data:', personError);
-      return NextResponse.json({ success: false, error: 'Failed to update personal information' }, { status: 500 });
-    }
-
-    // Update account data (email and phone)
-    const { data: updatedAccount, error: accountUpdateError } = await supabase
+    // Update account information
+    const { error: accountUpdateError } = await supabase
       .from('account')
       .update({
         account_email: email,
         account_phone: phone
       })
-      .eq('account_id', accountId)
-      .select()
-      .single();
+      .eq('account_id', accountId);
 
     if (accountUpdateError) {
-      console.error('Error updating account data:', accountUpdateError);
-      return NextResponse.json({ success: false, error: 'Failed to update contact information' }, { status: 500 });
+      console.error('Error updating account:', accountUpdateError);
+      return NextResponse.json({ success: false, error: 'Failed to update account information' }, { status: 500 });
+    }
+
+    // Get person_id from job_seeker table
+    const { data: jobSeekerData, error: jobSeekerError } = await supabase
+      .from('job_seeker')
+      .select('person_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (jobSeekerError) {
+      console.error('Error fetching job seeker data:', jobSeekerError);
+      return NextResponse.json({ success: false, error: 'Failed to fetch job seeker data' }, { status: 500 });
+    }
+
+    // Update person information
+    const { error: personUpdateError } = await supabase
+      .from('person')
+      .update({
+        first_name: firstName,
+        last_name: lastName
+      })
+      .eq('person_id', jobSeekerData.person_id);
+
+    if (personUpdateError) {
+      console.error('Error updating person:', personUpdateError);
+      return NextResponse.json({ success: false, error: 'Failed to update personal information' }, { status: 500 });
     }
 
     // Update job seeker education and experience levels
-    const { data: updatedJobSeeker, error: jobSeekerUpdateError } = await supabase
+    const { error: jobSeekerUpdateError } = await supabase
       .from('job_seeker')
       .update({
         job_seeker_education_level_id: educationLevelId,
         job_seeker_experience_level_id: experienceLevelId
       })
-      .eq('job_seeker_id', jobSeekerData.job_seeker_id)
-      .select()
-      .single();
+      .eq('account_id', accountId);
 
     if (jobSeekerUpdateError) {
-      console.error('Error updating job seeker data:', jobSeekerUpdateError);
+      console.error('Error updating job seeker:', jobSeekerUpdateError);
       return NextResponse.json({ success: false, error: 'Failed to update job seeker information' }, { status: 500 });
     }
 

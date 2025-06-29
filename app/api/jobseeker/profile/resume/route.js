@@ -1,41 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createStorageClient, supabase } from '../../../../lib/supabase';
+import { createClient } from '../../../../lib/supabase';
 
 export async function POST(request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('resume');
     const accountId = formData.get('accountId');
+    const resumeFile = formData.get('resume');
 
-    if (!file || !accountId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Resume file and account ID are required' 
-      }, { status: 400 });
+    if (!accountId || !resumeFile) {
+      return NextResponse.json(
+        { success: false, error: 'Account ID and resume file are required' },
+        { status: 400 }
+      );
     }
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid file type. Only PDF, DOC, and DOCX files are allowed.' 
-      }, { status: 400 });
-    }
+    const supabase = createClient();
 
-    // Validate file size (15MB limit)
-    const maxSize = 15 * 1024 * 1024; // 15MB in bytes
-    if (file.size > maxSize) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'File size too large. Maximum size is 15MB.' 
-      }, { status: 400 });
-    }
-
-    // Create storage client for file operations
-    const storageClient = createStorageClient();
-
-    // Check if user exists and get job_seeker_id (using anon key for database)
+    // Get job seeker ID
     const { data: jobSeekerData, error: jobSeekerError } = await supabase
       .from('job_seeker')
       .select('job_seeker_id')
@@ -43,139 +24,67 @@ export async function POST(request) {
       .single();
 
     if (jobSeekerError || !jobSeekerData) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Job seeker not found' 
-      }, { status: 404 });
+      console.error('Error fetching job seeker:', jobSeekerError);
+      return NextResponse.json(
+        { success: false, error: 'Job seeker not found' },
+        { status: 404 }
+      );
     }
 
-    // Check if there's an existing resume to delete
-    const { data: accountData, error: accountError } = await supabase
-      .from('account')
-      .select('account_resume')
-      .eq('account_id', accountId)
-      .single();
-
-    if (accountError) {
-      console.error('Error fetching account data:', accountError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to verify existing resume' 
-      }, { status: 500 });
-    }
-
-    // If there's an existing resume, delete it from storage
-    if (accountData && accountData.account_resume) {
-      try {
-        const url = new URL(accountData.account_resume);
-        const pathParts = url.pathname.split('/profile/')[1]?.split('?')[0];
-        const filePath = pathParts || '';
-        
-        if (filePath) {
-          const { error: deleteError } = await storageClient.storage
-            .from('profile')
-            .remove([filePath]);
-            
-          if (deleteError) {
-            console.warn('Failed to delete old resume file:', deleteError.message);
-            // Continue anyway, as the file might have been deleted already
-          }
-        }
-      } catch (deleteErr) {
-        console.warn('Error attempting to delete old resume:', deleteErr.message);
-        // Continue with upload even if deletion fails
-      }
-    }
-
-    // Fetch last_name from the database
-    let lastName = '';
-    const { data: jobSeekerInfo, error: jobSeekerInfoError } = await supabase
-      .from('job_seeker')
-      .select('person_id')
-      .eq('account_id', accountId)
-      .single();
-
-    if (!jobSeekerInfoError && jobSeekerInfo) {
-      const { data: personData, error: personError } = await supabase
-        .from('person')
-        .select('last_name')
-        .eq('person_id', jobSeekerInfo.person_id)
-        .single();
-      
-      if (!personError && personData) {
-        lastName = personData.last_name || '';
-      }
-    }
-
-    // Sanitize last_name for filename (replace spaces with underscores, remove special characters)
-    const sanitizedLastName = lastName
-      .replace(/[^a-zA-Z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .toLowerCase() || 'user';
-
-    // Generate filename with account_id, sanitized last_name, and 'resume'
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${accountId}_${sanitizedLastName}_resume.${fileExtension}`;
-    const filePath = `resume/${fileName}`;
-
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Upload file to Supabase Storage using storage client
-    const { data: uploadData, error: uploadError } = await storageClient.storage
-      .from('profile')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        upsert: true
+    // Upload resume to storage
+    const fileName = `${accountId}_${Date.now()}_${resumeFile.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('resumes')
+      .upload(fileName, resumeFile, {
+        cacheControl: '3600',
+        upsert: false
       });
 
     if (uploadError) {
-      console.error('File upload error:', uploadError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to upload file to storage' 
-      }, { status: 500 });
+      console.error('Resume upload error:', uploadError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to upload resume' },
+        { status: 500 }
+      );
     }
 
     // Get public URL for the uploaded file
-    const { data: { publicUrl } } = storageClient.storage
-      .from('profile')
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage
+      .from('resumes')
+      .getPublicUrl(fileName);
 
-    // Update account table with resume URL using anon key (database operations)
+    // Update job_seeker table with resume URL
     const { error: updateError } = await supabase
-      .from('account')
-      .update({ account_resume: publicUrl })
-      .eq('account_id', accountId);
+      .from('job_seeker')
+      .update({
+        job_seeker_resume: publicUrl
+      })
+      .eq('job_seeker_id', jobSeekerData.job_seeker_id);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
-      // Try to delete the uploaded file if database update fails
-      await storageClient.storage.from('profile').remove([filePath]);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to update profile with resume URL' 
-      }, { status: 500 });
+      console.error('Error updating job seeker resume:', updateError);
+      // Try to delete the uploaded file if update fails
+      await supabase.storage.from('resumes').remove([fileName]);
+      return NextResponse.json(
+        { success: false, error: 'Failed to update resume information' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Resume uploaded successfully',
       data: {
-        resume_url: publicUrl,
-        file_name: file.name,
-        file_size: file.size
+        file_name: resumeFile.name,
+        file_size: resumeFile.size,
+        resume_url: publicUrl
       }
     });
-
   } catch (error) {
-    console.error('Unexpected error uploading resume:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error: ' + error.message 
-    }, { status: 500 });
+    console.error('Unexpected error in resume upload:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -185,70 +94,65 @@ export async function DELETE(request) {
     const accountId = searchParams.get('accountId');
 
     if (!accountId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Account ID is required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Account ID is required' },
+        { status: 400 }
+      );
     }
 
-    // Create storage client for file operations
-    const storageClient = createStorageClient();
+    const supabase = createClient();
 
-    // Get current resume URL (using anon key for database)
-    const { data: accountData, error: accountError } = await supabase
-      .from('account')
-      .select('account_resume')
+    // Get job seeker data to get current resume URL
+    const { data: jobSeekerData, error: jobSeekerError } = await supabase
+      .from('job_seeker')
+      .select('job_seeker_id, job_seeker_resume')
       .eq('account_id', accountId)
       .single();
 
-    if (accountError || !accountData) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Account not found' 
-      }, { status: 404 });
+    if (jobSeekerError || !jobSeekerData) {
+      console.error('Error fetching job seeker:', jobSeekerError);
+      return NextResponse.json(
+        { success: false, error: 'Job seeker not found' },
+        { status: 404 }
+      );
     }
 
-    // Remove resume URL from database using anon key
+    // If there's a resume, delete it from storage
+    if (jobSeekerData.job_seeker_resume) {
+      try {
+        const resumeFileName = jobSeekerData.job_seeker_resume.split('/').pop().split('?')[0];
+        await supabase.storage.from('resumes').remove([resumeFileName]);
+      } catch (storageError) {
+        console.error('Error deleting resume from storage:', storageError);
+        // Continue with database update even if storage delete fails
+      }
+    }
+
+    // Update job_seeker table to remove resume URL
     const { error: updateError } = await supabase
-      .from('account')
-      .update({ account_resume: null })
-      .eq('account_id', accountId);
+      .from('job_seeker')
+      .update({
+        job_seeker_resume: null
+      })
+      .eq('job_seeker_id', jobSeekerData.job_seeker_id);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to remove resume from profile' 
-      }, { status: 500 });
-    }
-
-    // If there was a resume URL, try to delete the file from storage
-    if (accountData.account_resume) {
-      try {
-        // Extract file path from URL
-        const url = new URL(accountData.account_resume);
-        const pathParts = url.pathname.split('/profile/')[1]?.split('?')[0];
-        const filePath = pathParts || '';
-        
-        if (filePath) {
-          await storageClient.storage.from('profile').remove([filePath]);
-        }
-      } catch (storageError) {
-        console.warn('Failed to delete file from storage:', storageError);
-        // Don't fail the request if storage deletion fails
-      }
+      console.error('Error updating job seeker resume:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to remove resume information' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
       message: 'Resume removed successfully'
     });
-
   } catch (error) {
-    console.error('Unexpected error removing resume:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error: ' + error.message 
-    }, { status: 500 });
+    console.error('Unexpected error in resume deletion:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

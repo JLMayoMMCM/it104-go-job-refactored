@@ -12,6 +12,7 @@ export default function JobseekerRegistrationPage() {
   const [nationalities, setNationalities] = useState([]);
   const [educationLevels, setEducationLevels] = useState([]);
   const [experienceLevels, setExperienceLevels] = useState([]);
+  const [genders, setGenders] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -52,11 +53,23 @@ export default function JobseekerRegistrationPage() {
     useEffect(() => {
     const loadDropdownData = async () => {
       try {
-        const [nationalitiesRes, educationRes, experienceRes] = await Promise.all([
+        const [gendersRes, nationalitiesRes, educationRes, experienceRes] = await Promise.all([
+          fetch('/api/data/genders'),
           fetch('/api/data/nationalities'),
           fetch('/api/data/education-levels'),
           fetch('/api/data/experience-levels')
         ]);
+
+        if (gendersRes.ok) {
+          const gendersData = await gendersRes.json();
+          if (gendersData.success) {
+            setGenders(gendersData.data);
+          } else {
+            console.error('Genders API error:', gendersData.message);
+          }
+        } else {
+          console.error('Failed to fetch genders:', gendersRes.status);
+        }
 
         if (nationalitiesRes.ok) {
           const nationalitiesData = await nationalitiesRes.json();
@@ -98,8 +111,36 @@ export default function JobseekerRegistrationPage() {
     loadDropdownData();
   }, []);
 
+  // Format phone number for display with spaces (same as Employee)
+  function formatPHNumberForDisplay(number) {
+    if (!number) return '';
+    const digits = number.replace(/\D/g, '');
+    if (digits.length === 10) return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6,10)}`;
+    if (digits.length === 8) return `${digits.slice(0,4)} ${digits.slice(4,8)}`;
+    if (digits.length === 7) return `${digits.slice(0,3)} ${digits.slice(3,7)}`;
+    return digits;
+  }
+  // Clean phone number for storage (remove spaces, prefix)
+  function cleanPHNumberForStorage(number) {
+    return number.replace(/\D/g, '');
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'phone') {
+      // Remove non-digits
+      let digits = value.replace(/\D/g, '');
+      // Limit to 10 digits
+      if (digits.length > 10) digits = digits.slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        phone: digits
+      }));
+      if (errors.phone) {
+        setErrors(prev => ({ ...prev, phone: null }));
+      }
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -131,8 +172,10 @@ export default function JobseekerRegistrationPage() {
     }
 
     // Phone number format
-    if (formData.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.phone)) {
-        newErrors.phone = 'Invalid phone number format. Use numbers, +, and -.';
+    if (formData.phone) {
+      if (!/^\d{7,10}$/.test(formData.phone)) {
+        newErrors.phone = 'Phone must be 7-10 digits (numbers only)';
+      }
     }
 
     // Password match
@@ -173,10 +216,12 @@ export default function JobseekerRegistrationPage() {
     setErrors({});
 
     try {
+      // Clean phone number before submit
+      const cleanedPhone = cleanPHNumberForStorage(formData.phone);
       const response = await fetch('/api/auth/register/jobseeker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, phone: cleanedPhone })
       });
       const data = await response.json();
       if (response.ok) {
@@ -316,9 +361,11 @@ export default function JobseekerRegistrationPage() {
                     required
                   >
                     <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
+                    {genders.map(gender => (
+                      <option key={gender.gender_id} value={gender.gender_id}>
+                        {gender.gender_name}
+                      </option>
+                    ))}
                   </select>
                   {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
                 </div>
@@ -387,15 +434,20 @@ export default function JobseekerRegistrationPage() {
                   <label htmlFor="phone" className="block text-sm font-medium text-[var(--text-dark)]">
                     Phone Number *
                   </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="form-input"
-                    required
-                  />
+                  <div className="flex items-center">
+                    <span className="mr-2 select-none text-base font-medium">+63</span>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formatPHNumberForDisplay(formData.phone)}
+                      onChange={handleInputChange}
+                      className="form-input flex-1"
+                      required
+                      maxLength={13}
+                      placeholder="912 345 6789"
+                    />
+                  </div>
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
               </div>

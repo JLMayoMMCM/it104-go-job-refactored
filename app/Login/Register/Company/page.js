@@ -9,6 +9,22 @@ export default function CompanyRegistrationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [darkMode, setDarkMode] = useState(false);
+  const [nationalities, setNationalities] = useState([]);
+
+  // Nationality to country code mapping (add more as needed)
+  const nationalityPhonePrefixes = {
+    'Philippines': '+63',
+    'United States': '+1',
+    'India': '+91',
+    'Singapore': '+65',
+    'Malaysia': '+60',
+    'Indonesia': '+62',
+    'Vietnam': '+84',
+    'Thailand': '+66',
+    'China': '+86',
+    'Japan': '+81'
+    // Add more as needed
+  };
 
   // Detect dark mode preference
   useEffect(() => {
@@ -23,6 +39,24 @@ export default function CompanyRegistrationPage() {
     return () => darkModeQuery.removeEventListener('change', updateDarkMode);
   }, []);
 
+  // Load nationalities on component mount
+  useEffect(() => {
+    const loadNationalities = async () => {
+      try {
+        const response = await fetch('/api/data/nationalities');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setNationalities(data.data);
+          }
+        }
+      } catch (error) {
+        // ignore
+      }
+    };
+    loadNationalities();
+  }, []);
+
   const [formData, setFormData] = useState({
     // Company Details
     companyName: '',
@@ -30,6 +64,7 @@ export default function CompanyRegistrationPage() {
     companyPhone: '',
     companyWebsite: '',
     companyDescription: '',
+    company_nationality_id: '',
     // Company Address
     premiseName: '',
     streetName: '',
@@ -39,7 +74,40 @@ export default function CompanyRegistrationPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'company_nationality_id') {
+      // Find selected nationality name
+      const selectedNationality = nationalities.find(n => n.nationality_id === value);
+      const prefix = selectedNationality ? nationalityPhonePrefixes[selectedNationality.nationality_name] : '';
+      setFormData(prev => {
+        let newPhone = prev.companyPhone;
+        if (prefix) {
+          Object.values(nationalityPhonePrefixes).forEach(p => {
+            if (newPhone.startsWith(p)) {
+              newPhone = newPhone.replace(p, '');
+            }
+          });
+          newPhone = prefix + (newPhone.startsWith('0') ? newPhone.slice(1) : newPhone);
+        }
+        return { ...prev, [name]: value, companyPhone: prefix ? newPhone : prev.companyPhone };
+      });
+    } else if (name === 'companyPhone') {
+      setFormData(prev => {
+        let newPhone = value;
+        const selectedNationality = nationalities.find(n => n.nationality_id === prev.company_nationality_id);
+        const prefix = selectedNationality ? nationalityPhonePrefixes[selectedNationality.nationality_name] : '';
+        if (prefix && !newPhone.startsWith(prefix)) {
+          Object.values(nationalityPhonePrefixes).forEach(p => {
+            if (newPhone.startsWith(p)) {
+              newPhone = newPhone.replace(p, '');
+            }
+          });
+          newPhone = prefix + (newPhone.startsWith('0') ? newPhone.slice(1) : newPhone);
+        }
+        return { ...prev, [name]: newPhone };
+      });
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -47,7 +115,7 @@ export default function CompanyRegistrationPage() {
 
   const validateForm = () => {
     const newErrors = {};
-    const requiredFields = ['companyName', 'companyEmail', 'companyPhone', 'streetName', 'barangayName', 'cityName'];
+    const requiredFields = ['companyName', 'companyEmail', 'companyPhone', 'streetName', 'barangayName', 'cityName', 'company_nationality_id'];
     requiredFields.forEach(field => {
       if (!formData[field]) newErrors[field] = 'This field is required';
     });
@@ -203,6 +271,29 @@ export default function CompanyRegistrationPage() {
                       <p className="text-red-500 text-sm mt-1">{errors.companyPhone}</p>
                     )}
                   </div>
+                </div>
+                <div>
+                  <label htmlFor="company_nationality_id" className="block text-sm font-medium text-[var(--text-dark)]">
+                    Company Nationality *
+                  </label>
+                  <select
+                    id="company_nationality_id"
+                    name="company_nationality_id"
+                    required
+                    value={formData.company_nationality_id}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200"
+                  >
+                    <option value="">Select Nationality</option>
+                    {nationalities.map((nat) => (
+                      <option key={nat.nationality_id} value={nat.nationality_id}>
+                        {nat.nationality_name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.company_nationality_id && (
+                    <p className="text-red-500 text-sm mt-1">{errors.company_nationality_id}</p>
+                  )}
                 </div>
 
                 <div>

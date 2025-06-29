@@ -46,7 +46,8 @@ export async function GET(request) {
           account_username,
           account_profile_photo,
           account_phone,
-          account_number
+          account_number,
+          account_is_verified
         ),        company:company_id (
           company_id,
           company_name,
@@ -70,6 +71,11 @@ export async function GET(request) {
     if (empError || !employeeData) {
       console.error('Employee fetch error:', empError);
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    // Add account_is_verified to top-level for easier frontend access (optional)
+    if (employeeData.account && typeof employeeData.account.account_is_verified !== 'undefined') {
+      employeeData.account_is_verified = employeeData.account.account_is_verified;
     }
 
     return NextResponse.json({

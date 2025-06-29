@@ -188,9 +188,18 @@ export async function POST(request) {
 
     if (codeError) {
       console.error('Error storing verification code:', codeError);
+      // Cleanup all records if verification code storage fails
+      await supabase.from('employee').delete().eq('employee_id', employeeData.employee_id);
+      await supabase.from('account').delete().eq('account_id', accountData.account_id);
+      await supabase.from('person').delete().eq('person_id', personData.person_id);
+      await supabase.from('address').delete().eq('address_id', addressData.address_id);
+      return NextResponse.json(
+        { message: 'Failed to create verification code' },
+        { status: 500 }
+      );
     }
 
-    // Send verification email to company email using direct service
+    // Send verification email to company email
     try {
       await sendVerificationEmail({
         email: companyData.company_email,
@@ -204,9 +213,10 @@ export async function POST(request) {
       });
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
+      // Don't fail the registration if email fails, but log it
     }
 
-    // Also send notification to employee's email using direct service
+    // Send notification email to employee
     try {
       await sendVerificationEmail({
         email: email,
@@ -217,10 +227,11 @@ export async function POST(request) {
       });
     } catch (emailError) {
       console.error('Error sending employee notification email:', emailError);
+      // Don't fail the registration if notification fails, but log it
     }
 
     return NextResponse.json({
-      message: 'Employee registration successful. A verification code has been sent to your company email for approval.',
+      message: 'Employee registration successful. Please wait for company verification.',
       accountId: accountData.account_id,
       success: true
     });

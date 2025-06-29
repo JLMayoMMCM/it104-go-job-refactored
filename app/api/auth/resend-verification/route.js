@@ -4,123 +4,184 @@ import { sendVerificationEmail } from '../../../lib/emailService';
 
 export async function POST(request) {
   try {
-    const { accountId, companyId, type } = await request.json();
+    const { accountId } = await request.json();
 
-    if (!accountId && !companyId) {
+    if (!accountId) {
       return NextResponse.json(
-        { message: 'Account ID or Company ID is required' },
+        { message: 'Account ID is required' },
         { status: 400 }
       );
     }
 
-    let email, name, targetAccountId;
+    // Get account details
+    const { data: account, error: accountError } = await supabase
+      .from('account')
+      .select('*')
+      .eq('account_id', accountId)
+      .single();
 
-    if (type === 'company') {
-      // Get company details
-      const { data: company, error: companyError } = await supabase
-        .from('company')
-        .select('company_name, company_email')
-        .eq('company_id', companyId)
-        .single();
+    if (accountError || !account) {
+      console.error('Error fetching account:', accountError);
+      return NextResponse.json(
+        { message: 'Account not found' },
+        { status: 404 }
+      );
+    }
 
-      if (companyError || !company) {
-        return NextResponse.json(
-          { message: 'Company not found' },
-          { status: 404 }
-        );
-      }
+    // Check if account is already verified
+    if (account.account_is_verified) {
+      return NextResponse.json(
+        { message: 'Account is already verified' },
+        { status: 400 }
+      );
+    }
 
-      // Find temp account for company
-      const { data: tempAccount, error: tempError } = await supabase
-        .from('account')
-        .select('account_id')
-        .like('account_username', `temp_${companyId}`)
-        .single();
-
-      if (tempError || !tempAccount) {
-        return NextResponse.json(
-          { message: 'Verification session not found' },
-          { status: 404 }
-        );
-      }
-
-      email = company.company_email;
-      name = company.company_name;
-      targetAccountId = tempAccount.account_id;
-    } else {
-      // Get account details
-      const { data: account, error: accountError } = await supabase
-        .from('account')
-        .select('account_email')
+    // For employee accounts, we need to send verification to company email
+    if (account.account_type_id === 1) { // Employee type
+      // Get employee and company details
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employee')
+        .select(`
+          employee_id,
+          company:company_id (
+            company_id,
+            company_name,
+            company_email
+          ),
+          person:person_id (
+            first_name,
+            last_name
+          ),
+          position_name
+        `)
         .eq('account_id', accountId)
         .single();
 
-      if (accountError || !account) {
+      if (employeeError || !employeeData) {
+        console.error('Error fetching employee data:', employeeError);
         return NextResponse.json(
-          { message: 'Account not found' },
-          { status: 404 }
+          { message: 'Failed to fetch employee data' },
+          { status: 500 }
         );
       }
 
-      // Get person details for name
-      const { data: person, error: personError } = await supabase
-        .from('person')
-        .select('first_name')
-        .eq('person_id', (await supabase
-          .from(type === 'employee' ? 'employee' : 'job_seeker')
-          .select('person_id')
-          .eq('account_id', accountId)
-          .single()).data?.person_id)
-        .single();
+      // Generate new verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Use UTC+8 (Philippine Time) for dates
+      const now = new Date();
+      // Add 8 hours to get UTC+8
+      const nowPHT = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const expiresAtPHT = new Date(nowPHT.getTime() + 2 * 60 * 1000); // 2 minutes
 
-      email = account.account_email;
-      name = person?.first_name || 'User';
-      targetAccountId = accountId;
+      console.log('Time debug for resend verification:', {
+        currentTime: now.toISOString(),
+        currentTimePHT: nowPHT.toISOString(),
+        expiresAtPHT: expiresAtPHT.toISOString(),
+        accountId: account.account_id,
+        code: verificationCode
+      });
+
+      // Delete any existing verification codes
+      await supabase.from('verification_codes').delete().eq('account_id', account.account_id);
+
+      // Insert new verification code
+      const { error: codeError } = await supabase.from('verification_codes').insert({
+        account_id: account.account_id,
+        code: verificationCode,
+        expires_at: expiresAtPHT.toISOString(),
+      });
+
+      if (codeError) {
+        console.error('Error storing verification code:', codeError);
+        return NextResponse.json(
+          { message: 'Error generating verification code. Please try again.' },
+          { status: 500 }
+        );
+      }
+
+      // Send verification email to company email
+      try {
+        await sendVerificationEmail({
+          email: employeeData.company.company_email,
+          code: verificationCode,
+          type: 'employee_registration',
+          name: employeeData.person.first_name,
+          lastName: employeeData.person.last_name,
+          position: employeeData.position_name,
+          companyName: employeeData.company.company_name,
+          employeeEmail: account.account_email
+        });
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+      }
+
+      // Send notification to employee email
+      try {
+        await sendVerificationEmail({
+          email: account.account_email,
+          type: 'employee_registration_notification',
+          name: employeeData.person.first_name,
+          companyName: employeeData.company.company_name
+        });
+      } catch (emailError) {
+        console.error('Error sending employee notification email:', emailError);
+      }
+
+      return NextResponse.json({
+        message: 'Verification code resent to company email',
+        success: true
+      });
     }
 
-    // Delete existing verification codes for this account
-    await supabase
-      .from('verification_codes')
-      .delete()
-      .eq('account_id', targetAccountId);
-
-    // Generate new verification code
+    // For non-employee accounts, proceed with normal verification
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + (type === 'company' ? 30 : 10) * 60 * 1000); // 30 min for company, 10 min for others
+    
+    // Use UTC+8 (Philippine Time) for dates
+    const now = new Date();
+    // Add 8 hours to get UTC+8
+    const nowPHT = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const expiresAtPHT = new Date(nowPHT.getTime() + 2 * 60 * 1000); // 2 minutes
 
-    // Store new verification code
-    const { error: codeError } = await supabase
-      .from('verification_codes')
-      .insert({
-        account_id: targetAccountId,
-        code: verificationCode,
-        expires_at: expiresAt.toISOString()
-      });
+    console.log('Time debug for resend verification:', {
+      currentTime: now.toISOString(),
+      currentTimePHT: nowPHT.toISOString(),
+      expiresAtPHT: expiresAtPHT.toISOString(),
+      accountId: account.account_id,
+      code: verificationCode
+    });
+
+    // Delete any existing verification codes
+    await supabase.from('verification_codes').delete().eq('account_id', account.account_id);
+
+    // Insert new verification code
+    const { error: codeError } = await supabase.from('verification_codes').insert({
+      account_id: account.account_id,
+      code: verificationCode,
+      expires_at: expiresAtPHT.toISOString(),
+    });
 
     if (codeError) {
       console.error('Error storing verification code:', codeError);
       return NextResponse.json(
-        { message: 'Failed to generate verification code' },
+        { message: 'Error generating verification code. Please try again.' },
         { status: 500 }
       );
     }
 
-    // Send verification email using direct service
+    // Send verification email
     try {
       await sendVerificationEmail({
-        email: email,
+        email: account.account_email,
         code: verificationCode,
-        type: type === 'company' ? 'company_registration' : 'registration',
-        name: name,
-        companyName: type === 'company' ? name : undefined
+        type: 'registration'
       });
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
-      // Don't fail the request if email fails
     }
 
     return NextResponse.json({
-      message: 'Verification code sent successfully',
+      message: 'Verification code resent successfully',
       success: true
     });
 

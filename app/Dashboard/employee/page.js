@@ -27,8 +27,21 @@ export default function EmployeeDashboard() {
       router.push('/Login');
       return;
     }
-    
-    fetchDashboardData(accountId);
+
+    // Check account verification status
+    fetch(`/api/employee/profile?accountId=${accountId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data.account && data.data.account.account_is_verified === false) {
+          router.push('/Login/Verification/Registration');
+        } else {
+          fetchDashboardData(accountId);
+        }
+      })
+      .catch(() => {
+        // fallback: still load dashboard, but could show error
+        fetchDashboardData(accountId);
+      });
   }, [router]);
 
   const fetchDashboardData = async (accountId) => {

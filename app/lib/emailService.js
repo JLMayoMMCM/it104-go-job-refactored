@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 
+const imageUrl = 'https://your-domain.com/Assets/Title.png'; // Update with your actual domain
+
 export async function sendVerificationEmail({ email, code, type, name, lastName, position, companyName, employeeEmail }) {
   try {
     if (!email || !code || !type) {
@@ -8,9 +10,9 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
 
     // Create transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.GOOGLE_SMTP_HOST || 'smtp.gmail.com',
-      port: process.env.GOOGLE_SMTP_PORT || 587,
-      secure: process.env.SMTP_SECURE === 'true',
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: process.env.SMTP_PORT || 587,
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -18,8 +20,6 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
     });
 
     let subject, htmlContent;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const imageUrl = `${appUrl}/Assets/Title.png`;
 
     switch (type) {
       case 'registration':
@@ -37,27 +37,21 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
               <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
             </div>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to GoJob!</h1>
+              <h1 style="color: white; margin: 0; font-size: 28px;">Verify Your Email</h1>
             </div>
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333; margin-top: 0;">Hi ${name || 'there'}!</h2>
-              
               <p style="font-size: 16px; margin-bottom: 25px;">
-                Thank you for registering with GoJob. To complete your account setup, please verify your email address using the code below:
+                Thank you for registering with GoJob! To complete your registration, please use the verification code below:
               </p>
               
-              <div style="background: white; border: 2px dashed #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
-                <span style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 3px;">${code}</span>
+              <div style="background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0;">
+                <h2 style="color: #667eea; margin: 0; letter-spacing: 5px; font-size: 32px;">${code}</h2>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
-                This code will expire in 10 minutes. If you didn't create an account with GoJob, please ignore this email.
+              <p style="color: #666; font-size: 14px;">
+                This code will expire in 10 minutes. If you did not request this verification, please ignore this email.
               </p>
-              
-              <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2024 GoJob. All rights reserved.</p>
-              </div>
             </div>
           </body>
           </html>
@@ -65,7 +59,7 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
         break;
 
       case 'login':
-        subject = 'GoJob - Login Verification Code';
+        subject = 'GoJob - Login Verification Required';
         htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -83,23 +77,17 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
             </div>
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333; margin-top: 0;">Secure Login Request</h2>
-              
               <p style="font-size: 16px; margin-bottom: 25px;">
-                Someone is trying to log into your GoJob account. If this was you, please use the verification code below:
+                To complete your login, please use the verification code below:
               </p>
               
-              <div style="background: white; border: 2px dashed #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
-                <span style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 3px;">${code}</span>
+              <div style="background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0;">
+                <h2 style="color: #667eea; margin: 0; letter-spacing: 5px; font-size: 32px;">${code}</h2>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
-                This code will expire in 5 minutes. If you didn't attempt to log in, please secure your account immediately.
+              <p style="color: #666; font-size: 14px;">
+                This code will expire in 5 minutes. If you did not attempt to log in, please secure your account immediately.
               </p>
-              
-              <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2024 GoJob. All rights reserved.</p>
-              </div>
             </div>
           </body>
           </html>
@@ -128,7 +116,7 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
               <h2 style="color: #333; margin-top: 0;">New Employee Registration</h2>
               
               <p style="font-size: 16px; margin-bottom: 25px;">
-                An employee has requested to join your company on GoJob:
+                An employee has requested to join your company on GoJob. Please verify their registration using the code below:
               </p>
               
               <div style="background: white; border-left: 4px solid #48bb78; padding: 20px; margin: 20px 0;">
@@ -138,21 +126,13 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
                 <p><strong>Company:</strong> ${companyName}</p>
               </div>
               
-              <p style="font-size: 16px; margin-bottom: 25px;">
-                To approve this registration, please use the verification code below:
-              </p>
-              
-              <div style="background: white; border: 2px dashed #48bb78; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
-                <span style="font-size: 32px; font-weight: bold; color: #48bb78; letter-spacing: 3px;">${code}</span>
+              <div style="background: white; border: 2px dashed #48bb78; padding: 20px; text-align: center; margin: 20px 0;">
+                <h2 style="color: #48bb78; margin: 0; letter-spacing: 5px; font-size: 32px;">${code}</h2>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
-                This code will expire in 10 minutes. If you don't recognize this person, please ignore this email.
+              <p style="color: #666; font-size: 14px;">
+                This code will expire in 10 minutes. If you did not expect this registration, please ignore this email.
               </p>
-              
-              <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2024 GoJob. All rights reserved.</p>
-              </div>
             </div>
           </body>
           </html>
@@ -181,26 +161,91 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
               <h2 style="color: #333; margin-top: 0;">Hi ${name}!</h2>
               
               <p style="font-size: 16px; margin-bottom: 25px;">
-                Thank you for registering as an employee with ${companyName} on GoJob.
+                Thank you for registering as an employee with ${companyName}. Your registration is pending approval from your company's HR department.
               </p>
               
-              <p style="font-size: 16px; margin-bottom: 25px;">
-                Your registration is currently pending approval from your company. We've sent a verification request to your company's email address.
+              <p style="font-size: 16px;">
+                We've sent a verification request to your company's HR email. Once they verify your registration, you'll receive a confirmation email.
               </p>
               
-              <div style="background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0;">
-                <p><strong>What happens next?</strong></p>
-                <p>1. Your company will receive a verification code</p>
-                <p>2. Once approved, your account will be activated</p>
-                <p>3. You'll receive an email confirmation</p>
+              <p style="color: #666; font-size: 14px; margin-top: 25px;">
+                Please contact your HR department if you don't receive a confirmation within 24 hours.
+              </p>
+            </div>
+          </body>
+          </html>
+        `;
+        break;
+
+      case 'employee_verification_confirmed':
+        subject = `GoJob - Employee Registration Confirmed: ${name} ${lastName}`;
+        htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Employee Registration Confirmed</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
+            <div style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">Employee Registration Confirmed</h1>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Employee Registration Successful</h2>
+              
+              <div style="background: white; border-left: 4px solid #48bb78; padding: 20px; margin: 20px 0;">
+                <p><strong>Employee:</strong> ${name} ${lastName}</p>
+                <p><strong>Position:</strong> ${position}</p>
+                <p><strong>Company:</strong> ${companyName}</p>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
-                If you have any questions, please contact your HR department or reach out to our support team.
+              <p style="font-size: 16px;">
+                The employee's account has been successfully verified and activated. They can now access the GoJob platform.
+              </p>
+            </div>
+          </body>
+          </html>
+        `;
+        break;
+
+      case 'employee_verification_complete':
+        subject = 'GoJob - Your Account is Now Active';
+        htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Account Activated</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
+            <div style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to GoJob!</h1>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Hi ${name}!</h2>
+              
+              <p style="font-size: 16px; margin-bottom: 25px;">
+                Great news! Your employee account with ${companyName} has been verified and activated.
               </p>
               
-              <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2024 GoJob. All rights reserved.</p>
+              <p style="font-size: 16px;">
+                You can now log in to your account and start using the GoJob platform to manage job postings and applications.
+              </p>
+              
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="https://your-domain.com/Login" style="background: #48bb78; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                  Log In Now
+                </a>
               </div>
             </div>
           </body>
@@ -208,53 +253,82 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
         `;
         break;
 
-      case 'company_registration':
-        subject = 'GoJob - Company Registration Verification';
+      case 'jobseeker_verification_complete':
+        subject = 'GoJob - Account Verification Complete';
         htmlContent = `
           <!DOCTYPE html>
           <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Company Registration</title>
+            <title>Account Verification Complete</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; padding-bottom: 20px;">
               <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
             </div>
-            <div style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <div style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to GoJob!</h1>
             </div>
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333; margin-top: 0;">Company Registration Verification</h2>
+              <h2 style="color: #333; margin-top: 0;">Hi ${name}!</h2>
               
               <p style="font-size: 16px; margin-bottom: 25px;">
-                Thank you for registering ${companyName} with GoJob. To complete your company registration, please verify your email address using the code below:
+                Your account has been successfully verified. You can now start using all features of GoJob:
               </p>
               
-              <div style="background: white; border: 2px dashed #9f7aea; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
-                <span style="font-size: 32px; font-weight: bold; color: #9f7aea; letter-spacing: 3px;">${code}</span>
-              </div>
+              <ul style="font-size: 16px; margin-bottom: 25px;">
+                <li>Search and apply for jobs</li>
+                <li>Create and manage your professional profile</li>
+                <li>Track your job applications</li>
+                <li>Connect with potential employers</li>
+              </ul>
               
+              <p style="font-size: 16px;">
+                Get started by completing your profile and exploring job opportunities that match your skills and interests.
+              </p>
+              
+              <p style="color: #666; font-size: 14px; margin-top: 25px;">
+                If you have any questions or need assistance, please don't hesitate to contact our support team.
+              </p>
+            </div>
+          </body>
+          </html>
+        `;
+        break;
+
+      case 'company_registration':
+        subject = 'GoJob - Verify Your Company Registration';
+        htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Company Registration Verification</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
+            <div style="background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">Verify Your Company</h1>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Welcome, ${name}!</h2>
               <p style="font-size: 16px; margin-bottom: 25px;">
-                Once verified, you'll be able to:
+                Thank you for registering your company with GoJob. To activate your company profile and start posting jobs, please use the verification code below:
               </p>
               
-              <div style="background: white; border-left: 4px solid #9f7aea; padding: 20px; margin: 20px 0;">
-                <p>✓ Post job openings</p>
-                <p>✓ Manage employee registrations</p>
-                <p>✓ Access candidate applications</p>
-                <p>✓ Build your company profile</p>
+              <div style="background: white; border: 2px dashed #f6ad55; padding: 20px; text-align: center; margin: 20px 0;">
+                <h2 style="color: #f6ad55; margin: 0; letter-spacing: 5px; font-size: 32px;">${code}</h2>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
-                This code will expire in 30 minutes. If you didn't register a company with GoJob, please ignore this email.
+              <p style="color: #666; font-size: 14px;">
+                This code will expire in 30 minutes. If you did not request this registration, please ignore this email.
               </p>
-              
-              <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>© 2024 GoJob. All rights reserved.</p>
-              </div>
             </div>
           </body>
           </html>
@@ -265,19 +339,18 @@ export async function sendVerificationEmail({ email, code, type, name, lastName,
         throw new Error('Invalid email type');
     }
 
-    const mailOptions = {
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    // Send email
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || '"GoJob" <noreply@gojob.com>',
       to: email,
-      subject: subject,
+      subject,
       html: htmlContent,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    return { success: true, message: 'Verification email sent successfully' };
-
+    console.log('Email sent:', info.messageId);
+    return true;
   } catch (error) {
-    console.error('Email sending error:', error);
-    throw new Error(`Failed to send verification email: ${error.message}`);
+    console.error('Error sending email:', error);
+    throw error;
   }
 }

@@ -386,6 +386,54 @@ body {
   box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.1);
 }
 
+/* Input Groups */
+.form-input-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem; /* 8px -> 0.5rem */
+  background-color: var(--input-background);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+
+.form-input-group:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(121, 194, 208, 0.2);
+}
+
+[data-theme="jobseeker"] .form-input-group:focus-within {
+  box-shadow: 0 0 0 3px rgba(121, 194, 208, 0.2);
+}
+
+[data-theme="employee"] .form-input-group:focus-within {
+  box-shadow: 0 0 0 3px rgba(143, 211, 163, 0.2);
+}
+
+.form-input-group-text {
+  padding: 0.5rem 0.75rem; /* 8px 12px -> 0.5rem 0.75rem */
+  background-color: transparent;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.form-input-grouped {
+  border: none;
+  border-radius: 0;
+  flex-grow: 1;
+  width: 100%;
+  background-color: transparent;
+  padding: 0.5em;
+  font-size: 1em;
+}
+
+.form-input-grouped:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Cards */
 .card {
   background: var(--card-background);
@@ -627,4 +675,8 @@ body {
   .text-subheading {
     font-size: 1rem;
   }
+}
+
+.input-error-group {
+  border-color: var(--error-color) !important;
 }

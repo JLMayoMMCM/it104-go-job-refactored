@@ -35,6 +35,22 @@ export default function EditProfilePage() {
     fetchData();
   }, []);
 
+  const formatPHNumberForDisplay = (number) => {
+    if (!number) return '';
+    const digits = number.replace(/\D/g, '');
+    if (digits.length > 6) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+    } else if (digits.length > 3) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)}`;
+    } else {
+      return digits;
+    }
+  };
+
+  const cleanPHNumberForStorage = (number) => {
+    return number.replace(/\D/g, '');
+  };
+
   const fetchData = async () => {
     try {
       // Fetch profile data
@@ -53,7 +69,7 @@ export default function EditProfilePage() {
           date_of_birth: profileData.data.person?.date_of_birth || '',
           gender_id: profileData.data.person?.gender?.gender_id || '',
           nationality_id: profileData.data.person?.nationality?.nationality_id || '',
-          phone: profileData.data.account?.account_phone || '',
+          phone: profileData.data.account?.account_phone ? formatPHNumberForDisplay(profileData.data.account.account_phone) : '',
           position_name: profileData.data.position_name || '',
           premise_name: profileData.data.person?.address?.premise_name || '',
           street_name: profileData.data.person?.address?.street_name || '',
@@ -87,7 +103,14 @@ export default function EditProfilePage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone') {
+      const cleaned = cleanPHNumberForStorage(value);
+      if (cleaned.length <= 10) {
+        setFormData(prev => ({ ...prev, phone: formatPHNumberForDisplay(cleaned) }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -157,8 +180,8 @@ export default function EditProfilePage() {
     if (!formData.first_name) newErrors.first_name = 'First name is required';
     if (!formData.last_name) newErrors.last_name = 'Last name is required';
 
-    if (formData.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(formData.phone)) {
-        newErrors.phone = 'Invalid phone number format';
+    if (formData.phone && cleanPHNumberForStorage(formData.phone).length !== 10) {
+      newErrors.phone = 'Phone number must be 10 digits';
     }
 
     if (formData.password && formData.password.length > 0 && formData.password.length < 8) {
@@ -177,6 +200,8 @@ export default function EditProfilePage() {
     setSubmitting(true);
     setError(''); // Clear general error
 
+    const cleanedPhone = cleanPHNumberForStorage(formData.phone);
+
     try {
       const accountId = localStorage.getItem('accountId') || '1';
       
@@ -194,7 +219,7 @@ export default function EditProfilePage() {
           date_of_birth: formData.date_of_birth,
           gender_id: formData.gender_id,
           nationality_id: formData.nationality_id,
-          phone: formData.phone,
+          phone: cleanedPhone,
           position_name: formData.position_name,
           premise_name: formData.premise_name,
           street_name: formData.street_name,
@@ -451,18 +476,21 @@ export default function EditProfilePage() {
               <div className="border-t border-[var(--border-color)] pt-3 sm:pt-4">
                 <h4 className="text-lg font-medium text-[var(--foreground)] mb-2">Contact Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-                  <div>
-                    <label htmlFor="phone" className="form-label">Phone Number (Optional)</label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="form-input"
-                      placeholder="e.g., +63 912 345 6789"
-                    />
-                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                  <div className="form-field">
+                    <label htmlFor="phone" className="form-label">Phone Number</label>
+                    <div className={`form-input-group ${errors.phone ? 'input-error-group' : ''}`}>
+                      <span className="form-input-group-text">+63</span>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 912 345 6789"
+                        className="form-input-grouped"
+                      />
+                    </div>
+                    {errors.phone && <p className="error-message mt-2">{errors.phone}</p>}
                   </div>
                 </div>
               </div>

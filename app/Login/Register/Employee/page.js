@@ -10,6 +10,7 @@ export default function EmployeeRegistrationPage() {
   const [errors, setErrors] = useState({});
   const [darkMode, setDarkMode] = useState(false);
   const [nationalities, setNationalities] = useState([]);
+  const [genders, setGenders] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [companyVerification, setCompanyVerification] = useState(null);
@@ -48,30 +49,76 @@ export default function EmployeeRegistrationPage() {
 
   // Load nationalities on component mount
   useEffect(() => {
-    const loadNationalities = async () => {
+    const loadDropdownData = async () => {
       try {
-        const response = await fetch('/api/data/nationalities');
-        if (response.ok) {
-          const data = await response.json();
+        const [gendersRes, nationalitiesRes] = await Promise.all([
+          fetch('/api/data/genders'),
+          fetch('/api/data/nationalities')
+        ]);
+
+        if (gendersRes.ok) {
+          const gendersData = await gendersRes.json();
+          if (gendersData.success) {
+            setGenders(gendersData.data);
+          } else {
+            console.error('Genders API error:', gendersData.message);
+          }
+        } else {
+          console.error('Failed to fetch genders:', gendersRes.status);
+        }
+
+        if (nationalitiesRes.ok) {
+          const data = await nationalitiesRes.json();
           if (data.success) {
             setNationalities(data.data);
           } else {
             console.error('Nationalities API error:', data.message);
           }
         } else {
-          console.error('Failed to fetch nationalities:', response.status);
+          console.error('Failed to fetch nationalities:', nationalitiesRes.status);
         }
       } catch (error) {
-        console.error('Failed to load nationalities:', error);
+        console.error('Failed to load dropdown data:', error);
       }
     };
 
-    loadNationalities();
+    loadDropdownData();
   }, []);
+
+  // Format phone number for display with spaces
+  function formatPHNumberForDisplay(number) {
+    if (!number) return '';
+    const digits = number.replace(/\D/g, '');
+    if (digits.length === 10) return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6,10)}`;
+    if (digits.length === 8) return `${digits.slice(0,4)} ${digits.slice(4,8)}`;
+    if (digits.length === 7) return `${digits.slice(0,3)} ${digits.slice(3,7)}`;
+    return digits;
+  }
+  // Clean phone number for storage (remove spaces, prefix)
+  function cleanPHNumberForStorage(number) {
+    return number.replace(/\D/g, '');
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'phone') {
+      // Only allow digits, format with spaces
+      let digits = value.replace(/\D/g, '');
+      // Limit to 10 digits (PH mobile max)
+      if (digits.length > 10) digits = digits.slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        phone: digits
+      }));
+      if (errors.phone) {
+        setErrors(prev => ({ ...prev, phone: null }));
+      }
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -157,10 +204,12 @@ export default function EmployeeRegistrationPage() {
     setIsLoading(true);
     setErrors({});
     try {
+      // Clean phone number before submit
+      const cleanedPhone = cleanPHNumberForStorage(formData.phone);
       const response = await fetch('/api/auth/register/employee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, companyEmail: companyVerification.company_email }),
+        body: JSON.stringify({ ...formData, phone: cleanedPhone, companyEmail: companyVerification.company_email }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -214,11 +263,11 @@ export default function EmployeeRegistrationPage() {
         <div className="bg-[var(--card-background)] rounded-xl shadow-lg p-8 border border-[var(--border-color)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
-            {Object.keys(errors).length > 0 && (
+            {Object.values(errors).some(error => error && error.length > 0) && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 rounded-md p-4">
-                {Object.entries(errors).map(([field, error]) => (
-                  <p key={field}>{error}</p>
-                ))}
+                {Object.entries(errors).map(([field, error]) =>
+                  error && error.length > 0 ? <p key={field}>{error}</p> : null
+                )}
               </div>
             )}
 
@@ -230,21 +279,16 @@ export default function EmployeeRegistrationPage() {
                   <label htmlFor="companyId" className="block text-sm font-medium text-[var(--text-dark)]">
                     Company ID *
                   </label>
-                  <select
-                    id="companyId"
-                    name="companyId"
-                    required
-                    value={formData.companyId}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 [&>option]:bg-[var(--input-background)] [&>option]:text-[var(--foreground)] dark:[&>option]:bg-[var(--input-background)] dark:[&>option]:text-[var(--foreground)] [&>option:hover]:bg-[var(--primary-color)] [&>option:hover]:text-white ${errors.companyId ? 'border-red-500' : ''}`}
-                  >
-                    <option value="">Select Company</option>
-                    {nationalities.map((nationality) => (
-                      <option key={nationality.nationality_id} value={nationality.nationality_id}>
-                        {nationality.nationality_name}
-                      </option>
-                    ))}
-                  </select>
+<input
+  type="text"
+  id="companyId"
+  name="companyId"
+  required
+  value={formData.companyId}
+  onChange={handleInputChange}
+  className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.companyId ? 'border-red-500' : ''}`}
+  placeholder="Enter Company ID"
+/>
                   {errors.companyId && <p className="mt-1 text-xs text-red-500">{errors.companyId}</p>}
                 </div>
                 <button
@@ -345,10 +389,11 @@ export default function EmployeeRegistrationPage() {
                     className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.gender ? 'border-red-500' : ''}`}
                   >
                     <option value="">Select Gender</option>
-                    <option value="1">Male</option>
-                    <option value="2">Female</option>
-                    <option value="3">Other</option>
-                    <option value="4">Prefer not to say</option>
+                    {genders.map(gender => (
+                      <option key={gender.gender_id} value={gender.gender_id}>
+                        {gender.gender_name}
+                      </option>
+                    ))}
                   </select>
                   {errors.gender && <p className="mt-1 text-xs text-red-500">{errors.gender}</p>}
                 </div>
@@ -418,16 +463,20 @@ export default function EmployeeRegistrationPage() {
                   <label htmlFor="phone" className="block text-sm font-medium text-[var(--text-dark)]">
                     Phone Number *
                   </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    required
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full rounded-md border-[var(--border-color)] bg-[var(--input-background)] text-[var(--foreground)] shadow-sm focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] transition-colors duration-200 ${errors.phone ? 'border-red-500' : ''}`}
-                    placeholder="+63 9XX XXX XXXX"
-                  />
+                  <div className="flex items-center">
+                    <span className="mr-2 select-none text-base font-medium">+63</span>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      required
+                      value={formatPHNumberForDisplay(formData.phone)}
+                      onChange={handleInputChange}
+                      className={`form-input flex-1 ${errors.phone ? 'border-red-500' : ''}`}
+                      maxLength={13}
+                      placeholder="912 345 6789"
+                    />
+                  </div>
                   {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
                 </div>
 

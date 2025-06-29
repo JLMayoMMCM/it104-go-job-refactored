@@ -109,6 +109,22 @@ export default function EditProfile() {
     });
   }, []);
 
+  const formatPHNumberForDisplay = (number) => {
+    if (!number) return '';
+    const digits = number.replace(/\D/g, '');
+    if (digits.length > 6) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+    } else if (digits.length > 3) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)}`;
+    } else {
+      return digits;
+    }
+  };
+
+  const cleanPHNumberForStorage = (number) => {
+    return number.replace(/\D/g, '');
+  };
+
   const fetchProfileData = async (accountId) => {
     try {
       setGeneralError(null);
@@ -142,7 +158,7 @@ export default function EditProfile() {
           firstName: data.data.person.first_name,
           lastName: data.data.person.last_name,
           email: data.data.person.email,
-          phone: data.data.person.phone,
+          phone: data.data.person.phone ? formatPHNumberForDisplay(data.data.person.phone) : '',
           premise: premise,
           street: street,
           barangay: barangay,
@@ -238,8 +254,8 @@ export default function EditProfile() {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (profile.phone && !/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/.test(profile.phone)) {
-        newErrors.phone = 'Invalid phone number format';
+    if (profile.phone && cleanPHNumberForStorage(profile.phone).length !== 10) {
+      newErrors.phone = 'Phone number must be 10 digits';
     }
     
     if (selectedCategories.length === 0) {
@@ -250,11 +266,49 @@ export default function EditProfile() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Nationality to country code mapping (add more as needed)
+  const nationalityPhonePrefixes = {
+    'Philippines': '+63',
+    'United States': '+1',
+    'India': '+91',
+    'Singapore': '+65',
+    'Malaysia': '+60',
+    'Indonesia': '+62',
+    'Vietnam': '+84',
+    'Thailand': '+66',
+    'China': '+86',
+    'Japan': '+81'
+    // Add more as needed
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
+    if (name === 'nationality') {
+      // Find selected nationality name
+      const selectedNationality = nationalities.find(n => n.nationality_name === value);
+      const prefix = selectedNationality ? nationalityPhonePrefixes[selectedNationality.nationality_name] : '';
+      setProfile(prev => {
+        let newPhone = prev.phone;
+        if (prefix) {
+          Object.values(nationalityPhonePrefixes).forEach(p => {
+            if (newPhone.startsWith(p)) {
+              newPhone = newPhone.replace(p, '');
+            }
+          });
+          newPhone = prefix + (newPhone.startsWith('0') ? newPhone.slice(1) : newPhone);
+        }
+        return { ...prev, [name]: value, phone: prefix ? newPhone : prev.phone };
+      });
+    } else if (name === 'phone') {
+      const cleaned = cleanPHNumberForStorage(value);
+      if (cleaned.length <= 10) {
+        setProfile(prev => ({ ...prev, phone: formatPHNumberForDisplay(cleaned) }));
+      }
+    } else {
+      setProfile(prev => ({ ...prev, [name]: value }));
+    }
     if (fieldErrors[name]) {
-      setFieldErrors(prev => ({ ...prev, [name]: null }));
+      setFieldErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
@@ -563,6 +617,7 @@ export default function EditProfile() {
       }
       
       // Save profile data
+      const cleanedPhone = cleanPHNumberForStorage(profile.phone);
       const profileResponse = await fetch('/api/jobseeker/profile', {
         method: 'PUT',
         headers: {
@@ -574,7 +629,7 @@ export default function EditProfile() {
           firstName: profile.firstName,
           lastName: profile.lastName,
           email: profile.email,
-          phone: profile.phone,
+          phone: cleanedPhone,
           premise: profile.premise,
           street: profile.street,
           barangay: profile.barangay,
@@ -842,23 +897,20 @@ export default function EditProfile() {
               )}
             </div>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-[var(--foreground)] mb-1">Phone Number</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={profile.phone}
-                onChange={handleInputChange}
-                className={`form-input ${fieldErrors.phone ? 'border-[var(--error-color)]' : ''}`}
-              />
-              {fieldErrors.phone && (
-                <div className="mt-1 text-xs text-[var(--error-color)] flex items-center">
-                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  {fieldErrors.phone}
-                </div>
-              )}
+              <label htmlFor="phone" className="block text-sm font-medium text-[var(--foreground)] mb-1">Phone</label>
+              <div className={`form-input-group ${fieldErrors.phone ? 'input-error-group' : ''}`}>
+                <span className="form-input-group-text">+63</span>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={profile.phone || ''}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 912 345 6789"
+                  className="form-input-grouped"
+                />
+              </div>
+              {fieldErrors.phone && <p className="mt-1 text-xs text-[var(--error-color)]">{fieldErrors.phone}</p>}
             </div>
             <div>
               <label htmlFor="premise" className="block text-sm font-medium text-[var(--foreground)] mb-1">Premise/Building</label>
@@ -972,7 +1024,7 @@ export default function EditProfile() {
               >
                 <option value="">Select Gender</option>
                 {genders.map(gender => (
-                  <option key={gender.gender_id} value={gender.gender_name}>
+                  <option key={gender.gender_id} value={gender.gender_id}>
                     {gender.gender_name}
                   </option>
                 ))}

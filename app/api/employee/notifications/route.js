@@ -21,28 +21,31 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Get company notifications
-    const { data: notifications, error: notifError } = await supabase
+    // Get company notifications using the correct schema
+    const { data: companyNotifications, error: notifError } = await supabase
       .from('company_notifications')
       .select(`
         company_notification_id,
-        notification_text,
-        notification_date,
-        sender_account: sender_account_id (
-          account_username
+        notification:notifications (
+          notification_id,
+          notification_text,
+          notification_date,
+          sender:sender_account_id (
+            account_username
+          )
         )
       `)
       .eq('company_id', employee.company_id)
-      .order('notification_date', { ascending: false });
+      .order('notification_date', { foreignTable: 'notifications', ascending: false });
 
     if (notifError) {
       console.error('Notifications fetch error:', notifError);
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch notifications', details: notifError }, { status: 500 });
     }
 
     // Get read status for this employee
     let { data: readStatus, error: readError } = await supabase
-      .from('employee_company_notification_read')
+      .from('employee_notifications')
       .select('company_notification_id, is_read')
       .eq('employee_id', employee.employee_id);
 
@@ -53,32 +56,30 @@ export async function GET(request) {
     }
 
     // Process notifications with read status and sender name
-    const processedNotifications = notifications.map(notification => {
-      const readEntry = readStatus.find(r => r.company_notification_id === notification.company_notification_id);
-      const senderName = notification.sender_account?.account_username || 'System';
+    const processedNotifications = companyNotifications.map(compNotif => {
+      const notification = compNotif.notification;
+      if (!notification) return null; // Handle case where join might fail
+
+      const readEntry = readStatus.find(r => r.company_notification_id === compNotif.company_notification_id);
+      const senderName = notification.sender?.account_username || 'System';
       
-      // Extract notification type from text if needed (this is a simple heuristic)
       let notificationType = 'general';
       const textLower = notification.notification_text?.toLowerCase() || '';
-      if (textLower.includes('job posting') && textLower.includes('added')) {
+      if (textLower.includes('new job posting')) {
         notificationType = 'job_added';
-      } else if (textLower.includes('applied') || textLower.includes('application')) {
+      } else if (textLower.includes('new application')) {
         notificationType = 'job_request';
-      } else if (textLower.includes('job posting') && textLower.includes('updated')) {
-        notificationType = 'job_edited';
-      } else if (textLower.includes('accepted') || textLower.includes('rejected')) {
-        notificationType = 'job_request_response';
       }
       
       return {
-        company_notification_id: notification.company_notification_id,
+        notification_id: compNotif.company_notification_id,
         notification_text: notification.notification_text,
         notification_date: notification.notification_date,
         sender_name: senderName,
         is_read: readEntry ? readEntry.is_read : false,
         notification_type: notificationType
       };
-    });
+    }).filter(Boolean);
 
     return NextResponse.json({
       success: true,
@@ -112,7 +113,7 @@ export async function PUT(request) {
     }
 
     if (markAllAsRead) {
-      // Mark all company notifications as read for this employee
+      // Get all notifications for the company
       const { data: companyNotifications, error: notifError } = await supabase
         .from('company_notifications')
         .select('company_notification_id')
@@ -123,7 +124,7 @@ export async function PUT(request) {
         return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
       }
 
-      // Upsert read status for all notifications
+      // Upsert read status for all notifications for this employee
       const readRecords = companyNotifications.map(notif => ({
         employee_id: employee.employee_id,
         company_notification_id: notif.company_notification_id,
@@ -132,9 +133,9 @@ export async function PUT(request) {
 
       if (readRecords.length > 0) {
         const { error: upsertError } = await supabase
-          .from('employee_company_notification_read')
+          .from('employee_notifications')
           .upsert(readRecords, {
-            onConflict: 'employee_id,company_notification_id'
+            onConflict: 'company_notification_id,employee_id'
           });
 
         if (upsertError) {
@@ -151,13 +152,13 @@ export async function PUT(request) {
     } else if (notificationId) {
       // Mark specific notification as read
       const { error: upsertError } = await supabase
-        .from('employee_company_notification_read')
+        .from('employee_notifications')
         .upsert({
           employee_id: employee.employee_id,
           company_notification_id: notificationId,
           is_read: true
         }, {
-          onConflict: 'employee_id,company_notification_id'
+          onConflict: 'company_notification_id,employee_id'
         });
 
       if (upsertError) {

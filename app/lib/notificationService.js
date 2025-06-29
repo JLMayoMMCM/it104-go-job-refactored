@@ -16,26 +16,83 @@ export const NotificationTypes = {
   APPLICANT_UPDATED: 'applicant_updated'
 };
 
-export async function createNotification(accountId, type, message, relatedId = null) {
-  try {
-    const response = await fetch('/api/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        accountId,
-        type,
-        message,
-        relatedId
-      }),
-    });
+export async function createNotification(accountId, type, message, referenceId = null) {
+  const supabase = createClient();
 
-    if (!response.ok) {
-      throw new Error('Failed to create notification');
+  try {
+    // First, create the base notification
+    const { data: notification, error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        notification_text: message,
+        sender_account_id: accountId
+      })
+      .select()
+      .single();
+
+    if (notificationError) {
+      throw notificationError;
     }
 
-    return await response.json();
+    // Determine if this is for a jobseeker or employee
+    const { data: jobseeker, error: jobseekerError } = await supabase
+      .from('job_seeker')
+      .select('job_seeker_id')
+      .eq('account_id', accountId)
+      .single();
+
+    if (!jobseekerError && jobseeker) {
+      // This is a jobseeker notification
+      const { error: jobseekerNotifError } = await supabase
+        .from('jobseeker_notifications')
+        .insert({
+          notification_id: notification.notification_id,
+          jobseeker_id: jobseeker.job_seeker_id,
+          is_read: false
+        });
+
+      if (jobseekerNotifError) {
+        throw jobseekerNotifError;
+      }
+    } else {
+      // This is an employee notification
+      const { data: employee, error: employeeError } = await supabase
+        .from('employee')
+        .select('employee_id, company_id')
+        .eq('account_id', accountId)
+        .single();
+
+      if (!employeeError && employee) {
+        // Create company notification first
+        const { data: companyNotif, error: companyNotifError } = await supabase
+          .from('company_notifications')
+          .insert({
+            notification_id: notification.notification_id,
+            company_id: employee.company_id
+          })
+          .select()
+          .single();
+
+        if (companyNotifError) {
+          throw companyNotifError;
+        }
+
+        // Then create employee notification
+        const { error: employeeNotifError } = await supabase
+          .from('employee_notifications')
+          .insert({
+            company_notification_id: companyNotif.company_notification_id,
+            employee_id: employee.employee_id,
+            is_read: false
+          });
+
+        if (employeeNotifError) {
+          throw employeeNotifError;
+        }
+      }
+    }
+
+    return { success: true, notification };
   } catch (error) {
     console.error('Error creating notification:', error);
     throw error;

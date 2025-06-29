@@ -91,18 +91,12 @@ function LoginVerificationContent() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store session data
-        if (data.token) {
-          localStorage.setItem('authToken', data.token);
-        }
-        
-        // Store user information for dashboard access
+        // Store session data in localStorage
         localStorage.setItem('accountId', data.user.account_id);
-        localStorage.setItem('accountType', data.user.accountType);
+        localStorage.setItem('accountType', data.user.account_type_id);
         localStorage.setItem('userEmail', data.user.email);
         localStorage.setItem('username', data.user.username);
         
-        // Store additional user data for jobseeker
         if (data.user.person_id) {
           localStorage.setItem('personId', data.user.person_id);
         }
@@ -119,16 +113,12 @@ function LoginVerificationContent() {
           localStorage.setItem('profilePhoto', data.user.profilePhoto);
         }
         
-        // Route based on account type
-        if (data.user.accountType === 1) {
-          // Company/Employee account
-          router.push('/Dashboard/employee');
-        } else if (data.user.accountType === 2) {
-          // Job Seeker account
-          router.push('/Dashboard/jobseeker');
+        // Use the redirectPath from the API response
+        if (data.redirectPath) {
+          router.push(data.redirectPath);
         } else {
-          // Unknown account type, fallback to generic dashboard
-          router.push('/Dashboard');
+          // Fallback for safety, though should not be needed
+          setError('Could not determine redirect path. Please contact support.');
         }
       } else {
         setError(data.message || 'Verification failed');
@@ -188,7 +178,7 @@ function LoginVerificationContent() {
           </div>
           <h2 className="text-3xl font-bold text-[var(--foreground)]">Secure Login</h2>
           <p className="mt-2 text-[var(--text-light)] text-sm">
-            We've sent a verification code to your email for added security. Please enter it below to complete your login.
+            We've sent a verification code to your email for added security. Please enter it within 2 minutes to complete your login.
           </p>
         </div>
 

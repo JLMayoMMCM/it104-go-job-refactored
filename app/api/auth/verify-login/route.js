@@ -43,46 +43,76 @@ export async function POST(request) {
       );
     }
 
-    // Fetch job_seeker data if account type is Job Seeker (type 2)
-    let jobSeeker = null;
-    let person = null;
-    if (account.account_type_id === 2) {
-      const { data: jobSeekerData, error: jobSeekerError } = await supabase
-        .from('job_seeker')
-        .select('job_seeker_id, person_id')
+    // Determine user role by checking for a profile in job_seeker or employee table
+    let userRole;
+    let redirectPath;
+    let tokenPayload;
+    let userResponse;
+
+    // 1. Check if the user is a job seeker
+    const { data: jobSeekerData, error: jobSeekerError } = await supabase
+      .from('job_seeker')
+      .select('*, person:person_id(*)')
+      .eq('account_id', accountId)
+      .maybeSingle(); // Use maybeSingle() to prevent errors if no row is found
+
+    if (jobSeekerError) {
+      console.error('Database error while checking for job seeker profile:', jobSeekerError);
+      return NextResponse.json({ message: 'An error occurred while verifying your profile.' }, { status: 500 });
+    }
+    
+    if (jobSeekerData) {
+      // Found a job seeker profile
+      userRole = 'jobseeker';
+      redirectPath = '/Dashboard/jobseeker';
+      tokenPayload = {
+        account_id: account.account_id,
+        username: account.account_username,
+        email: account.account_email,
+        accountType: 1, // Job Seeker
+        role: userRole,
+        person_id: jobSeekerData.person.person_id,
+        job_seeker_id: jobSeekerData.job_seeker_id
+      };
+      userResponse = { ...account, role: userRole, ...jobSeekerData.person };
+
+    } else {
+      // 2. If not a job seeker, check if they are an employee
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employee')
+        .select('*, person:person_id(*), company:company_id(*)')
         .eq('account_id', accountId)
-        .single();
+        .maybeSingle();
 
-      if (jobSeekerError) {
-        console.error('Error fetching job seeker data:', jobSeekerError);
+      if (employeeError) {
+        console.error('Database error while checking for employee profile:', employeeError);
+        return NextResponse.json({ message: 'An error occurred while verifying your profile.' }, { status: 500 });
+      }
+      
+      if (employeeData) {
+        // Found an employee profile
+        userRole = 'employee';
+        redirectPath = '/Dashboard/employee';
+        tokenPayload = {
+          account_id: account.account_id,
+          username: account.account_username,
+          email: account.account_email,
+          accountType: 2, // Employee
+          role: userRole,
+          person_id: employeeData.person.person_id,
+          employee_id: employeeData.employee_id,
+          company_id: employeeData.company.company_id
+        };
+        userResponse = { ...account, role: userRole, ...employeeData.person, company: employeeData.company };
+
       } else {
-        jobSeeker = jobSeekerData;
-        if (jobSeekerData.person_id) {
-          const { data: personData, error: personError } = await supabase
-            .from('person')
-            .select('person_id, first_name, last_name')
-            .eq('person_id', jobSeekerData.person_id)
-            .single();
-
-          if (personError) {
-            console.error('Error fetching person data:', personError);
-          } else {
-            person = personData;
-          }
-        }
+        // 3. If no profile is found, return an error
+        console.error('No profile (job seeker or employee) found for account ID:', accountId);
+        return NextResponse.json({ message: 'Could not find a user profile associated with this account.' }, { status: 404 });
       }
     }
 
     await supabase.from('verification_codes').delete().eq('id', verificationCode.id);
-
-    const tokenPayload = {
-      account_id: account.account_id,
-      username: account.account_username,
-      email: account.account_email,
-      accountType: account.account_type_id,
-      person_id: person ? person.person_id : null,
-      job_seeker_id: jobSeeker ? jobSeeker.job_seeker_id : null
-    };
 
     const token = generateToken(tokenPayload);
 
@@ -90,17 +120,8 @@ export async function POST(request) {
     const response = NextResponse.json({
       message: 'Login verification successful',
       success: true,
-      user: {
-        account_id: account.account_id,
-        username: account.account_username,
-        email: account.account_email,
-        accountType: account.account_type_id,
-        profilePhoto: account.account_profile_photo || null,
-        person_id: person ? person.person_id : null,
-        firstName: person ? person.first_name : '',
-        lastName: person ? person.last_name : '',
-        job_seeker_id: jobSeeker ? jobSeeker.job_seeker_id : null
-      }
+      user: userResponse,
+      redirectPath: redirectPath
     });
 
     response.cookies.set('session', token, {

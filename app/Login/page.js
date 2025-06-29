@@ -51,13 +51,42 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        if (data.requiresVerification) {
-          // Redirect to verification page
-          router.push(`/Login/Verification/${data.verificationType}?accountId=${data.accountId}`);
+        // After successful login, check account_is_verified
+        let checkProfileUrl = '';
+        let isEmployee = userType === '1';
+        if (isEmployee) {
+          checkProfileUrl = `/api/employee/profile?accountId=${data.accountId}`;
         } else {
-          // Successful login - redirect to dashboard
-          router.push('/Dashboard');
+          checkProfileUrl = `/api/jobseeker/profile?accountId=${data.accountId}`;
         }
+        fetch(checkProfileUrl)
+          .then(res => res.json())
+          .then(profileData => {
+            if (
+              profileData.success &&
+              profileData.data.account &&
+              typeof profileData.data.account.account_is_verified !== 'undefined'
+            ) {
+              if (profileData.data.account.account_is_verified) {
+                // Verified: normal login verification (send login verification email to own account)
+                router.push(`/Login/Verification/Login?accountId=${data.accountId}`);
+              } else {
+                // Not verified: registration verification
+                if (isEmployee) {
+                  // Employee: verification sent to company email
+                  router.push(`/Login/Verification/Registration?accountId=${data.accountId}&type=employee`);
+                } else {
+                  // Jobseeker: verification sent to own email
+                  router.push(`/Login/Verification/Registration?accountId=${data.accountId}`);
+                }
+              }
+            } else {
+              setError('Unable to verify account status. Please try again or contact support.');
+            }
+          })
+          .catch(() => {
+            setError('Unable to verify account status. Please try again or contact support.');
+          });
       } else {
         setError(data.message || 'Login failed');
       }

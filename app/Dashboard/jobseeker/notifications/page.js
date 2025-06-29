@@ -30,7 +30,7 @@ export default function NotificationsPage() {
       }
 
       if (data.success) {
-        setNotifications(data.data.notifications);
+        setNotifications(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

@@ -79,16 +79,23 @@ function VerificationContent() {
     setError('');
 
     try {
+      // For company verification, the initial accountId might be tied to the companyId from the URL
+      const targetAccountId = accountId || searchParams.get('accountId');
+
+      console.log('Sending verification request:', {
+        code: verificationCode,
+        accountId: targetAccountId,
+        type: type
+      });
+
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          code: verificationCode,
-          accountId: accountId,
-          companyId: companyId,
-          type: type
+          code: verificationCode.toString(), // Ensure code is a string
+          accountId: parseInt(targetAccountId, 10), // Ensure accountId is a number
         }),
       });
 
@@ -99,9 +106,11 @@ function VerificationContent() {
         const successUrl = type === 'company' ? '/Login?verified=company' : '/Login?verified=success';
         router.push(successUrl);
       } else {
-        setError(data.message || 'Verification failed');
+        console.error('Verification failed:', data);
+        setError(data.message || 'Verification failed. Please check the code and try again.');
       }
     } catch (error) {
+      console.error('Verification error:', error);
       setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -115,15 +124,15 @@ function VerificationContent() {
     setError('');
 
     try {
+      const targetAccountId = accountId || searchParams.get('accountId');
+      
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          accountId: accountId,
-          companyId: companyId,
-          type: type
+          accountId: targetAccountId,
         }),
       });
 
@@ -144,13 +153,13 @@ function VerificationContent() {
   const getVerificationMessage = () => {
     switch (type) {
       case 'jobseeker':
-        return 'We\'ve sent a 6-digit verification code to your email address. Please enter it below to activate your jobseeker account.';
+        return 'We\'ve sent a 6-digit verification code to your email address. Please enter it within 2 minutes to activate your jobseeker account.';
       case 'employee':
-        return 'We\'ve sent a verification code to your company\'s email address. Please ask your HR department to provide you with the code.';
+        return 'We\'ve sent a verification code to your company\'s email address. Please ask your HR department to provide you with the code within 2 minutes.';
       case 'company':
-        return 'We\'ve sent a 6-digit verification code to your company email address. Please enter it below to complete your company registration.';
+        return 'We\'ve sent a 6-digit verification code to your company email address. Please enter it within 2 minutes to complete your company registration.';
       default:
-        return 'Please enter the verification code sent to your email address.';
+        return 'Please enter the verification code sent to your email address. The code expires in 2 minutes.';
     }
   };
 
