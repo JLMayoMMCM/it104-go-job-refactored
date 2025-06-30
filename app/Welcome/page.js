@@ -3,15 +3,13 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function WelcomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Set theme to 'logo' for this page, which is a teal-based theme
-    document.documentElement.setAttribute('data-theme', 'logo');
-    
-    // Set dark/light mode from localStorage or system preference
+    document.documentElement.setAttribute('data-theme', 'jobseeker');
     const savedMode = localStorage.getItem('colorMode');
     if (savedMode) {
       document.documentElement.setAttribute('data-mode', savedMode);
@@ -21,25 +19,20 @@ export default function WelcomePage() {
     }
   }, []);
 
-  const handleLoginRedirect = () => {
-    router.push('/Login');
-  };
-
-  const Card = ({ icon, title, description }) => (
-    <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg border border-[var(--border-color)] flex flex-col items-center text-center transform hover:-translate-y-2 transition-transform duration-300">
-      <div className="text-[var(--primary-color)] mb-4">{icon}</div>
+  const InfoCard = ({ title, description }) => (
+    <div className="card h-full flex flex-col items-center text-center p-6 transform hover:-translate-y-2 transition-transform duration-300">
       <h3 className="text-xl font-bold text-[var(--foreground)] mb-2">{title}</h3>
-      <p className="text-[var(--text-light)] text-sm">{description}</p>
+      <p className="text-[var(--text-light)] text-sm flex-grow">{description}</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center p-4 sm:p-8">
+    <div className="h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col items-center justify-center p-4">
       <main className="max-w-4xl w-full text-center">
         
         {/* Logo and Header */}
-        <div className="mb-12">
-          <div className="relative w-64 h-64 mx-auto mb-6">
+        <div className="mb-10">
+          <div className="relative w-48 h-48 mx-auto mb-4">
             <Image
               src="/Assets/Logo.png"
               alt="GoJob Logo"
@@ -48,41 +41,46 @@ export default function WelcomePage() {
               priority
             />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-[var(--foreground)] tracking-tight">
+          <h1 className="text-5xl font-extrabold text-[var(--foreground)] tracking-tight">
             Welcome to <span className="text-[var(--primary-color)]">GoJob</span>
           </h1>
-          <p className="mt-4 text-lg text-[var(--text-light)] max-w-2xl mx-auto">
-            Your one-stop platform for discovering career opportunities and connecting with top talent.
+          <p className="mt-3 text-lg text-[var(--text-light)] max-w-2xl mx-auto">
+            Your one-stop platform for discovering career opportunities.
           </p>
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <Card
-            icon={<svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>}
-            title="Apply for Jobs"
-            description="Explore thousands of job listings tailored to your skills and preferences. Find your next career move with ease."
+        {/* Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <InfoCard
+            title="For Job Seekers"
+            description="Build your profile, get discovered by top companies, and apply with one click."
           />
-          <Card
-            icon={<svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>}
-            title="Create Jobs"
-            description="Attract the best candidates by posting job openings. Manage applications and build your dream team effortlessly."
+          <InfoCard
+            title="For Employers"
+            description="Post jobs, manage applicants, and find the perfect candidate for your team."
           />
-          <Card
-            icon={<svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
-            title="Connect with People"
-            description="Network with professionals, follow top companies, and stay updated on industry trends to grow your career."
+          <InfoCard
+            title="Match Qualifications"
+            description="Our smart algorithm matches you with jobs that fit your qualifications and preferences."
           />
         </div>
 
-        {/* Login Button */}
-        <div>
-          <button
-            onClick={handleLoginRedirect}
-            className="px-8 py-3 bg-[var(--primary-color)] text-[var(--button-text)] font-bold text-lg rounded-full shadow-lg hover:bg-[var(--primary-color-hover)] transform hover:scale-105 transition-all duration-300"
-          >
-            Get Started
-          </button>
+        {/* Action Buttons */}
+        <div className="flex justify-center items-center space-x-4">
+            <Link href="/jobs/all" passHref>
+                <button
+                    className="btn btn-primary px-8 py-3 text-lg font-bold rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 w-48"
+                >
+                    View Jobs
+                </button>
+            </Link>
+            <Link href="/Login" passHref>
+                <button
+                    className="btn btn-secondary px-8 py-3 text-lg font-bold rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 w-48"
+                >
+                    Login
+                </button>
+            </Link>
         </div>
         
       </main>

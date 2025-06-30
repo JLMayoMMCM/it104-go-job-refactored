@@ -84,27 +84,34 @@ The easiest way to deploy this Next.js app is to use the [Vercel Platform](https
 -   **Framework:** [Next.js](https://nextjs.org/)
 -   **Programming Language:** [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 -   **Frontend:** [React](https://react.dev/)
--   **Styling:** [Tailwind CSS](https://tailwindcss.com/)[CSS]
+-   **Styling:** [Tailwind CSS](https://tailwindcss.com/) & Custom CSS
 -   **Backend & Database:** [Supabase](https://supabase.io/) (PostgreSQL)
 -   **Authentication:** [JSON Web Tokens (JWT)](https://jwt.io/), [bcryptjs](https://www.npmjs.com/package/bcryptjs)
 -   **Email Service:** [Nodemailer](https://nodemailer.com/)
--   **PDF Generation:** [@react-pdf/renderer](https://react-pdf.org/)
+-   **PDF Handling:** [@react-pdf/renderer](https://react-pdf.org/) for generation and [react-pdf](https://github.com/wojtekmaj/react-pdf) for display.
 
 ## Dependencies
 
 ### Main Dependencies
-- **@react-pdf/renderer**: `^4.3.0`
-- **@supabase/supabase-js**: `^2.50.0`
-- **bcryptjs**: `^3.0.2`
+- **@react-pdf/renderer**: `^3.4.4`
+- **@supabase/supabase-js**: `^2.43.4`
+- **bcryptjs**: `^2.4.3`
 - **jsonwebtoken**: `^9.0.2`
-- **next**: `15.3.3`
-- **nodemailer**: `^7.0.3`
-- **react**: `^19.0.0`
-- **react-dom**: `^19.0.0`
+- **next**: `14.2.3`
+- **nodemailer**: `^6.9.13`
+- **react**: `^18`
+- **react-dom**: `^18`
+- **react-dropzone**: `^14.2.3`
+- **react-hot-toast**: `^2.4.1`
+- **react-icons**: `^5.2.1`
+- **react-pdf**: `^9.0.0`
+- **react-spinners**: `^0.13.8`
 
 ### Development Dependencies
-- **@tailwindcss/postcss**: `^4`
-- **tailwindcss**: `^4`
+- **eslint**: `^8`
+- **eslint-config-next**: `14.2.3`
+- **postcss**: `^8`
+- **tailwindcss**: `^3.4.3`
 
 ## Features
 
@@ -137,18 +144,24 @@ The project follows the Next.js App Router structure.
 /
 |-- app/                    # Main application folder
 |   |-- api/                # API routes for backend logic
+|   |-- company/            # Public company profile pages
 |   |-- components/         # Reusable React components
 |   |-- Dashboard/          # Main dashboard layouts and pages for users
 |   |   |-- employee/       # Pages specific to the employer role
 |   |   |-- jobseeker/      # Pages specific to the job seeker role
+|   |-- hooks/              # Custom React hooks
+|   |-- jobs/               # Public job listing and detail pages
 |   |-- lib/                # Library files and services (Supabase, auth, email)
 |   |-- Login/              # Login, registration, and verification pages
+|   |-- Welcome/            # Welcome page for new users
 |   |-- layout.js           # Root layout of the application
-|   |-- page.js             # Main landing page
+|   |-- page.js             # Main landing page (redirects to Welcome)
 |-- public/                 # Static assets (images, icons)
 |-- scripts/                # Utility scripts
 |-- SQL/                    # SQL scripts for database schema
 |-- next.config.mjs         # Next.js configuration
+|-- postcss.config.mjs      # PostCSS configuration
+|-- jsconfig.json           # JS configuration
 |-- package.json            # Project dependencies and scripts
 ```
 

@@ -385,10 +385,8 @@ case 'saved':
 
         {/* Main content */}
         <main className="flex-1">
-          <div className="py-4 sm:py-6 w-full">
-            <div className="px-4 sm:px-6 w-full">
-              {children}
-            </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            {children}
           </div>
         </main>
       </div>

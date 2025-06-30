@@ -217,7 +217,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('accountId');
-    const type = searchParams.get('type'); // 'recommended', 'recent', or 'search'
+    const type = searchParams.get('type') || 'search'; // Default to 'search'
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 12;
     const search = searchParams.get('search') || '';
@@ -228,64 +228,40 @@ export async function GET(request) {
     const salaryMin = searchParams.get('salaryMin') || '';
     const salaryMax = searchParams.get('salaryMax') || '';
     const location = searchParams.get('location') || '';
-    // For compatibility with frontend filter
     const salaryRange = searchParams.get('salaryRange') || '';
 
-    if (!accountId) {
-      return NextResponse.json({ success: false, error: 'Account ID is required' }, { status: 400 });
-    }
-
     const supabase = createClient();
+    let jobSeekerData = null;
 
-    // Get jobseeker data to access preferences
-    const { data: jobSeekerData, error: jobSeekerError } = await supabase
-      .from('job_seeker')
-      .select('job_seeker_id, job_seeker_experience_level_id')
-      .eq('account_id', accountId)
-      .single();
-
-    if (jobSeekerError || !jobSeekerData) {
-      return NextResponse.json({ success: false, error: 'Job seeker not found' }, { status: 404 });
+    // If an accountId is provided, try to fetch job seeker data
+    if (accountId) {
+      const { data, error } = await supabase
+        .from('job_seeker')
+        .select('job_seeker_id, job_seeker_experience_level_id')
+        .eq('account_id', accountId)
+        .single();
+      
+      if (error) {
+        console.warn(`Could not fetch job seeker data for accountId ${accountId}:`, error.message);
+      } else {
+        jobSeekerData = data;
+      }
     }
 
-    // Handle search/filter functionality
-    if (type === 'search' || search || category || jobType || experienceLevel || salaryMin || salaryMax || location) {
-      // Parse salary range if provided (for compatibility with frontend)
-      let salaryMinValue = salaryMin;
-      let salaryMaxValue = salaryMax;
-      if (salaryRange) {
-        if (salaryRange === '0-20000') {
-          salaryMinValue = 0;
-          salaryMaxValue = 20000;
-        } else if (salaryRange === '20001-40000') {
-          salaryMinValue = 20001;
-          salaryMaxValue = 40000;
-        } else if (salaryRange === '40001-60000') {
-          salaryMinValue = 40001;
-          salaryMaxValue = 60000;
-        } else if (salaryRange === '60001-80000') {
-          salaryMinValue = 60001;
-          salaryMaxValue = 80000;
-        } else if (salaryRange === '80001+') {
-          salaryMinValue = 80001;
-          salaryMaxValue = null;
-        }
-      }
+    // For search, we can proceed with or without an accountId
+    if (type === 'search') {
       return await handleSearchJobs(supabase, {
-        page,
-        limit,
-        search,
-        sort,
-        category,
-        jobType,
-        experienceLevel,
-        salaryMin: salaryMinValue,
-        salaryMax: salaryMaxValue,
-        location,
-        jobSeekerData
+        page, limit, search, sort, category, jobType, experienceLevel,
+        salaryMin, salaryMax, location, salaryRange, jobSeekerData
       }, accountId);
     }
 
+    // For other types like 'recommended', job seeker data is required
+    if (!jobSeekerData) {
+      return NextResponse.json({ success: false, error: 'Account ID is required for this action' }, { status: 400 });
+    }
+
+    // --- Recommended Jobs Logic ---
     if (type === 'recommended') {
       // Prepare job seeker data for enhanced matching
       const jobSeekerMatchingData = await prepareJobSeekerDataForMatching(supabase, accountId, jobSeekerData.job_seeker_id);
