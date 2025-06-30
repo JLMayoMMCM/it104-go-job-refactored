@@ -8,16 +8,17 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('unread'); // 'unread' or 'read'
+  const [accountId, setAccountId] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const accountId = localStorage.getItem('accountId');
-    if (!accountId) {
+    const storedAccountId = typeof window !== 'undefined' ? localStorage.getItem('accountId') : null;
+    if (!storedAccountId) {
       router.push('/Login');
       return;
     }
-    
-    fetchNotifications(accountId);
+    setAccountId(storedAccountId);
+    fetchNotifications(storedAccountId);
   }, [router]);
 
   const fetchNotifications = async (accountId) => {
@@ -42,13 +43,16 @@ export default function NotificationsPage() {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      const accountId = localStorage.getItem('accountId');
-      const response = await fetch(`/api/jobseeker/notifications?accountId=${accountId}&notificationId=${notificationId}`, {
+      if (!accountId) {
+        router.push('/Login');
+        return;
+      }
+      const response = await fetch(`/api/jobseeker/notifications`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'markAsRead' }),
+        body: JSON.stringify({ accountId, notificationId }),
       });
 
       const data = await response.json();
@@ -58,8 +62,8 @@ export default function NotificationsPage() {
       }
 
       if (data.success) {
-        setNotifications(notifications.map(notif => 
-          notif.id === notificationId ? { ...notif, is_read: true } : notif
+        setNotifications(prev => prev.map(notif => 
+          notif.notification_id === notificationId ? { ...notif, is_read: true } : notif
         ));
       }
     } catch (error) {
@@ -70,13 +74,16 @@ export default function NotificationsPage() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const accountId = localStorage.getItem('accountId');
-      const response = await fetch(`/api/jobseeker/notifications?accountId=${accountId}`, {
+      if (!accountId) {
+        router.push('/Login');
+        return;
+      }
+      const response = await fetch(`/api/jobseeker/notifications`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'markAllAsRead' }),
+        body: JSON.stringify({ accountId, markAllAsRead: true }),
       });
 
       const data = await response.json();
@@ -86,7 +93,7 @@ export default function NotificationsPage() {
       }
 
       if (data.success) {
-        setNotifications(notifications.map(notif => ({ ...notif, is_read: true })));
+        setNotifications(prev => prev.map(notif => ({ ...notif, is_read: true })));
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -95,7 +102,10 @@ export default function NotificationsPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'No date';
+    const dateObj = new Date(dateString);
+    if (isNaN(dateObj.getTime())) return 'No date';
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -228,16 +238,16 @@ export default function NotificationsPage() {
               </div>
             ) : (
               filteredNotifications.map((notification) => (
-                <div key={notification.id} className="flex items-start gap-4 px-6 py-4 hover:bg-[var(--background)] transition-colors duration-200">
-                  {getNotificationIcon(notification.type, notification.is_read)}
+                <div key={notification.notification_id} className="flex items-start gap-4 px-6 py-4 hover:bg-[var(--background)] transition-colors duration-200">
+                  {getNotificationIcon(notification.notification_type, notification.is_read)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--foreground)]">{notification.title}</p>
-                    <p className="mt-1 text-sm text-[var(--text-light)]">{notification.message}</p>
-                    <p className="mt-1 text-xs text-[var(--text-light)]">{formatDate(notification.created_at)}</p>
+                    <p className="text-sm font-medium text-[var(--foreground)]">{notification.notification_text}</p>
+                    <p className="mt-1 text-xs text-[var(--text-light)]">From: {notification.sender_name}</p>
+                    <p className="mt-1 text-xs text-[var(--text-light)]">{formatDate(notification.notification_date)}</p>
                   </div>
                   {!notification.is_read && (
                     <button
-                      onClick={() => handleMarkAsRead(notification.id)}
+                      onClick={() => handleMarkAsRead(notification.notification_id)}
                       className="flex-shrink-0 text-sm text-[var(--primary-color)] hover:text-[var(--primary-color-hover)] transition-colors duration-200"
                     >
                       Mark as Read

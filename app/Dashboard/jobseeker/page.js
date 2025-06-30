@@ -409,7 +409,9 @@ export default function JobseekerDashboard() {
 
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-4">
-        <div className="card analytics overflow-hidden border-l-4 border-[var(--primary-color)] p-3 sm:p-4">
+        <div className="card analytics overflow-hidden border-l-4 border-[var(--primary-color)] p-3 sm:p-4 cursor-pointer hover:bg-[var(--background)] transition-colors"
+          onClick={() => router.push('/Dashboard/jobseeker/applications')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-[var(--text-light)]">Total Applications</p>
@@ -420,14 +422,6 @@ export default function JobseekerDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-          </div>
-          <div className="mt-2 sm:mt-3">
-            <button 
-              onClick={() => router.push('/Dashboard/jobseeker/applications')}
-              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
-            >
-              View Applications →
-            </button>
           </div>
         </div>
         <div className="card analytics overflow-hidden border-l-4 border-[var(--success-color)] p-3 sm:p-4">
@@ -456,7 +450,10 @@ export default function JobseekerDashboard() {
             </div>
           </div>
         </div>
-        <div className="card analytics overflow-hidden border-l-4 border-[var(--secondary-color)] p-3 sm:p-4">
+        <div
+          className="card analytics overflow-hidden border-l-4 border-[var(--secondary-color)] p-3 sm:p-4 cursor-pointer hover:bg-[var(--background)] transition-colors"
+          onClick={() => router.push('/Dashboard/jobseeker/saved-jobs')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-[var(--text-light)]">Saved Jobs</p>
@@ -468,16 +465,11 @@ export default function JobseekerDashboard() {
               </svg>
             </div>
           </div>
-          <div className="mt-2 sm:mt-3">
-            <button 
-              onClick={() => router.push('/Dashboard/jobseeker/saved-jobs')}
-              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
-            >
-              View Saved Jobs →
-            </button>
-          </div>
         </div>
-        <div className="card analytics overflow-hidden border-l-4 border-[var(--accent-color)] p-3 sm:p-4">
+        <div
+          className="card analytics overflow-hidden border-l-4 border-[var(--accent-color)] p-3 sm:p-4 cursor-pointer hover:bg-[var(--background)] transition-colors"
+          onClick={() => router.push('/Dashboard/jobseeker/company/followed')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-[var(--text-light)]">Followed Companies</p>
@@ -489,16 +481,11 @@ export default function JobseekerDashboard() {
               </svg>
             </div>
           </div>
-          <div className="mt-2 sm:mt-3">
-            <button 
-              onClick={() => router.push('/Dashboard/jobseeker/company/followed')}
-              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
-            >
-              View Companies →
-            </button>
-          </div>
         </div>
-        <div className="card analytics overflow-hidden border-l-4 border-[var(--primary-color)] p-3 sm:p-4">
+        <div
+          className="card analytics overflow-hidden border-l-4 border-[var(--primary-color)] p-3 sm:p-4 cursor-pointer hover:bg-[var(--background)] transition-colors"
+          onClick={() => router.push('/Dashboard/jobseeker/notifications')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-[var(--text-light)]">Unread Notifications</p>
@@ -510,14 +497,6 @@ export default function JobseekerDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19.5A2.5 2.5 0 01 1.5 17V12A8.5 8.5 0 0110 3.5h4A8.5 8.5 0 0122.5 12v5a2.5 2.5 0 01-2.5 2.5H4z" />
               </svg>
             </div>
-          </div>
-          <div className="mt-2 sm:mt-3">
-            <button 
-              onClick={() => router.push('/Dashboard/jobseeker/notifications')}
-              className="text-xs text-[var(--primary-color)] hover:underline w-full text-left"
-            >
-              View Notifications →
-            </button>
           </div>
         </div>
       </div>
