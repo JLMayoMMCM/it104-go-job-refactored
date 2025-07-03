@@ -69,8 +69,21 @@ export default function FollowedCompaniesPage() {
     window.scrollTo(0, 0); // Scroll to top on page change
   };
 
-  if (loading) return <div className="text-center py-10">Loading followed companies...</div>;
-  if (error) return <div className="text-center py-10 text-red-500">Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
+      </div>
+    );
+  }
+  
+  if (error) return (
+    <div className="text-center py-10">
+      <div className="text-red-500 bg-red-100 dark:bg-red-900/20 p-4 rounded-lg">
+        Error: {error}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -87,7 +100,7 @@ export default function FollowedCompaniesPage() {
             placeholder="Search companies by name or location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 border border-[var(--border-color)] rounded-md"
+            className="w-full p-4 border border-[var(--border-color)] rounded-lg bg-[var(--background)] text-[var(--foreground)] placeholder-[var(--text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-transparent transition-all"
           />
         </div>
 
@@ -102,30 +115,41 @@ export default function FollowedCompaniesPage() {
         </div>
 
         {filteredCompanies.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-16 bg-[var(--light-color)] dark:bg-[var(--dark-color)] rounded-lg">
             <h3 className="text-lg font-semibold text-[var(--foreground)]">No Followed Companies</h3>
             <p className="text-[var(--text-light)] mt-2">
               {searchTerm ? 'No companies match your search.' : 'Start following companies to see them here.'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[var(--border-color)] max-h-[600px] overflow-y-auto">
+          <div className="space-y-4 h-[65vh] overflow-y-auto pr-2 scrollbar-hide">
             {displayedCompanies.map(company => (
-              <div key={company.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-[var(--light-color)] transition-colors rounded-md">
+              <div 
+                key={company.id} 
+                className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--background)] border border-[var(--border-color)] rounded-lg hover:shadow-lg dark:hover:shadow-[var(--primary-color)]/5 transition-all"
+              >
                 <div className="flex items-center gap-4">
-                  <img
-                    src={company.logo ? `data:image/png;base64,${company.logo}` : '/Assets/Logo.png'}
-                    alt={`${company.name} Logo`}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-white/50 shadow-sm"
-                  />
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--border-color)] bg-[var(--light-color)] dark:bg-[var(--dark-color)]">
+                    <img
+                      src={company.logo ? `data:image/png;base64,${company.logo}` : '/Assets/Logo.png'}
+                      alt={`${company.name} Logo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div>
-                    <Link href={`/Dashboard/jobseeker/company/${company.id}`} className="font-bold text-lg text-[var(--foreground)] hover:underline">
+                    <Link 
+                      href={`/Dashboard/jobseeker/company/${company.id}`} 
+                      className="text-lg font-semibold text-[var(--foreground)] hover:text-[var(--primary-color)] transition-colors"
+                    >
                       {company.name}
                     </Link>
-                    <p className="text-sm text-[var(--text-light)]">{company.location}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{company.location}</p>
                   </div>
                 </div>
-                <Link href={`/Dashboard/jobseeker/company/${company.id}`} className="btn btn-primary mt-3 sm:mt-0">
+                <Link 
+                  href={`/Dashboard/jobseeker/company/${company.id}`} 
+                  className="btn btn-primary text-sm px-4 py-2 whitespace-nowrap"
+                >
                   View Profile
                 </Link>
               </div>
@@ -137,7 +161,8 @@ export default function FollowedCompaniesPage() {
         <Pagination 
           currentPage={currentPage} 
           totalPages={totalPages} 
-          onPageChange={handlePageChange} 
+          onPageChange={handlePageChange}
+          containerClassName="mt-6" 
         />
       </div>
     </div>

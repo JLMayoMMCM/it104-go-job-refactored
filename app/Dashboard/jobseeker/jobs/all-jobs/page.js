@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import JobCard from '../../../../components/JobCard';
+import Pagination from '../../../../components/Pagination';
 
 export default function AllJobs() {
   const [allJobs, setAllJobs] = useState([]);
@@ -625,113 +626,82 @@ if (response.ok && data.success) {
       </div>
 
       {/* Jobs List */}
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <div className="p-6">
-          {displayedJobs.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
-              <svg className="mx-auto h-12 w-12 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <div className="mt-2 text-sm text-[var(--text-light)]">
-                <p>No jobs found matching your criteria. Try adjusting your filters or search terms.</p>
-              </div>
-              <div className="mt-6">
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilters({
-                      sort: 'newest',
-                      category: 'all',
-                      salaryRange: 'all'
-                    });
-                    setCurrentPage(1);
-                  }}
-                  className="btn btn-primary text-sm"
-                >
-                  Clear Filters
-                </button>
-              </div>
+      <div className="card">
+        <div className="p-4 sm:p-6 w-full">
+          {loading ? (
+            // Loading skeletons
+            [...Array(3)].map((_, i) => (
+              <JobCard key={`loading-${i}`} loading={true} />
+            ))
+          ) : error ? (
+            <div className="error-container text-center py-10">
+              <p className="text-[var(--error-color)]">{error}</p>
+              <button onClick={() => {
+                setError(null);
+                setLoading(true);
+                const accountId = localStorage.getItem('accountId');
+                if (accountId) fetchAllJobs(accountId);
+              }} className="mt-4 btn btn-primary">
+                Retry
+              </button>
             </div>
           ) : (
-            <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
-              {displayedJobs.map((job, index) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  applicationStatus={applicationStatus[job.id]}
-                  saved={!!savedJobs[job.id]}
-                  loadingSaved={loadingSavedJobs}
-                  onSave={handleSaveJob}
-                  onApplySuccess={(jobId) => {
-                    setApplicationStatus(prev => {
-                      const prevApps = Array.isArray(prev[jobId]) ? prev[jobId] : [];
-                      return {
-                        ...prev,
-                        [jobId]: [
-                          ...prevApps,
-                          {
-                            status: "In-progress",
-                            request_date: new Date().toISOString()
-                          }
-                        ]
-                      };
-                    });
-                  }}
-                  onView={handleViewJob}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm text-[var(--text-light)]">
+                  Showing {displayedJobs.length} of {filteredJobs.length} jobs
+                </div>
+                {filteredJobs.length > 0 && (
+                  <div className="text-sm text-[var(--text-light)]">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                )}
+              </div>
+              
+              {displayedJobs.length > 0 ? (
+                <div className="space-y-2 h-[65vh] w-full overflow-y-auto pr-2 scrollbar-hide">
+                  {displayedJobs.map(job => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      applicationStatus={applicationStatus[job.id]}
+                      saved={!!savedJobs[job.id]}
+                      loadingSaved={loadingSavedJobs}
+                      onSave={handleSaveJob}
+                      onApplySuccess={(jobId) => {
+                        setApplicationStatus(prev => {
+                          const prevApps = Array.isArray(prev[jobId]) ? prev[jobId] : [];
+                          return {
+                            ...prev,
+                            [jobId]: [
+                              ...prevApps,
+                              {
+                                status: "In-progress",
+                                request_date: new Date().toISOString()
+                              }
+                            ]
+                          };
+                        });
+                      }}
+                      onView={handleViewJob}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-[var(--text-light)]">
+                  No jobs found matching your criteria.
+                </div>
+              )}
+              
+              {/* Pagination */}
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={handlePageChange} 
+              />
+            </>
           )}
         </div>
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between">
-            <div className="text-sm text-[var(--text-light)] mb-2 sm:mb-0">
-              Showing page {currentPage} of {totalPages}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded-md text-sm font-medium ${
-                  currentPage === 1
-                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
-                    : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
-                }`}
-              >
-                Previous
-              </button>
-              
-              {/* Page number buttons */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === page
-                      ? 'bg-[var(--primary-color)] text-white'
-                      : 'bg-[var(--border-color)] text-[var(--text-light)] hover:bg-[var(--hover-color)]'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded-md text-sm font-medium ${
-                  currentPage === totalPages
-                    ? 'bg-[var(--border-color)] text-[var(--text-light)] cursor-not-allowed'
-                    : 'bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)]'
-                }`}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Quick Apply Modal */}

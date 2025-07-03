@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import JobCard from '../../../../components/JobCard';
+import Pagination from '../../../../components/Pagination';
 
 export default function RecommendedJobs() {
   /* --------------------------- STATE --------------------------- */
@@ -346,28 +347,67 @@ export default function RecommendedJobs() {
     );
   };
 
-  if (error) return <div className="error-message">{error}</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="profile-header">
         <h1 className="text-heading">Recommended Jobs</h1>
-        <p className="text-description">Jobs tailored to your profile based on your skills and preferences.</p>
+        <p className="text-description">Jobs that match your skills and preferences.</p>
       </div>
 
-      {success && <div className="success-message">{success}</div>}
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="success-message">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-[var(--success-color)]" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <div className="text-sm text-[var(--success-color)]">
+                <p>{success}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="error-message">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-[var(--error-color)]" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <div className="text-sm text-[var(--error-color)]">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Search & Filters */}
+      {/* Search and Filters */}
       <div className="card overflow-hidden">
         <div className="p-6">
           <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-grow relative">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search jobs by title, company, or location..."
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search recommended jobs..."
                   className="form-input"
                 />
                 <svg className="absolute right-3 top-3.5 w-5 h-5 text-[var(--text-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +418,7 @@ export default function RecommendedJobs() {
                 type="button"
                 onClick={() => setShowFilterModal(true)}
                 className="btn btn-secondary flex items-center justify-center gap-2 text-[var(--foreground)] w-full max-w-[140px] mx-auto"
-                style={{ minHeight: "2.75rem" }}
+                style={{ minHeight: "44px" }}
               >
                 <span className="flex items-center justify-center gap-2 w-full">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,54 +489,100 @@ export default function RecommendedJobs() {
       </div>
 
       {/* Jobs List */}
-      <div className="card" style={{overflowX:'auto'}}>
-        <div className="p-6">
+      <div className="card">
+        <div className="p-4 sm:p-6 w-full">
           {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, index) => <JobCard key={index} loading={true} />)}
-            </div>
-          ) : displayedJobs.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-[var(--border-color)] rounded-lg">
-              <p className="text-lg font-semibold text-[var(--foreground)]">No Jobs Found</p>
-              <p className="text-sm text-[var(--text-light)] mt-2">No recommended jobs match your current filters. Try adjusting your search.</p>
+            // Loading skeletons
+            [...Array(3)].map((_, i) => (
+              <JobCard key={`loading-${i}`} loading={true} />
+            ))
+          ) : error ? (
+            <div className="error-container text-center py-10">
+              <p className="text-[var(--error-color)]">{error}</p>
+              <button onClick={() => {
+                setError(null);
+                setLoading(true);
+                const accountId = localStorage.getItem('accountId');
+                if (accountId) {
+                  fetchAndProcessRecommendedJobs(accountId);
+                }
+              }} className="mt-4 btn btn-primary">
+                Retry
+              </button>
             </div>
           ) : (
-            <div className="space-y-4 max-h-[calc(100vh-17.5rem)] overflow-y-auto scrollbar-hide">
-              {displayedJobs.map(job => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  applicationStatus={applicationStatus[job.id] || []}
-                  saved={!!savedJobs[job.id]}
-                  loadingSaved={loadingSaved}
-                  onSave={handleSaveJob}
-                  onApplySuccess={handleApplySuccess}
-                  onView={handleViewJob}
-                  showSave={true}
-                  showApply={true}
-                  showView={true}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm text-[var(--text-light)]">
+                  Showing {displayedJobs.length} of {filteredJobs.length} jobs
+                </div>
+                {filteredJobs.length > 0 && (
+                  <div className="text-sm text-[var(--text-light)]">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                )}
+              </div>
+              
+              {displayedJobs.length > 0 ? (
+                <div className="space-y-2 h-[40vh] w-full overflow-y-auto pr-2 scrollbar-hide">
+                  {displayedJobs.map(job => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      applicationStatus={applicationStatus[job.id]}
+                      saved={!!savedJobs[job.id]}
+                      loadingSaved={loadingSaved}
+                      onSave={handleSaveJob}
+                      onApplySuccess={(jobId) => {
+                        setApplicationStatus(prev => {
+                          const prevApps = Array.isArray(prev[jobId]) ? prev[jobId] : [];
+                          return {
+                            ...prev,
+                            [jobId]: [
+                              ...prevApps,
+                              {
+                                status: "In-progress",
+                                request_date: new Date().toISOString()
+                              }
+                            ]
+                          };
+                        });
+                      }}
+                      onView={handleViewJob}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-[var(--text-light)]">
+                  No recommended jobs found matching your criteria.
+                </div>
+              )}
+              
+              {/* Pagination */}
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={handlePageChange} 
+              />
+            </>
           )}
         </div>
-        {renderPagination()}
-        </div>
+      </div>
 
       {/* Filter Modal */}
       {showFilterModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50">
-          <div className="modal-content">
-            <h2 className="text-subheading">Filter Jobs</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--card-background)] p-6 rounded-lg shadow-lg max-w-lg w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-[var(--foreground)]">Filter Recommended Jobs</h2>
             <div className="space-y-4">
               <div>
-                <label className="form-label">Sort by</label>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Sort by</label>
                 <select
                   value={filters.sort}
                   onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
                   className="form-input"
                 >
-                  <option value="match_high">Best Match</option>
+                  <option value="match_high">Highest Match</option>
                   <option value="match_low">Lowest Match</option>
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -505,57 +591,59 @@ export default function RecommendedJobs() {
                 </select>
               </div>
               <div>
-                <label className="form-label">Job Field</label>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Job Field</label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
                   className="form-input"
-          >
-            <option value="all">All Fields</option>
+                >
+                  <option value="all">All Fields</option>
                   {jobFields.map((field) => (
                     <option
                       key={field.category_field_id}
                       value={field.category_field_id}
                     >
-                {field.category_field_name}
-              </option>
-            ))}
-          </select>
+                      {field.category_field_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="form-label">Salary Range</label>
-          <select
-            value={filters.salaryRange}
-            onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Salary Range</label>
+                <select
+                  value={filters.salaryRange}
+                  onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
                   className="form-input"
                 >
-                  <option key="all" value="all">All Salary Ranges</option>
-                  <option key="0-20000" value="0-20000">Below ₱20,000</option>
-                  <option key="20001-40000" value="20001-40000">₱20,001 - ₱40,000</option>
-                  <option key="40001-60000" value="40001-60000">₱40,001 - ₱60,000</option>
-                  <option key="60001-80000" value="60001-80000">₱60,001 - ₱80,000</option>
-                  <option key="80001+" value="80001+">Above ₱80,000</option>
-          </select>
+                  <option value="all">All Salary Ranges</option>
+                  <option value="0-20000">Below ₱20,000</option>
+                  <option value="20001-40000">₱20,001 - ₱40,000</option>
+                  <option value="40001-60000">₱40,001 - ₱60,000</option>
+                  <option value="60001-80000">₱60,001 - ₱80,000</option>
+                  <option value="80001+">Above ₱80,000</option>
+                </select>
               </div>
-              <div>
-                <label className="form-label">Job Experience Level</label>
-          <select
-            value={filters.experienceLevel}
-            onChange={(e) => setFilters(prev => ({ ...prev, experienceLevel: e.target.value }))}
-                  className="form-input"
-          >
-                  <option key="all" value="all">All Experience Levels</option>
-            {experienceLevels.map(level => (
-                    <option key={level.job_seeker_experience_level_id} value={level.job_seeker_experience_level_id}>
-                {level.experience_level_name}
-              </option>
-            ))}
-          </select>
-        </div>
             </div>
-            <div className="button-group">
-              <button onClick={() => setShowFilterModal(false)} className="btn btn-secondary">Cancel</button>
-              <button onClick={() => setShowFilterModal(false)} className="btn btn-primary">Apply Filters</button>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setFilters({
+                    sort: 'match_high',
+                    category: 'all',
+                    salaryRange: 'all',
+                    experienceLevel: 'all'
+                  });
+                }}
+                className="btn btn-secondary"
+              >
+                Clear Filters
+              </button>
+              <button
+                onClick={() => setShowFilterModal(false)}
+                className="btn btn-primary"
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         </div>
