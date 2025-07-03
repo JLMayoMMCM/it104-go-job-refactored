@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
+// Use a base64 encoded image or a full URL that works in emails
+const imageUrl = 'https://raw.githubusercontent.com/it104-go-job/it104-go-job-refactored/main/public/Assets/Title.png';
+
 export async function POST(request) {
   try {
     const { email, code, type, name, lastName, position, companyName, employeeEmail } = await request.json();
@@ -37,6 +40,9 @@ export async function POST(request) {
             <title>Email Verification</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to GoJob!</h1>
             </div>
@@ -76,6 +82,9 @@ export async function POST(request) {
             <title>Login Verification</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Login Verification</h1>
             </div>
@@ -115,6 +124,9 @@ export async function POST(request) {
             <title>Employee Registration Request</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
             <div style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Employee Registration Request</h1>
             </div>
@@ -165,6 +177,9 @@ export async function POST(request) {
             <title>Registration Pending</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Registration Pending</h1>
             </div>
@@ -211,6 +226,9 @@ export async function POST(request) {
             <title>Company Registration</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; padding-bottom: 20px;">
+              <img src="${imageUrl}" alt="GoJob Title" style="max-width: 250px;"/>
+            </div>
             <div style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to GoJob!</h1>
             </div>

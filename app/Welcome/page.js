@@ -67,7 +67,7 @@ export default function WelcomePage() {
 
         {/* Action Buttons */}
         <div className="flex justify-center items-center space-x-4">
-            <Link href="/jobs/all" passHref>
+            <Link href="/guest/jobs/all" passHref>
                 <button
                     className="btn btn-primary px-8 py-3 text-lg font-bold rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 w-48"
                 >

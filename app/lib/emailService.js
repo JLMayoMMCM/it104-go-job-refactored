@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 
-const imageUrl = 'https://your-domain.com/Assets/Title.png'; // Update with your actual domain
+// Use a base64 encoded image or a full URL that works in emails
+const imageUrl = 'https://raw.githubusercontent.com/it104-go-job/it104-go-job-refactored/main/public/Assets/Title.png';
 
 export async function sendVerificationEmail({ email, code, type, name, lastName, position, companyName, employeeEmail }) {
   try {

@@ -623,4 +623,10 @@ INSERT INTO company (company_name, company_email, company_phone, company_website
   (SELECT nationality_id FROM nationality WHERE nationality_name = 'Filipino'))
 ON CONFLICT DO NOTHING;
 
+-- ============================================================
+-- 5. INSERT SAMPLE Jobs (Sample Data)
+-- ============================================================
+
 -- End of SQL/TableCreation.sql
+
+
