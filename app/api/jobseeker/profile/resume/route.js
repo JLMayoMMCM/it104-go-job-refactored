@@ -34,8 +34,8 @@ export async function POST(request) {
     // Upload resume to storage
     const fileName = `${accountId}_${Date.now()}_${resumeFile.name}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('resumes')
-      .upload(fileName, resumeFile, {
+      .from('profile')
+      .upload(`resume/${fileName}`, resumeFile, {
         cacheControl: '3600',
         upsert: false
       });
@@ -50,8 +50,8 @@ export async function POST(request) {
 
     // Get public URL for the uploaded file
     const { data: { publicUrl } } = supabase.storage
-      .from('resumes')
-      .getPublicUrl(fileName);
+      .from('profile')
+      .getPublicUrl(`resume/${fileName}`);
 
     // Update job_seeker table with resume URL
     const { error: updateError } = await supabase
@@ -64,7 +64,7 @@ export async function POST(request) {
     if (updateError) {
       console.error('Error updating job seeker resume:', updateError);
       // Try to delete the uploaded file if update fails
-      await supabase.storage.from('resumes').remove([fileName]);
+      await supabase.storage.from('profile').remove([`resume/${fileName}`]);
       return NextResponse.json(
         { success: false, error: 'Failed to update resume information' },
         { status: 500 }
@@ -121,7 +121,7 @@ export async function DELETE(request) {
     if (jobSeekerData.job_seeker_resume) {
       try {
         const resumeFileName = jobSeekerData.job_seeker_resume.split('/').pop().split('?')[0];
-        await supabase.storage.from('resumes').remove([resumeFileName]);
+        await supabase.storage.from('profile').remove([`resume/${resumeFileName}`]);
       } catch (storageError) {
         console.error('Error deleting resume from storage:', storageError);
         // Continue with database update even if storage delete fails
